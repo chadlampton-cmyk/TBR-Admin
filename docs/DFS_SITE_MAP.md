@@ -87,7 +87,8 @@ If resuming implementation, start in:
 2. `landing/styles.css`
 
 Immediate work area:
+- compact REC strip visual redesign
 - active cue controls
 - audio drawer behavior
-- guest audio wiring
+- guest audio validation
 - recording fidelity and validation

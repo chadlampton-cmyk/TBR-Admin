@@ -605,9 +605,12 @@
                 <section class="onair-audio-utility-row onair-audio-music-meter-row" aria-label="Music bus meter">
                   <div class="onair-audio-utility-head">
                     <span class="onair-audio-utility-title">Music Bus Meter</span>
-                    <span class="onair-audio-utility-value" id="onair-music-bus-meter-value">-8 dBFS</span>
+                    <div class="onair-audio-utility-meta">
+                      <span class="onair-audio-utility-value" id="onair-music-bus-meter-value">-8 dBFS</span>
+                      <span class="onair-record-level-badge safe" id="onair-music-bus-meter-badge">Safe</span>
+                    </div>
                   </div>
-                  <div class="onair-master-meter-track onair-music-bus-meter-track" aria-hidden="true">
+                  <div class="onair-master-meter-track onair-music-bus-meter-track safe" id="onair-music-bus-meter-track" aria-hidden="true">
                     <div class="onair-master-meter-fill" id="onair-music-bus-meter-fill"></div>
                   </div>
                 </section>

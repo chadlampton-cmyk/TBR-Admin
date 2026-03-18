@@ -47,11 +47,14 @@ Implemented:
 - review player
 - export/download actions
 - music bus inclusion in recording mix
+- recording mix refresh when music starts after recording has already begun
+- compact REC strip visual treatment attempt
 
 Current caveats:
 - browser-side pipeline
 - not backend-mastered
 - recording path is still effectively local + one remote stream path
+- REC strip styling does not yet match the intended Adobe Audition reference look
 
 ### Audio Controls / Live Mix
 Status:
@@ -67,10 +70,13 @@ Implemented:
 - duck voice toggle shell
 - active cue rack
 - output meter UI
+- smoother `Active Cues` slider interaction
+- music bus metering wired into the live music bus
+- outbound host program audio includes music for remote listeners
 
 Still in progress:
 - active cue row polish and stability
-- guest channel wiring into the real mix path
+- guest channel validation against the real mix path
 - clearer auto-fade state feedback
 - long-session validation
 
@@ -88,13 +94,15 @@ Note:
 - `hello.js` still has some legacy dependencies on them
 
 ## Current Priority Order
-1. stabilize Audio Controls behavior
-2. finish active cue UI polish
-3. wire guest audio controls into the real mix path
-4. validate recording output against live behavior
-5. remove or isolate legacy page dependencies from `hello`
+1. redesign the compact REC strip to match the intended Adobe Audition-style reference
+2. stabilize Audio Controls behavior
+3. finish active cue UI polish
+4. validate guest audio behavior against the real mix path
+5. validate recording output against live behavior
+6. remove or isolate legacy page dependencies from `hello`
 
 ## Current Biggest Gaps
-- guest slider is not yet a true authoritative mixer control
+- REC strip styling is functional but visually off-target
+- guest slider behavior still needs full live/recording validation
 - recording/compositor still centers on one remote stream
 - live UI capabilities are ahead of recording fidelity in some areas

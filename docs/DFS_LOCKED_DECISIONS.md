@@ -54,12 +54,18 @@ Locked sections:
 - live music behavior should use the Web Audio path
 - DOM-audio-first mixing is not the target direction
 - recording mix should continue to route from the shared music bus
+- remote listeners should hear the same host program music that the host hears locally
 
 ## UI Discipline
 - avoid cosmetic churn outside active problem areas
 - keep controls inside their containers
 - avoid overlapping controls/text
 - keep drawer behavior coherent before adding more features
+
+## Recording UI Direction
+- the top REC strip should stay compact
+- it can become more meter-like, but should not expand into a large waveform editor
+- the target reference style is closer to Adobe Audition's recessed stereo recording meter than to a decorative waveform
 
 ## Practical Constraint To Remember
 - UI shells can exist ahead of final mix/recording fidelity

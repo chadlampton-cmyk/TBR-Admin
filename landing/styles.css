@@ -6361,6 +6361,16 @@ body.ui-light .camera-placeholder {
   transition: width 90ms ease;
 }
 
+.onair-audio-utility-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.onair-music-bus-meter-track.clip .onair-master-meter-fill {
+  box-shadow: 0 0 12px rgba(207, 106, 89, 0.22);
+}
+
 .onair-output-status-row {
   margin-top: 0.34rem;
   display: flex;

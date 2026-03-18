@@ -206,8 +206,10 @@ const onAirGuestAudioName = document.getElementById("onair-guest-audio-name");
 const onAirGuestMeterFill = document.getElementById("onair-guest-meter-fill");
 const onAirMasterMeterFill = document.getElementById("onair-master-meter-fill");
 const onAirMasterMeterValue = document.getElementById("onair-master-meter-value");
+const onAirMusicBusMeterTrack = document.getElementById("onair-music-bus-meter-track");
 const onAirMusicBusMeterFill = document.getElementById("onair-music-bus-meter-fill");
 const onAirMusicBusMeterValue = document.getElementById("onair-music-bus-meter-value");
+const onAirMusicBusMeterBadge = document.getElementById("onair-music-bus-meter-badge");
 const onAirClippingWarning = document.getElementById("onair-clipping-warning");
 const onAirClippingBarFill = document.getElementById("onair-clipping-bar-fill");
 const onAirPeakHoldValue = document.getElementById("onair-peak-hold-value");
@@ -636,6 +638,13 @@ let onAirMixerMusicBusGainNode = null;
 let onAirMixerMasterGainNode = null;
 let onAirMixerDestinationNode = null;
 let onAirMixerBusAnalyser = null;
+let onAirMixerBusMeterData = null;
+let onAirMixerBusMeterFrameId = 0;
+let onAirMixerBusMeterLevel = 0;
+let onAirMixerBusPeakDb = -60;
+let outgoingProgramAudioContext = null;
+let outgoingProgramAudioDestination = null;
+let outgoingProgramAudioSources = [];
 const onAirMusicBufferCache = new Map();
 let onAirMusicBaseVolume = 0.62;
 let onAirMusicPrimaryVolume = 1;
@@ -645,6 +654,7 @@ let onAirMusicDuckVoiceEnabled = false;
 let onAirMusicFadeFrameId = 0;
 let onAirMusicAutoFadeInTimerId = 0;
 let onAirMusicAutoFadeOutTimerId = 0;
+let onAirCueVolumeApplyFrameId = 0;
 let onAirRecordingStartCue = null;
 let currentMicMeterLevel = 0;
 let onAirGuestVolumePercent = 100;
@@ -2315,7 +2325,7 @@ function getPublishedCameraTrack() {
 function getTwilioConnectTracks() {
   const tracks = [];
   const nextVideoTrack = getPublishedCameraTrack();
-  const nextAudioTrack = !micMuted && micStream ? micStream.getAudioTracks()[0] : null;
+  const nextAudioTrack = getOutgoingAudioTrack();
   if (nextVideoTrack) {
     tracks.push(nextVideoTrack);
   }
@@ -2590,6 +2600,7 @@ async function syncTwilioPublishedTracks() {
       twilioEnsuringLocalMedia = false;
     }
   }
+  await refreshOutgoingProgramAudioStream();
   const room = await ensureTwilioRoomConnection();
   if (!room) {
     return false;
@@ -2599,7 +2610,7 @@ async function syncTwilioPublishedTracks() {
     throw new Error("Twilio room did not provide a local participant.");
   }
   const nextVideoTrack = getPublishedCameraTrack();
-  const nextAudioTrack = !micMuted && micStream ? micStream.getAudioTracks()[0] : null;
+  const nextAudioTrack = getOutgoingAudioTrack();
   const videoPublications = getTwilioPublicationList(localParticipant.videoTracks);
   const audioPublications = getTwilioPublicationList(localParticipant.audioTracks);
   const hasPublishedVideo = videoPublications.some((publication) => isTwilioPublicationForKind(publication, "video", "camera"));
@@ -3502,15 +3513,14 @@ function drawRecordingWaveFrame(level) {
   const railInset = Math.max(8, Math.floor(height * 0.28));
   const railHeight = Math.max(8, height - railInset * 2);
   const railY = Math.round((height - railHeight) / 2);
+  const channelGap = Math.max(3, Math.floor(height * 0.08));
+  const channelTopLimit = railY + 2;
+  const channelBottomLimit = railY + railHeight - 2;
   ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
   ctx.fillRect(0, railY, width, railHeight);
 
-  ctx.strokeStyle = "rgba(214, 233, 252, 0.18)";
-  ctx.lineWidth = Math.max(1, Math.floor((window.devicePixelRatio || 1)));
-  ctx.beginPath();
-  ctx.moveTo(0, centerY);
-  ctx.lineTo(width, centerY);
-  ctx.stroke();
+  ctx.fillStyle = "rgba(246, 250, 255, 0.84)";
+  ctx.fillRect(0, centerY - Math.ceil(channelGap / 2), width, channelGap);
 
   const segmentWidth = Math.max(1, Math.floor(columnStep * 0.7));
   ctx.lineCap = "round";
@@ -3527,7 +3537,7 @@ function drawRecordingWaveFrame(level) {
   for (let i = 0; i < buckets.length; i += 1) {
     const x = i * columnStep;
     const loudness = buckets[i];
-    const amp = Math.max(1, loudness * (height * 0.38));
+    const amp = Math.max(1, loudness * Math.max(6, (railHeight - channelGap) * 0.42));
     let stroke = "rgba(65, 211, 140, 0.94)";
     if (loudness >= 0.88) {
       stroke = "rgba(255, 111, 95, 0.98)";
@@ -3536,18 +3546,22 @@ function drawRecordingWaveFrame(level) {
     } else if (loudness >= 0.28) {
       stroke = "rgba(255, 210, 79, 0.95)";
     }
-    const topY = centerY - amp;
-    const bottomY = centerY + amp;
+    const topStartY = centerY - Math.ceil(channelGap / 2) - 1;
+    const bottomStartY = centerY + Math.floor(channelGap / 2) + 1;
+    const topY = Math.max(channelTopLimit, topStartY - amp);
+    const bottomY = Math.min(channelBottomLimit, bottomStartY + amp);
     ctx.strokeStyle = stroke;
     ctx.lineWidth = segmentWidth;
     ctx.beginPath();
-    ctx.moveTo(x, topY);
+    ctx.moveTo(x, topStartY);
+    ctx.lineTo(x, topY);
+    ctx.moveTo(x, bottomStartY);
     ctx.lineTo(x, bottomY);
     ctx.stroke();
   }
 
-  const peakAmp = Math.max(1, recordingWavePeakLevel * (height * 0.38));
-  const peakY = Math.max(railY - 3, centerY - peakAmp);
+  const peakAmp = Math.max(1, recordingWavePeakLevel * Math.max(6, (railHeight - channelGap) * 0.42));
+  const peakY = Math.max(channelTopLimit - 3, centerY - Math.ceil(channelGap / 2) - peakAmp);
   const peakX = Math.max(4, width - Math.max(4, Math.floor(columnStep * 1.5)));
   ctx.strokeStyle = recordingWavePeakLevel >= 0.88 ? "rgba(255, 111, 95, 0.95)" : "rgba(255, 210, 79, 0.9)";
   ctx.lineWidth = Math.max(1, Math.floor((window.devicePixelRatio || 1) * 1.2));
@@ -3607,6 +3621,13 @@ async function refreshRecordingWaveSources() {
     const remoteSource = recordingWaveAudioContext.createMediaStreamSource(remoteStream);
     remoteSource.connect(recordingWaveMixNode);
     recordingWaveSources.push(remoteSource);
+  }
+
+  const musicBusStream = onAirMixerDestinationNode && onAirMixerDestinationNode.stream ? onAirMixerDestinationNode.stream : null;
+  if (musicBusStream && musicBusStream.getAudioTracks && musicBusStream.getAudioTracks().length) {
+    const musicBusSource = recordingWaveAudioContext.createMediaStreamSource(musicBusStream);
+    musicBusSource.connect(recordingWaveMixNode);
+    recordingWaveSources.push(musicBusSource);
   }
 }
 
@@ -3715,6 +3736,31 @@ function disconnectRecordingAudioSources() {
     }
   });
   recordingMediaAudioSources = [];
+}
+
+async function refreshRecordingAudioSources() {
+  if (!recordingMediaAudioContext || !recordingMediaAudioDestination) {
+    return;
+  }
+
+  disconnectRecordingAudioSources();
+
+  const addAudioSource = (stream) => {
+    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
+      return;
+    }
+    const source = recordingMediaAudioContext.createMediaStreamSource(stream);
+    source.connect(recordingMediaAudioDestination);
+    recordingMediaAudioSources.push(source);
+  };
+
+  addAudioSource(micProcessedStream || micStream);
+  addAudioSource(onAirRemoteVideo.srcObject || remoteVideo.srcObject);
+  addAudioSource(onAirMixerDestinationNode && onAirMixerDestinationNode.stream ? onAirMixerDestinationNode.stream : null);
+
+  if (recordingMediaAudioContext.state === "suspended") {
+    await recordingMediaAudioContext.resume();
+  }
 }
 
 function stopLocalRecordingCapture() {
@@ -3913,21 +3959,7 @@ async function buildLocalRecordingStream() {
   recordingMediaAudioContext = audioContext;
   recordingMediaAudioDestination = audioContext.createMediaStreamDestination();
   recordingMediaAudioSources = [];
-
-  const addAudioSource = (stream) => {
-    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
-      return;
-    }
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(recordingMediaAudioDestination);
-    recordingMediaAudioSources.push(source);
-  };
-
-  addAudioSource(micProcessedStream || micStream);
-  addAudioSource(onAirRemoteVideo.srcObject || remoteVideo.srcObject);
-  if (onAirMixerDestinationNode && onAirMixerDestinationNode.stream) {
-    addAudioSource(onAirMixerDestinationNode.stream);
-  }
+  await refreshRecordingAudioSources();
 
   const mixedTrack = recordingMediaAudioDestination.stream.getAudioTracks()[0];
   if (mixedTrack) {
@@ -3936,6 +3968,7 @@ async function buildLocalRecordingStream() {
 
   const localMicTracks = (micProcessedStream || micStream)?.getAudioTracks?.().length || 0;
   const remoteAudioTracks = (onAirRemoteVideo.srcObject || remoteVideo.srcObject)?.getAudioTracks?.().length || 0;
+  const musicBusTracks = (onAirMixerDestinationNode && onAirMixerDestinationNode.stream)?.getAudioTracks?.().length || 0;
   const mixedAudioTracks = recordingMediaAudioDestination.stream.getAudioTracks().length;
   pushRecordingDiagnostic(
     "build_stream",
@@ -3945,6 +3978,8 @@ async function buildLocalRecordingStream() {
       localMicTracks +
       " | remoteAudioTracks=" +
       remoteAudioTracks +
+      " | musicBusTracks=" +
+      musicBusTracks +
       " | mixedAudioTracks=" +
       mixedAudioTracks,
     {
@@ -4220,9 +4255,6 @@ function abortLocalRecordingCapture() {
 
 function stopMicStream() {
   pushMediaDebug("mic.stop");
-  if (useTwilioVideoRoom()) {
-    forceUnpublishTwilioLocalAudio();
-  }
   stopMicLoopback();
   if (micStream) {
     micStream.getTracks().forEach((track) => track.stop());
@@ -4232,6 +4264,7 @@ function stopMicStream() {
     micProcessedStream.getTracks().forEach((track) => track.stop());
     micProcessedStream = null;
   }
+  disconnectOutgoingProgramAudioSources();
   stopMicMeter();
   micInputSourceNode = null;
   micInputGainNode = null;
@@ -4255,7 +4288,16 @@ function stopMicStream() {
   syncMicMonitoringOutput();
   setMicActiveUI(false);
   updateEchoWarning();
-  addLocalTracksToPeerConnection();
+  refreshOutgoingProgramAudioStream().then(() => {
+    addLocalTracksToPeerConnection();
+    if (useTwilioVideoRoom()) {
+      syncTwilioPublishedTracks().catch(() => {
+        // Ignore Twilio sync races after mic stop.
+      });
+    }
+  }).catch(() => {
+    // Ignore outbound audio refresh failures on teardown.
+  });
   if (isRecording) {
     refreshRecordingWaveSources().catch(() => {
       // Ignore source refresh failures.
@@ -4443,8 +4485,8 @@ function addLocalTracksToPeerConnection() {
     return;
   }
   const videoTrack = cameraStream ? cameraStream.getVideoTracks()[0] : null;
-  const outgoingMicStream = micProcessedStream || micStream;
-  const audioTrack = outgoingMicStream ? outgoingMicStream.getAudioTracks()[0] : null;
+  const outgoingAudioStream = getOutgoingAudioStream();
+  const audioTrack = getOutgoingAudioTrack();
   const getTransceivers = () => (typeof peerConnection.getTransceivers === "function" ? peerConnection.getTransceivers() : []);
   const findTransceiverBySender = (sender) => getTransceivers().find((entry) => entry && entry.sender === sender);
   const transceivers = getTransceivers();
@@ -4491,9 +4533,8 @@ function addLocalTracksToPeerConnection() {
   }
 
   if (audioTrack) {
-    audioTrack.enabled = !micMuted;
     if (!audioSender) {
-      audioSender = peerConnection.addTrack(audioTrack, outgoingMicStream);
+      audioSender = peerConnection.addTrack(audioTrack, outgoingAudioStream);
     } else {
       audioSender.replaceTrack(audioTrack).catch(() => {
         // Ignore replacement errors during reconnect races.
@@ -4720,7 +4761,6 @@ function startMicMeter() {
         }
       }
     }
-    updateOnAirMasterMeter(Math.max(level, Math.round(getOnAirMusicEffectiveVolume() * 100)));
     applyOnAirMusicOutputVolume(false);
     micMeterFrameId = requestAnimationFrame(tick);
   };
@@ -4789,17 +4829,18 @@ async function startMic() {
     applyNoiseGateThresholdDb(getNoiseGateThresholdDb(), false);
     applyLoudnessTargetPreset(getLoudnessPreset(), false);
     micProcessedStream = micProcessedDestination.stream;
-  micMeterData = new Uint8Array(micAnalyser.fftSize);
-  if (micAudioContext.state === "suspended") {
-    await micAudioContext.resume();
-  }
-  startMicMeter();
-  micStandbyDisabled = false;
-  micMuted = false;
-  setMicStatus("Mic is live. Speak to test levels.");
+    micMeterData = new Uint8Array(micAnalyser.fftSize);
+    if (micAudioContext.state === "suspended") {
+      await micAudioContext.resume();
+    }
+    startMicMeter();
+    micStandbyDisabled = false;
+    micMuted = false;
+    setMicStatus("Mic is live. Speak to test levels.");
     setAudioRackStatus("Audio rack live. Adjust controls in real time.", false);
     setMicActiveUI(true);
     updateEchoWarning();
+    await refreshOutgoingProgramAudioStream();
     addLocalTracksToPeerConnection();
     await loadMicDevices();
     if (isRecording) {
@@ -7145,7 +7186,9 @@ function setMicMuted(nextMuted) {
   if (micMuted) {
     setMicStatus("Mic is muted. Others cannot hear you.");
     if (useTwilioVideoRoom()) {
-      forceUnpublishTwilioLocalAudio();
+      syncTwilioPublishedTracks().catch(() => {
+        // Ignore Twilio sync races during mute changes.
+      });
     }
   } else {
     setMicStatus("Mic is live. Others can hear you.");
@@ -7184,7 +7227,9 @@ function setMicStandbyEnabled(enabled) {
   }
   syncMicMonitoringOutput();
   if (useTwilioVideoRoom()) {
-    forceUnpublishTwilioLocalAudio();
+    syncTwilioPublishedTracks().catch(() => {
+      // Ignore Twilio sync races while standing by.
+    });
   }
   addLocalTracksToPeerConnection();
   setMicStatus("Microphone is off.");
@@ -7650,7 +7695,7 @@ function applyOnAirGuestVolume(rawValue) {
   updateOnAirGuestAudioUI();
 }
 
-function updateOnAirMasterMeter(levelPercent) {
+function updateOnAirMasterMeter(levelPercent, peakDbOverride) {
   const nextLevel = Math.max(0, Math.min(100, Number(levelPercent) || 0));
   if (onAirMasterMeterFill) {
     onAirMasterMeterFill.style.width = nextLevel + "%";
@@ -7661,15 +7706,45 @@ function updateOnAirMasterMeter(levelPercent) {
   if (onAirClippingBarFill) {
     onAirClippingBarFill.style.width = nextLevel + "%";
   }
-  const approxDb = Math.round(-60 + (nextLevel / 100) * 60);
+  const approxDb = Number.isFinite(peakDbOverride)
+    ? Math.max(-60, Math.min(0, Math.round(peakDbOverride)))
+    : Math.round(-60 + (nextLevel / 100) * 60);
   if (onAirMasterMeterValue) {
     onAirMasterMeterValue.textContent = approxDb + " dBFS";
   }
   if (onAirMusicBusMeterValue) {
     onAirMusicBusMeterValue.textContent = approxDb + " dBFS";
   }
+  if (onAirMusicBusMeterTrack) {
+    onAirMusicBusMeterTrack.classList.remove("safe", "healthy", "hot", "clip");
+    if (nextLevel >= 88) {
+      onAirMusicBusMeterTrack.classList.add("clip");
+    } else if (nextLevel >= 68) {
+      onAirMusicBusMeterTrack.classList.add("hot");
+    } else if (nextLevel >= 42) {
+      onAirMusicBusMeterTrack.classList.add("healthy");
+    } else {
+      onAirMusicBusMeterTrack.classList.add("safe");
+    }
+  }
+  if (onAirMusicBusMeterBadge) {
+    onAirMusicBusMeterBadge.classList.remove("safe", "healthy", "hot", "clip");
+    if (nextLevel >= 88) {
+      onAirMusicBusMeterBadge.textContent = "Clip";
+      onAirMusicBusMeterBadge.classList.add("clip");
+    } else if (nextLevel >= 68) {
+      onAirMusicBusMeterBadge.textContent = "Hot";
+      onAirMusicBusMeterBadge.classList.add("hot");
+    } else if (nextLevel >= 42) {
+      onAirMusicBusMeterBadge.textContent = "Healthy";
+      onAirMusicBusMeterBadge.classList.add("healthy");
+    } else {
+      onAirMusicBusMeterBadge.textContent = "Safe";
+      onAirMusicBusMeterBadge.classList.add("safe");
+    }
+  }
   if (onAirPeakHoldValue) {
-    onAirPeakHoldValue.textContent = Math.min(0, approxDb + 3) + " dBFS";
+    onAirPeakHoldValue.textContent = approxDb + " dBFS";
   }
   if (onAirClippingWarning) {
     onAirClippingWarning.classList.remove("safe", "warn", "hot");
@@ -7683,6 +7758,115 @@ function updateOnAirMasterMeter(levelPercent) {
       onAirClippingWarning.textContent = "Safe";
       onAirClippingWarning.classList.add("safe");
     }
+  }
+}
+
+function getAnalyserPeakSnapshot(analyser, data) {
+  if (!analyser || !data) {
+    return { levelPercent: 0, peakDb: -60 };
+  }
+  analyser.getByteTimeDomainData(data);
+  let peak = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    const sample = (data[index] - 128) / 128;
+    peak = Math.max(peak, Math.abs(sample));
+  }
+  const peakDb = 20 * Math.log10(Math.max(peak, 1e-4));
+  const normalized = (Math.max(-48, Math.min(0, peakDb)) + 48) / 48;
+  return {
+    levelPercent: Math.min(100, Math.max(0, Math.round(normalized * 100))),
+    peakDb
+  };
+}
+
+function startOnAirMixerBusMeter() {
+  if (onAirMixerBusMeterFrameId || !onAirMixerBusAnalyser || !onAirMixerBusMeterData) {
+    return;
+  }
+
+  const tick = () => {
+    onAirMixerBusMeterFrameId = 0;
+    if (!onAirMixerBusAnalyser || !onAirMixerBusMeterData) {
+      onAirMixerBusMeterLevel = 0;
+      onAirMixerBusPeakDb = -60;
+      updateOnAirMasterMeter(0, -60);
+      return;
+    }
+    const snapshot = getAnalyserPeakSnapshot(onAirMixerBusAnalyser, onAirMixerBusMeterData);
+    const attack = snapshot.levelPercent > onAirMixerBusMeterLevel ? 0.8 : 0.18;
+    onAirMixerBusMeterLevel += (snapshot.levelPercent - onAirMixerBusMeterLevel) * attack;
+    onAirMixerBusPeakDb = Math.max(snapshot.peakDb, onAirMixerBusPeakDb - 0.9);
+    updateOnAirMasterMeter(onAirMixerBusMeterLevel, onAirMixerBusPeakDb);
+    onAirMixerBusMeterFrameId = requestAnimationFrame(tick);
+  };
+
+  onAirMixerBusMeterFrameId = requestAnimationFrame(tick);
+}
+
+function disconnectOutgoingProgramAudioSources() {
+  outgoingProgramAudioSources.forEach((source) => {
+    try {
+      source.disconnect();
+    } catch (error) {
+      // Ignore disconnect races.
+    }
+  });
+  outgoingProgramAudioSources = [];
+}
+
+function getOutgoingAudioStream() {
+  const mixedTrack = outgoingProgramAudioDestination && outgoingProgramAudioDestination.stream
+    ? outgoingProgramAudioDestination.stream.getAudioTracks()[0]
+    : null;
+  if (mixedTrack) {
+    return outgoingProgramAudioDestination.stream;
+  }
+  return micProcessedStream || micStream || null;
+}
+
+function getOutgoingAudioTrack() {
+  const outgoingStream = getOutgoingAudioStream();
+  return outgoingStream && outgoingStream.getAudioTracks ? outgoingStream.getAudioTracks()[0] || null : null;
+}
+
+async function refreshOutgoingProgramAudioStream() {
+  const hasMic = !!(micProcessedStream && micProcessedStream.getAudioTracks && micProcessedStream.getAudioTracks().length);
+  const musicStream = onAirMixerDestinationNode && onAirMixerDestinationNode.stream ? onAirMixerDestinationNode.stream : null;
+  const hasMusicBus = !!(musicStream && musicStream.getAudioTracks && musicStream.getAudioTracks().length);
+
+  if (!hasMic && !hasMusicBus) {
+    disconnectOutgoingProgramAudioSources();
+    if (outgoingProgramAudioContext) {
+      outgoingProgramAudioContext.close().catch(() => {
+        // Ignore close races.
+      });
+    }
+    outgoingProgramAudioContext = null;
+    outgoingProgramAudioDestination = null;
+    return;
+  }
+
+  if (!outgoingProgramAudioContext) {
+    outgoingProgramAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    outgoingProgramAudioDestination = outgoingProgramAudioContext.createMediaStreamDestination();
+  }
+
+  disconnectOutgoingProgramAudioSources();
+
+  if (hasMic) {
+    const micSource = outgoingProgramAudioContext.createMediaStreamSource(micProcessedStream);
+    micSource.connect(outgoingProgramAudioDestination);
+    outgoingProgramAudioSources.push(micSource);
+  }
+
+  if (hasMusicBus) {
+    const musicSource = outgoingProgramAudioContext.createMediaStreamSource(musicStream);
+    musicSource.connect(outgoingProgramAudioDestination);
+    outgoingProgramAudioSources.push(musicSource);
+  }
+
+  if (outgoingProgramAudioContext.state === "suspended") {
+    await outgoingProgramAudioContext.resume();
   }
 }
 
@@ -7792,8 +7976,8 @@ function getOnAirMusicDuckMultiplier() {
   return 1;
 }
 
-function getOnAirMusicEffectiveVolume() {
-  return Math.max(0, Math.min(1, onAirMusicBaseVolume * getOnAirMusicDuckMultiplier()));
+function getOnAirMusicEffectiveVolume(cueTarget) {
+  return Math.max(0, Math.min(1, onAirMusicBaseVolume * getOnAirCueVolumeMultiplier(cueTarget) * getOnAirMusicDuckMultiplier()));
 }
 
 function getOnAirCueVolumeMultiplier(cueTarget) {
@@ -7922,7 +8106,9 @@ function clearOnAirMusicAutoFadeTimers(target) {
   }
 }
 
-function setOnAirMusicPlaybackAndRecordingVolume(nextVolume, specificTarget) {
+function setOnAirMusicPlaybackAndRecordingVolume(nextVolume, specificTarget, options) {
+  const config = options && typeof options === "object" ? options : {};
+  const directWrite = !!config.directWrite;
   const target = Math.max(0, Math.min(1, Number(nextVolume) || 0));
   const targets = specificTarget ? [specificTarget] : getActiveOnAirMusicCueTargets();
   const now = getOnAirMixerCurrentTime();
@@ -7939,7 +8125,11 @@ function setOnAirMusicPlaybackAndRecordingVolume(nextVolume, specificTarget) {
     if (gainNode) {
       try {
         gainNode.gain.cancelScheduledValues(now);
-        gainNode.gain.setTargetAtTime(target, now, 0.035);
+        if (directWrite) {
+          gainNode.gain.setValueAtTime(target, now);
+        } else {
+          gainNode.gain.setTargetAtTime(target, now, 0.035);
+        }
       } catch (error) {
         gainNode.gain.value = target;
       }
@@ -7972,6 +8162,22 @@ function applyOnAirMusicOutputVolume(immediate) {
       currentValue + (target - currentValue) * 0.18,
       cueTarget
     );
+  });
+}
+
+function queueOnAirCueVolumeApply() {
+  if (onAirCueVolumeApplyFrameId) {
+    return;
+  }
+  onAirCueVolumeApplyFrameId = window.requestAnimationFrame(() => {
+    onAirCueVolumeApplyFrameId = 0;
+    getActiveOnAirMusicCueTargets().forEach((cueTarget) => {
+      setOnAirMusicPlaybackAndRecordingVolume(
+        getOnAirCueEffectiveVolume(cueTarget),
+        cueTarget,
+        { directWrite: true }
+      );
+    });
   });
 }
 
@@ -8160,7 +8366,7 @@ function renderOnAirActiveCueControls() {
       } else if (cueTarget.cue) {
         cueTarget.cue.volumeMultiplier = nextMultiplier;
       }
-      applyOnAirMusicOutputVolume(true);
+      queueOnAirCueVolumeApply();
     });
     const sliderTrack = document.createElement("div");
     sliderTrack.className = "onair-audio-slider-track";
@@ -8436,6 +8642,8 @@ async function ensureOnAirMixerReady() {
     onAirMixerDestinationNode = onAirMixerAudioContext.createMediaStreamDestination();
     onAirMixerBusAnalyser = onAirMixerAudioContext.createAnalyser();
     onAirMixerBusAnalyser.fftSize = 1024;
+    onAirMixerBusAnalyser.smoothingTimeConstant = 0.82;
+    onAirMixerBusMeterData = new Uint8Array(onAirMixerBusAnalyser.fftSize);
     onAirMixerMusicBusGainNode.gain.value = 1;
     onAirMixerMasterGainNode.gain.value = 1;
     onAirMixerMusicBusGainNode.connect(onAirMixerMasterGainNode);
@@ -8445,6 +8653,14 @@ async function ensureOnAirMixerReady() {
   }
   if (onAirMixerAudioContext.state === "suspended") {
     await onAirMixerAudioContext.resume();
+  }
+  startOnAirMixerBusMeter();
+  await refreshOutgoingProgramAudioStream();
+  addLocalTracksToPeerConnection();
+  if (useTwilioVideoRoom()) {
+    syncTwilioPublishedTracks().catch(() => {
+      // Ignore Twilio sync races while mixer starts.
+    });
   }
   return onAirMixerAudioContext;
 }
@@ -8565,6 +8781,14 @@ function cleanupOnAirEngineCue(cue, options) {
   } else {
     onAirAuxMusicCues = onAirAuxMusicCues.filter((entry) => entry && entry.id !== cue.id);
   }
+  if (isRecording) {
+    refreshRecordingAudioSources().catch(() => {
+      // Ignore recording source refresh failures while cue stops.
+    });
+    refreshRecordingWaveSources().catch(() => {
+      // Ignore waveform refresh failures while cue stops.
+    });
+  }
   updateOnAirMusicCuesUI();
   queueOnAirAudioControlsRefresh();
 }
@@ -8605,6 +8829,14 @@ async function startOnAirEngineCue(cue, options) {
   const initialVolume = startMuted ? 0 : getOnAirCueEffectiveVolume(cueTarget);
   setOnAirMusicPlaybackAndRecordingVolume(initialVolume, cueTarget);
   sourceNode.start(0);
+  if (isRecording) {
+    refreshRecordingAudioSources().catch(() => {
+      // Ignore recording source refresh failures while cue starts.
+    });
+    refreshRecordingWaveSources().catch(() => {
+      // Ignore waveform refresh failures while cue starts.
+    });
+  }
   scheduleOnAirCueAutoFades(cueTarget, () => {
     stopSingleOnAirMusicCue(cue).catch(() => {}).finally(() => {
       updateOnAirMusicCuesUI();
@@ -8996,7 +9228,7 @@ function scheduleOnAirCueAutoFades(cueTarget, stopAfterFadeOut) {
     const fadeInDuration = getRecordingAutoFadeInDurationMs();
     cueTarget.setAutoFadeInTimerId(window.setTimeout(() => {
       cueTarget.setAutoFadeInTimerId(0);
-      startOnAirMusicFade(getOnAirMusicEffectiveVolume(), fadeInDuration, { target: cueTarget }).catch(() => {});
+      startOnAirMusicFade(getOnAirMusicEffectiveVolume(cueTarget), fadeInDuration, { target: cueTarget }).catch(() => {});
     }, fadeInDelay));
   }
   if (onAirMusicAutoFadeOutEnabled) {
@@ -9148,7 +9380,18 @@ async function playOnAirMusicCue(trackRecord, slotLabel, options) {
   try {
     await startOnAirEngineCue(cue, { startMuted: onAirMusicAutoFadeInEnabled });
     pushMusicDiagnostic("cue_play_ok", "track=" + String((playableTrack && playableTrack.id) || trackRecord.id || "") + " | layered=" + (usePrimary ? "no" : "yes"));
-    onAirMediaStatus.textContent = (slotLabel ? slotLabel + ": " : "") + trackRecord.name + " is playing live.";
+    if (onAirMusicAutoFadeInEnabled) {
+      const fadeInDelay = Math.max(0, getRecordingAutoFadeInStartMs());
+      const fadeInDuration = Math.max(0, getRecordingAutoFadeInDurationMs());
+      const statusLead = (slotLabel ? slotLabel + ": " : "") + trackRecord.name;
+      if (fadeInDelay > 0) {
+        onAirMediaStatus.textContent = statusLead + " is armed and muted. Fade in starts in " + Math.round(fadeInDelay / 1000) + "s.";
+      } else {
+        onAirMediaStatus.textContent = statusLead + " is fading in over " + Math.round(fadeInDuration / 1000) + "s.";
+      }
+    } else {
+      onAirMediaStatus.textContent = (slotLabel ? slotLabel + ": " : "") + trackRecord.name + " is playing live.";
+    }
   } catch (error) {
     cleanupOnAirEngineCue(cue);
     pushMusicDiagnostic("cue_play_failed", "track=" + String((playableTrack && playableTrack.id) || trackRecord.id || "") + " | message=" + String((error && error.message) || "play blocked"));

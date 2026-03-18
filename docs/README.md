@@ -19,12 +19,25 @@ For a clean restart, read these in order:
 2. [DFS_ARCHITECTURE.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_ARCHITECTURE.md)
 3. [DFS_PHASE_STATUS.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_PHASE_STATUS.md)
 4. [DFS_LOCKED_DECISIONS.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_LOCKED_DECISIONS.md)
-5. [SESSION_NOTES_2026-03-10.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-10.md)
+5. [SESSION_NOTES_2026-03-18.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-18.md)
+6. [SESSION_NOTES_2026-03-10.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-10.md)
 
 ## Canonical Active Files
 - [hello.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/hello.html)
 - [hello.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/hello.js)
 - [styles.css](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/styles.css)
+
+## Current Resume Snapshot
+What is done:
+- GitHub backup is in place
+- Railway deploy root is understood
+- live music now routes to recording and remote listeners
+- recording can pick up music added after recording starts
+
+What is next:
+- redesign the compact REC strip to match Adobe Audition's visual language more closely
+- continue `Active Cues` fit and polish
+- validate guest audio behavior against live and recorded output
 
 ## Locked Reference
 - [AUDIO_CONTROLS_WIREFRAME.html](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/AUDIO_CONTROLS_WIREFRAME.html)

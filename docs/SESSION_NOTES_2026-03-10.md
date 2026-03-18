@@ -3,9 +3,10 @@
 Last updated: 2026-03-18
 
 ## Purpose
-This file is the current condensed handoff summary for the DFS prototype.
+This file is an older condensed handoff summary for the DFS prototype.
 
-Older dated notes remain useful for background, but this is the main restart note.
+For the latest restart note, use:
+- `docs/SESSION_NOTES_2026-03-18.md`
 
 ## Where The Build Really Lives
 Active files:

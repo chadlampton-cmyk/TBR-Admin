@@ -49,6 +49,10 @@ Current model:
   - one remote media stream path
   - live music bus
 
+Current practical behavior:
+- music bus can now be attached into the recording path even if recording started first
+- recording waveform/REC strip now listens to the recording mix path rather than mic-only assumptions
+
 Important practical note:
 - The UI can represent more participants than the current recording mix/compositor fully handles.
 - Recording is not yet a true multi-guest mixed console.
@@ -98,14 +102,15 @@ Implemented direction:
 - fade in/out controls
 - ducking control shell
 - recording mix includes the music bus
+- live outbound host audio includes the music bus so remote listeners can hear program music
 
 ### Current Caveat
 The `Guest Channels` UI is ahead of the actual mix wiring.
 
 Current practical behavior:
 - guest channel shell exists
-- guest slider affects local playback behavior
-- guest gain is not yet a fully authoritative mixer control for the real recording path
+- guest validation remains incomplete against the full live/recording mix
+- guest gain should still be treated as a follow-up validation area, not a fully closed mixer feature
 
 ## Video / Participant Architecture
 Current live layout:
@@ -134,3 +139,6 @@ For continued build work, treat the current architecture as:
 3. one main stylesheet
 
 Resume in the on-air audio/recording path first, not in the older standalone pages.
+
+Current immediate visual task:
+- refine the compact REC strip so it resembles Adobe Audition's recessed stereo recording meter treatment rather than the current approximation

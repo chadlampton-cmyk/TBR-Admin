@@ -37,6 +37,17 @@ Current backend supports:
 - OAuth callbacks
 - media/storage support
 
+Current deployment command from the backend folder:
+
+```bash
+cd realtime
+railway up . --path-as-root
+```
+
+Why:
+- the repo root is not a deployable Node app root for Railpack
+- `realtime/` contains the backend `package.json`
+
 ## Minimum Deployment Checks
 1. Confirm realtime health endpoint works.
 2. Confirm `FRONTEND_BASE_URL` matches the live frontend domain.
@@ -56,3 +67,4 @@ Older standalone pages still exist, but they are not the current implementation 
 - `hello.js` still contains legacy hooks into historical settings/help/profile pages.
 - The frontend is already pointed at the final realtime custom domain, so old “swap temporary Railway URL” instructions are no longer current.
 - Deployment validation should focus on auth, realtime, and active `hello` behavior rather than the older multi-page flow.
+- media upload/storage should be validated separately after deploy if uploads fail with access errors.

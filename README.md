@@ -18,6 +18,19 @@ These files currently own:
 - audio controls drawer
 - recording review/export flow
 
+## Current Session Outcome
+Most recent completed work:
+- documentation and handoff layer were condensed around the active `hello` build
+- repo was initialized, connected to GitHub, and pushed
+- Railway deploy path was clarified to deploy from `realtime/` with `railway up . --path-as-root`
+- `Active Cues` slider responsiveness was improved
+- music bus metering and live/recording routing were repaired
+- outbound live program audio was updated so remote participants can hear music
+- recording now refreshes music-bus sources after recording has already started
+
+Current unresolved UI task:
+- restyle the compact REC strip in the control room so it looks closer to Adobe Audition's recording meter treatment
+
 ## What Is Current
 - The live product path is inside `landing/hello.*`.
 - The audio-controls and recording workflow are the active build areas.
@@ -31,7 +44,8 @@ Read these in order for a restart or handoff:
 3. `docs/DFS_ARCHITECTURE.md`
 4. `docs/DFS_PHASE_STATUS.md`
 5. `docs/DFS_LOCKED_DECISIONS.md`
-6. `docs/SESSION_NOTES_2026-03-10.md`
+6. `docs/SESSION_NOTES_2026-03-18.md`
+7. `docs/SESSION_NOTES_2026-03-10.md`
 
 ## Current Resume Point
 Resume work in:
@@ -40,8 +54,9 @@ Resume work in:
 
 Primary current themes:
 - Audio Controls drawer polish and behavior
+- REC strip visual redesign
 - active cue layout/stability
-- guest audio control wiring
+- guest audio control validation
 - recording fidelity against the live mix
 
 ## Local Run

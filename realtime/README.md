@@ -35,6 +35,16 @@ Default local URL:
 Requires:
 - Node 18+
 
+## Railway Deploy
+Deploy this service from inside `realtime/`, or explicitly set that folder as the root:
+
+```bash
+cd realtime
+railway up . --path-as-root
+```
+
+Do not deploy the repo root to Railway. The root does not contain the backend `package.json` Railpack expects.
+
 ## Important
 - Treat this README as operational context, not the main handoff doc.
 - The main restart path is documented in:
