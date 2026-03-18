@@ -2744,56 +2744,59 @@ body.ui-light .onair-live-pill {
 }
 
 body.ui-light .onair-record-strip {
-  border-color: rgba(176, 86, 108, 0.42);
+  border-color: rgba(101, 121, 139, 0.34);
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.9), rgba(235, 244, 252, 0.8)),
-    rgba(242, 249, 255, 0.88);
+    linear-gradient(180deg, rgba(30, 37, 45, 0.98), rgba(10, 15, 21, 0.98)),
+    rgba(10, 15, 21, 0.98);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.66),
-    0 8px 16px rgba(49, 74, 100, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 10px 22px rgba(28, 41, 58, 0.2);
 }
 
 body.ui-light .onair-record-wave {
-  border-color: rgba(176, 86, 108, 0.38);
-  background: rgba(3, 10, 18, 0.98);
+  border-color: rgba(96, 114, 131, 0.36);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 31, 0.98), rgba(5, 9, 13, 0.98)),
+    rgba(5, 9, 13, 0.98);
 }
 
 body.ui-light .onair-record-label {
-  color: #b03d58;
+  color: #edf3fa;
 }
 
 body.ui-light .onair-record-timer {
-  color: #a33952;
+  color: #f7fbff;
 }
 
 body.ui-light .onair-record-level-badge {
-  border-color: rgba(117, 146, 173, 0.24);
-  background: rgba(237, 245, 252, 0.82);
-  color: #26425d;
+  border-color: rgba(112, 131, 149, 0.3);
+  background: rgba(18, 24, 31, 0.94);
+  color: #dce6ef;
 }
 
 body.ui-light .onair-record-level-badge.safe {
-  border-color: rgba(52, 157, 118, 0.22);
-  background: rgba(89, 193, 153, 0.14);
-  color: #1f7557;
+  border-color: rgba(71, 154, 108, 0.3);
+  background: rgba(20, 49, 34, 0.92);
+  color: #96d5b1;
 }
 
 body.ui-light .onair-record-level-badge.healthy {
-  border-color: rgba(214, 164, 66, 0.26);
-  background: rgba(255, 214, 125, 0.18);
-  color: #8b6115;
+  border-color: rgba(191, 161, 78, 0.34);
+  background: rgba(58, 46, 18, 0.92);
+  color: #efd98e;
 }
 
 body.ui-light .onair-record-level-badge.hot {
-  border-color: rgba(214, 126, 67, 0.3);
-  background: rgba(255, 196, 153, 0.2);
-  color: #96511d;
+  border-color: rgba(205, 122, 72, 0.36);
+  background: rgba(70, 36, 18, 0.92);
+  color: #f1bd8f;
 }
 
 body.ui-light .onair-record-level-badge.clip {
-  border-color: rgba(199, 90, 75, 0.28);
-  background: rgba(238, 150, 136, 0.18);
-  color: #b44737;
+  border-color: rgba(214, 92, 92, 0.42);
+  background: rgba(72, 18, 24, 0.94);
+  color: #f5a4ac;
 }
 
 body.ui-light .camera-frame,
@@ -4049,50 +4052,58 @@ body.ui-light .form-message.error {
 .onair-record-strip {
   margin-top: 0.42rem;
   display: grid;
-  grid-template-columns: auto auto auto auto minmax(180px, 1fr);
+  grid-template-columns: auto auto auto auto minmax(520px, 1.6fr);
   align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(255, 95, 127, 0.45);
-  border-radius: 999px;
-  background: rgba(10, 22, 36, 0.7);
+  gap: 0.65rem;
+  border: 1px solid rgba(103, 122, 142, 0.34);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(22, 29, 37, 0.98), rgba(8, 12, 17, 0.98)),
+    rgba(8, 12, 17, 0.98);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 0 14px rgba(255, 64, 102, 0.16);
-  padding: 0.35rem 0.42rem;
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+  padding: 0.52rem 0.62rem;
 }
 
 .onair-record-strip.active {
-  border-color: rgba(255, 95, 127, 0.68);
+  border-color: rgba(128, 147, 168, 0.42);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 0 18px rgba(255, 64, 102, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.56),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .onair-record-dot {
-  width: 0.58rem;
-  height: 0.58rem;
+  width: 0.52rem;
+  height: 0.52rem;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .onair-record-dot.active {
-  background: #ff466f;
-  box-shadow: 0 0 12px rgba(255, 70, 111, 0.68);
+  background: #ff4a5a;
+  box-shadow: 0 0 10px rgba(255, 74, 90, 0.58);
 }
 
 .onair-record-label {
-  font-size: 0.76rem;
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
   font-weight: 700;
-  color: #ffd5df;
+  color: #e5ebf2;
+  text-transform: uppercase;
 }
 
 .onair-record-timer {
   font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #ff87a2;
+  letter-spacing: 0.12em;
+  color: #f2f6fb;
   min-width: 4.1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .onair-record-level-badge {
@@ -4100,48 +4111,55 @@ body.ui-light .form-message.error {
   align-items: center;
   justify-content: center;
   min-height: 22px;
-  padding: 0.14rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid rgba(155, 182, 209, 0.34);
-  background: rgba(24, 40, 56, 0.42);
-  font-size: 0.68rem;
+  min-width: 3.5rem;
+  padding: 0.14rem 0.48rem;
+  border-radius: 6px;
+  border: 1px solid rgba(110, 128, 147, 0.32);
+  background: rgba(17, 23, 30, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #d7e8f8;
+  color: #d7e2ec;
   line-height: 1;
 }
 
 .onair-record-level-badge.safe {
-  border-color: rgba(88, 198, 152, 0.24);
-  background: rgba(41, 112, 78, 0.16);
-  color: #a7e8c7;
+  border-color: rgba(71, 154, 108, 0.3);
+  background: rgba(20, 49, 34, 0.92);
+  color: #96d5b1;
 }
 
 .onair-record-level-badge.healthy {
-  border-color: rgba(255, 210, 79, 0.28);
-  background: rgba(118, 94, 27, 0.18);
-  color: #ffe199;
+  border-color: rgba(191, 161, 78, 0.34);
+  background: rgba(58, 46, 18, 0.92);
+  color: #efd98e;
 }
 
 .onair-record-level-badge.hot {
-  border-color: rgba(255, 162, 79, 0.34);
-  background: rgba(122, 73, 29, 0.22);
-  color: #ffd0a2;
+  border-color: rgba(205, 122, 72, 0.36);
+  background: rgba(70, 36, 18, 0.92);
+  color: #f1bd8f;
 }
 
 .onair-record-level-badge.clip {
-  border-color: rgba(255, 111, 95, 0.38);
-  background: rgba(126, 44, 35, 0.24);
-  color: #ffb2a8;
+  border-color: rgba(214, 92, 92, 0.42);
+  background: rgba(72, 18, 24, 0.94);
+  color: #f5a4ac;
 }
 
 .onair-record-wave {
   width: 100%;
-  height: 2.1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 95, 127, 0.35);
-  background: rgba(5, 16, 28, 0.76);
+  height: 2.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(93, 111, 129, 0.34);
+  background:
+    linear-gradient(180deg, rgba(15, 21, 28, 0.98), rgba(4, 8, 12, 0.98)),
+    rgba(4, 8, 12, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
 }
 
 .onair-workflow-strip {
@@ -6716,15 +6734,27 @@ body.ui-light .camera-placeholder {
   padding: 0.7rem 0.2rem;
 }
 
+.onair-review-launch-row {
+  margin-top: 0.68rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .onair-review-panel {
   margin-top: 0.72rem;
   padding: 0.78rem;
   border: 1px solid rgba(165, 193, 219, 0.2);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(173, 206, 237, 0.02)),
-    rgba(7, 20, 33, 0.34);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    linear-gradient(180deg, rgba(17, 24, 32, 0.96), rgba(9, 14, 20, 0.96)),
+    rgba(9, 14, 20, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.36);
+}
+
+.onair-review-panel.is-empty {
+  opacity: 0.92;
 }
 
 .onair-review-head {
@@ -6745,47 +6775,42 @@ body.ui-light .camera-placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 26px;
-  padding: 0.22rem 0.54rem;
-  border-radius: 999px;
-  border: 1px solid rgba(167, 194, 220, 0.36);
-  background: rgba(10, 27, 41, 0.48);
-  font-size: 0.72rem;
-  color: #c7dbef;
+  min-height: 24px;
+  padding: 0.18rem 0.52rem;
+  border-radius: 6px;
+  border: 1px solid rgba(124, 144, 164, 0.32);
+  background: rgba(13, 19, 26, 0.92);
+  font-size: 0.68rem;
+  color: #d4e0ec;
   white-space: nowrap;
 }
 
-.onair-review-stage {
-  margin-top: 0.6rem;
-  display: grid;
-  gap: 0.65rem;
+.onair-review-summary-note {
+  margin: 0.55rem 0 0;
 }
 
 .onair-review-video,
 .onair-review-audio {
-  width: 100%;
-  border-radius: 14px;
-  border: 1px solid rgba(165, 193, 219, 0.2);
-  background: rgba(5, 16, 28, 0.82);
-}
-
-.onair-review-video {
-  aspect-ratio: 16 / 9;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .onair-review-player {
-  display: inline-flex;
-  align-items: center;
-  width: min(100%, 100%);
-  max-width: 100%;
-  padding: 0.32rem 0.42rem;
-  border-radius: 999px;
-  border: 1px solid rgba(161, 192, 219, 0.2);
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem 1.05rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(111, 130, 149, 0.24);
   background:
-    linear-gradient(180deg, rgba(18, 35, 52, 0.96), rgba(10, 23, 36, 0.96));
+    linear-gradient(180deg, rgba(17, 24, 32, 0.98), rgba(6, 10, 14, 0.98));
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 10px 22px rgba(4, 10, 18, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 18px 38px rgba(0, 0, 0, 0.28);
 }
 
 .onair-review-player.hidden {
@@ -6795,49 +6820,85 @@ body.ui-light .camera-placeholder {
 .onair-review-player-strip {
   display: flex;
   align-items: center;
-  gap: 0.46rem;
+  justify-content: space-between;
+  gap: 0.7rem;
   min-width: 0;
   width: 100%;
 }
 
-.onair-review-scrub {
-  appearance: none;
-  flex: 1 1 110px;
-  width: auto;
-  min-width: 72px;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(90, 158, 255, 0.9), rgba(74, 210, 163, 0.86));
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+.onair-review-transport-group,
+.onair-review-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
 }
 
-.onair-review-scrub::-webkit-slider-thumb {
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(202, 228, 255, 0.82);
-  background: #f4fbff;
-  box-shadow: 0 0 0 2px rgba(78, 171, 255, 0.18);
+.onair-review-zoom-group {
+  justify-content: flex-end;
+}
+
+.onair-review-toolbar-btn {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 0.3rem 0.56rem;
+  border: 1px solid rgba(117, 136, 156, 0.26);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(27, 37, 47, 0.96), rgba(14, 20, 27, 0.96));
+  color: #dce8f3;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
 }
 
-.onair-review-scrub::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(202, 228, 255, 0.82);
-  background: #f4fbff;
-  box-shadow: 0 0 0 2px rgba(78, 171, 255, 0.18);
+.onair-review-toolbar-btn:hover:not(:disabled) {
+  border-color: rgba(150, 171, 193, 0.34);
+  color: #f3f8fd;
+}
+
+.onair-review-toolbar-btn.active,
+.onair-review-toolbar-btn[aria-pressed="true"] {
+  border-color: rgba(118, 175, 236, 0.4);
+  background:
+    linear-gradient(180deg, rgba(30, 57, 84, 0.96), rgba(16, 31, 48, 0.96));
+  color: #eef7ff;
+}
+
+.onair-review-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.onair-review-gain-readout {
+  min-width: 52px;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid rgba(117, 136, 156, 0.24);
+  border-radius: 7px;
+  background: rgba(6, 11, 16, 0.72);
+  color: #a9b9c8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.onair-review-wave-shell {
+  position: relative;
+  width: 100%;
+}
+
+.onair-review-wave-canvas {
+  width: 100%;
+  height: 142px;
+  display: block;
+  border-radius: 14px;
   cursor: pointer;
 }
 
-.onair-review-scrub::-moz-range-track {
-  height: 6px;
-  border: none;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(90, 158, 255, 0.9), rgba(74, 210, 163, 0.86));
+.onair-review-wave-note {
+  margin: 0;
 }
 
 .onair-review-actions {
@@ -6852,6 +6913,51 @@ body.ui-light .camera-placeholder {
   margin-top: 0.6rem;
   padding-top: 0.72rem;
   border-top: 1px solid rgba(167, 194, 220, 0.14);
+}
+
+.onair-review-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.onair-review-modal.hidden {
+  display: none;
+}
+
+.onair-review-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 7, 11, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.onair-review-window {
+  position: relative;
+  z-index: 1;
+  width: min(980px, calc(100vw - 2.4rem));
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid rgba(116, 136, 156, 0.28);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(18, 24, 31, 0.985), rgba(7, 11, 15, 0.985));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 30px 70px rgba(0, 0, 0, 0.42);
+}
+
+.onair-review-window-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin-bottom: 0.9rem;
 }
 
 body.ui-light .onair-music-cues {
@@ -7124,43 +7230,49 @@ body.ui-light .onair-workflow-pill.active {
 }
 
 body.ui-light .onair-review-panel {
-  border-color: rgba(112, 143, 174, 0.24);
+  border-color: rgba(112, 143, 174, 0.22);
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(228, 240, 252, 0.8)),
-    rgba(245, 251, 255, 0.88);
+    linear-gradient(180deg, rgba(22, 29, 36, 0.96), rgba(8, 13, 18, 0.96)),
+    rgba(8, 13, 18, 0.96);
 }
 
 body.ui-light .onair-review-title {
-  color: #1c3a55;
+  color: #edf4fb;
 }
 
 body.ui-light .onair-review-badge {
-  border-color: rgba(108, 139, 170, 0.34);
-  background: rgba(229, 241, 252, 0.84);
-  color: #274360;
-}
-
-body.ui-light .onair-review-video,
-body.ui-light .onair-review-audio {
-  border-color: rgba(112, 143, 174, 0.2);
-  background: rgba(245, 249, 252, 0.95);
+  border-color: rgba(112, 131, 149, 0.3);
+  background: rgba(18, 24, 31, 0.94);
+  color: #dce6ef;
 }
 
 body.ui-light .onair-review-player {
-  border-color: rgba(116, 150, 184, 0.2);
+  border-color: rgba(112, 143, 174, 0.2);
   background:
-    linear-gradient(180deg, rgba(247, 251, 255, 0.96), rgba(237, 245, 252, 0.94));
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.46),
-    0 10px 24px rgba(104, 137, 171, 0.12);
+    linear-gradient(180deg, rgba(18, 24, 31, 0.98), rgba(6, 10, 14, 0.98));
 }
 
-body.ui-light .onair-review-scrub {
-  box-shadow: inset 0 0 0 1px rgba(111, 144, 177, 0.16);
+body.ui-light .onair-review-toolbar-btn {
+  border-color: rgba(112, 131, 149, 0.28);
+  background:
+    linear-gradient(180deg, rgba(26, 35, 44, 0.96), rgba(13, 19, 26, 0.96));
+  color: #dfe9f2;
+}
+
+body.ui-light .onair-review-gain-readout {
+  border-color: rgba(112, 131, 149, 0.24);
+  background: rgba(10, 16, 22, 0.76);
+  color: #b8c7d4;
 }
 
 body.ui-light .onair-export-panel {
   border-top-color: rgba(112, 143, 174, 0.16);
+}
+
+body.ui-light .onair-review-window {
+  border-color: rgba(116, 136, 156, 0.28);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 31, 0.985), rgba(7, 11, 15, 0.985));
 }
 
 .host-spotlight-row {
@@ -9539,7 +9651,7 @@ body.ui-light .legal-policy-section-text {
     grid-template-areas:
       "dot label timer badge"
       "wave wave wave wave";
-    row-gap: 0.42rem;
+    row-gap: 0.5rem;
   }
 
   .onair-record-dot {

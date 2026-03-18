@@ -500,9 +500,12 @@
               <p class="camera-status onair-music-cues-note" id="onair-music-cues-note">
                 Upload and queue production music from your track library.
               </p>
+              <div class="onair-review-launch-row">
+                <button type="button" class="btn sso host-btn" id="onair-review-launch-btn" disabled>Review Cut</button>
+              </div>
             </section>
             <p class="camera-status" id="onair-media-status">Recording and export actions will run from this On-Air area.</p>
-            <section class="onair-review-panel hidden" id="onair-review-panel" aria-label="Review cut">
+            <section class="onair-review-panel" id="onair-review-panel" aria-label="Review cut">
               <div class="onair-review-head">
                 <div>
                   <p class="onair-review-title">Review Cut</p>
@@ -510,43 +513,7 @@
                 </div>
                 <span class="onair-review-badge" id="onair-review-badge">No review yet</span>
               </div>
-              <div class="onair-review-stage">
-                <video
-                  id="onair-review-video"
-                  class="onair-review-video hidden"
-                  playsinline
-                  preload="metadata"
-                  aria-label="Review video playback"
-                ></video>
-                <audio
-                  id="onair-review-audio"
-                  class="onair-review-audio hidden"
-                  preload="metadata"
-                  aria-label="Review audio playback"
-                ></audio>
-                <section class="onair-review-player hidden" id="onair-review-player" aria-label="Review player controls">
-                  <div class="onair-review-player-strip">
-                    <button type="button" class="onair-library-preview-play" id="onair-review-play-btn" aria-label="Play review" aria-pressed="false">▶</button>
-                    <p class="onair-library-preview-time" id="onair-review-time">00:00 / 00:00</p>
-                    <input
-                      type="range"
-                      class="onair-review-scrub"
-                      id="onair-review-scrub"
-                      min="0"
-                      max="1000"
-                      step="1"
-                      value="0"
-                      aria-label="Review playback position"
-                    />
-                    <button type="button" class="onair-library-preview-mute" id="onair-review-mute-btn" aria-label="Mute review" aria-pressed="false">🔊</button>
-                    <button type="button" class="onair-library-preview-close" id="onair-review-close-btn" aria-label="Close review">×</button>
-                  </div>
-                </section>
-              </div>
-              <div class="onair-review-actions">
-                <button type="button" class="btn sso host-btn" id="onair-review-open-video-btn">Play Video Review</button>
-                <button type="button" class="btn sso host-btn" id="onair-review-open-audio-btn">Play Audio Review</button>
-              </div>
+              <p class="camera-status onair-review-summary-note">The review window opens over the control room and is being shaped into the future post-edit surface.</p>
               <div class="onair-export-panel hidden" id="onair-export-panel" aria-label="Export options">
                 <p class="onair-review-title">Export</p>
                 <p class="camera-status" id="onair-export-note">Download the browser-generated show cut as video or audio-only.</p>
@@ -556,8 +523,70 @@
                 </div>
               </div>
             </section>
+            <video
+              id="onair-review-video"
+              class="onair-review-video hidden"
+              playsinline
+              preload="metadata"
+              aria-label="Review video playback"
+            ></video>
+            <audio
+              id="onair-review-audio"
+              class="onair-review-audio hidden"
+              preload="metadata"
+              aria-label="Review audio playback"
+            ></audio>
           </section>
         </div>
+        </div>
+        <div class="onair-review-modal hidden" id="onair-review-modal" aria-hidden="true">
+          <div class="onair-review-modal-backdrop" id="onair-review-backdrop"></div>
+          <section class="onair-review-window" aria-label="Review cut editor">
+            <div class="onair-review-window-head">
+              <div>
+                <p class="onair-review-title">Review Cut</p>
+                <p class="camera-status" id="onair-review-window-status">Open the review cut to audition the latest show draft.</p>
+              </div>
+              <button type="button" class="btn sso" id="onair-review-close-btn">Close</button>
+            </div>
+            <section class="onair-review-player" id="onair-review-player" aria-label="Review player controls">
+              <div class="onair-review-player-strip">
+                <div class="onair-review-transport-group">
+                  <button type="button" class="onair-library-preview-play" id="onair-review-play-btn" aria-label="Play review" aria-pressed="false">▶</button>
+                  <p class="onair-library-preview-time" id="onair-review-time">00:00 / 00:00</p>
+                  <span class="onair-review-gain-readout" id="onair-review-loop-readout">Loop Off</span>
+                  <button type="button" class="onair-library-preview-mute" id="onair-review-mute-btn" aria-label="Mute review" aria-pressed="false">🔊</button>
+                </div>
+                <div class="onair-review-zoom-group" aria-label="Zoom controls">
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-mode-btn" aria-label="Selection mode" aria-pressed="false">Sel</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-all-btn" aria-label="Select all">All</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-clear-selection-btn" aria-label="Clear selection">Clr</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-delete-btn" aria-label="Delete selection">Del</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-ripple-delete-btn" aria-label="Ripple delete selection">Rip</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-down-btn" aria-label="Lower selected volume">Vol−</button>
+                  <span class="onair-review-gain-readout" id="onair-review-gain-readout">0 dB</span>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-up-btn" aria-label="Raise selected volume">Vol+</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-out-btn" aria-label="Zoom out">−</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-fit-btn" aria-label="Fit full show">Fit</button>
+                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-in-btn" aria-label="Zoom in">+</button>
+                </div>
+              </div>
+              <div class="onair-review-wave-shell">
+                <canvas id="onair-review-wave-canvas" class="onair-review-wave-canvas" width="1400" height="220" aria-label="Review waveform timeline"></canvas>
+                <input
+                  type="range"
+                  class="onair-review-scrub hidden"
+                  id="onair-review-scrub"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  value="0"
+                  aria-label="Review playback position"
+                />
+              </div>
+              <p class="camera-status onair-review-wave-note" id="onair-review-wave-note">No review file loaded yet.</p>
+            </section>
+          </section>
         </div>
         <div class="onair-audio-drawer" id="onair-audio-drawer">
           <button type="button" class="onair-audio-side-tab" id="onair-audio-side-tab">Audio Controls</button>

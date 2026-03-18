@@ -33,9 +33,13 @@ What is done:
 - Railway deploy root is understood
 - live music now routes to recording and remote listeners
 - recording can pick up music added after recording starts
+- `Review Cut` is now a working editor shell with playback, zoom, persistent selection, looped selection playback, cut/splice behavior, and section gain editing
+- recording start can now auto-start the selected music track if nothing is queued
 
 What is next:
-- redesign the compact REC strip to match Adobe Audition's visual language more closely
+- add undo / redo to `Review Cut`
+- add gain reset / normalize tools
+- add split / markers / cleanup overlay work to `Review Cut`
 - continue `Active Cues` fit and polish
 - validate guest audio behavior against live and recorded output
 
@@ -45,6 +49,7 @@ What is next:
 ## Supporting Docs
 - [RAILWAY_GODADDY_SETUP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/RAILWAY_GODADDY_SETUP.md)
 - [CLOUDFLARE_R2_SETUP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/CLOUDFLARE_R2_SETUP.md)
+- [REVIEW_CUT_EDITOR_HANDOFF.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/REVIEW_CUT_EDITOR_HANDOFF.md)
 - [STUDIO_V1_PLAN.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/STUDIO_V1_PLAN.md)
 - [RECORDING_V1_ARCHITECTURE.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/RECORDING_V1_ARCHITECTURE.md)
 
