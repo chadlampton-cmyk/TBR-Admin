@@ -49,7 +49,7 @@ Use this as the first session note for a restart.
 ## Current Known Limitations
 - recording/compositor still effectively centers on local media plus one remote stream path
 - guest audio controls still need full validation against the real live/recording mix
-- `hello.js` still contains legacy hooks into historical `settings`, `help`, and `profile` pages
+- `settings`, `help`, and `profile` are historical-only pages/code, but `hello.*` still contains leftover links/handlers that reference them
 
 ## Current Stopping Point
 The active unresolved task is visual, not pipeline-critical:

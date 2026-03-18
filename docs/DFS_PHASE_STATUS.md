@@ -91,7 +91,8 @@ Files:
 
 Note:
 - these should not be treated as the current implementation center
-- `hello.js` still has some legacy dependencies on them
+- product direction treats them as historical-only pages/code
+- `hello.*` still has some legacy dependencies on them, so cleanup is not fully complete
 
 ## Current Priority Order
 1. redesign the compact REC strip to match the intended Adobe Audition-style reference

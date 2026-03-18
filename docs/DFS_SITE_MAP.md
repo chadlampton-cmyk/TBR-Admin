@@ -57,8 +57,8 @@ These files still exist, but they are no longer the main product path:
 - `landing/help.html`
 
 Important:
-- `landing/hello.js` still contains some modal/embed hooks that reference those pages.
-- Those references should be treated as legacy cleanup work, not as the active build center.
+- Product direction treats those pages as historical-only code, not part of the active `hello` flow.
+- `landing/hello.*` still contains some leftover references to those pages, so that cleanup should be treated as legacy removal work rather than active feature work.
 
 ## On-Air Ownership Split
 `Library` owns:

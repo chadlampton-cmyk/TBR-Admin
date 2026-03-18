@@ -34,7 +34,9 @@ Current unresolved UI task:
 ## What Is Current
 - The live product path is inside `landing/hello.*`.
 - The audio-controls and recording workflow are the active build areas.
-- `settings`, `help`, and `profile` pages still exist in the repo, but they are historical and should not drive new implementation work unless explicitly revived or removed.
+- `settings`, `help`, and `profile` pages are historical-only pages and code.
+- Product direction should treat them as background context, not active product surface.
+- Current code cleanup is still incomplete, and `hello.*` still contains some leftover links/handlers that reference them.
 
 ## Start Here
 Read these in order for a restart or handoff:

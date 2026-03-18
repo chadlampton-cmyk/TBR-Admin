@@ -130,7 +130,11 @@ These pages remain in the repo, but they are not the current implementation cent
 - `landing/profile.html`
 - `landing/help.html`
 
-There are still legacy hooks from `hello.js` into those pages.
+They should be treated as historical-only pages/code.
+
+Current code reality:
+- `hello.*` still contains leftover links and modal handlers that reference them
+- removing those references remains cleanup work, not feature work
 
 ## Resume Guidance
 For continued build work, treat the current architecture as:

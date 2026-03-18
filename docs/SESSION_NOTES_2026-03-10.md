@@ -36,8 +36,8 @@ These files are the real implementation center now.
 
 ## Current Known Truth
 - The active build is not the old multi-page settings/profile/help workflow.
-- Those pages still exist, but they are historical and should not drive new work.
-- `hello.js` still contains legacy modal/embed hooks into those pages.
+- Those pages still exist, but they are historical-only pages/code and should not drive new work.
+- `hello.*` still contains legacy modal/embed hooks into those pages.
 
 ## Current Known Gaps
 

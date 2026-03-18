@@ -64,7 +64,7 @@ The active frontend build is in:
 Older standalone pages still exist, but they are not the current implementation center.
 
 ## Current Risk Notes
-- `hello.js` still contains legacy hooks into historical settings/help/profile pages.
+- settings/help/profile are historical-only pages/code, but `hello.*` still contains some leftover legacy hooks into them.
 - The frontend is already pointed at the final realtime custom domain, so old “swap temporary Railway URL” instructions are no longer current.
 - Deployment validation should focus on auth, realtime, and active `hello` behavior rather than the older multi-page flow.
 - media upload/storage should be validated separately after deploy if uploads fail with access errors.
