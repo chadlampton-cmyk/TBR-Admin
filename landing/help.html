@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Help | Doggfather Studio</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260313-112" />
+  </head>
+  <body class="settings-page">
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="site-brand-corner">
+      <a class="site-logo-corner" href="./lounge" aria-label="Doggfather Studio home">
+        <img class="site-logo-img site-logo-dark" src="./dfswhite.png?v=20260313-112" alt="Doggfather Studio logo" />
+        <img class="site-logo-img site-logo-light" src="./dfsdark.png?v=20260313-112" alt="" aria-hidden="true" />
+      </a>
+      <header class="site-title-corner" aria-label="Site title">
+        <p class="title-stranger site-title-text">Doggfather Studio</p>
+        <p class="site-title-subtitle">Great stories start with great preparation.</p>
+      </header>
+    </div>
+    <div class="profile-menu site-profile-corner" id="profile-menu">
+      <button
+        type="button"
+        class="profile-btn"
+        id="profile-menu-btn"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-label="Open profile menu"
+      >
+        <span class="profile-avatar" id="profile-avatar">U</span>
+        <img class="profile-avatar-img hidden" id="profile-avatar-img" alt="" />
+      </button>
+      <div class="profile-dropdown hidden" id="profile-dropdown" role="menu" aria-label="Profile options">
+        <p class="profile-meta" id="profile-user">Signed in</p>
+        <a href="./profile" class="profile-item profile-link" role="menuitem">Profile</a>
+        <a href="./settings" class="profile-item profile-link" role="menuitem">Settings</a>
+        <a href="./help" class="profile-item profile-link" role="menuitem">Help</a>
+        <hr class="profile-divider" />
+        <button type="button" class="profile-item danger" role="menuitem" id="profile-logout-btn">Log out</button>
+      </div>
+    </div>
+    <main class="shell">
+      <section class="card settings-card" aria-labelledby="help-title">
+        <header class="card-header">
+          <p class="eyebrow">Studio Support</p>
+          <h1 id="help-title" class="title-stranger">Help</h1>
+          <p class="subtitle">Product information and studio policies for Doggfather Studio.</p>
+        </header>
+        <div class="settings-layout">
+          <nav class="settings-nav" aria-label="Help sections">
+            <button type="button" class="settings-tab active" data-help-tab="about">About</button>
+            <button type="button" class="settings-tab" data-help-tab="knowledge-base">Knowledge Base</button>
+          </nav>
+
+          <div class="settings-panels">
+            <section class="settings-panel active" data-help-panel="about">
+              <div class="settings-group about-studio-card">
+                <p class="settings-group-title">About Doggfather Studio</p>
+                <div class="about-studio-header">
+                  <p class="about-studio-name">Doggfather Studio</p>
+                  <p class="about-studio-version">Version 1.1</p>
+                  <p class="about-studio-build">Build <span id="about-build-number">DFS-Beta Build 1.1.2</span></p>
+                </div>
+                <p class="footnote" id="about-build-status">Build information is synced from the active realtime service.</p>
+                <div class="legal-footer about-legal-footer">
+                  <p>Copyright 2019-2026 Turnbuckle Report</p>
+                  <p class="developer-credit">Developed by CBC Consulting Solutions</p>
+                </div>
+                <div class="settings-inline settings-inline-actions about-policy-actions">
+                  <button type="button" class="btn sso settings-inline-btn" id="about-terms-btn">Terms</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="about-cookies-btn">Cookies</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="about-privacy-btn">Privacy</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-help-panel="knowledge-base">
+              <div class="settings-group help-placeholder-card">
+                <p class="settings-group-title">Knowledge Base</p>
+                <p class="help-placeholder-title">Knowledge base articles are coming soon.</p>
+                <p class="settings-help">
+                  This section is reserved for future studio guides, walkthroughs, troubleshooting steps, and operating procedures. Articles will be added here as the Doggfather Studio help library grows.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="row action-row settings-action-row">
+          <a href="./lounge" class="btn sso settings-action-btn" id="help-back-link">Back to Studio</a>
+        </div>
+      </section>
+    </main>
+
+    <div id="about-terms-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="about-terms-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card legal-policy-modal-card" role="dialog" aria-modal="true" aria-labelledby="about-terms-title">
+        <div class="legal-policy-modal-header">
+          <div>
+            <p id="about-terms-title" class="chat-confirm-title">Terms of Use</p>
+            <p class="chat-confirm-text">Guidelines for using Doggfather Studio and Turnbuckle Report services.</p>
+          </div>
+          <button type="button" class="user-admin-close-btn" id="about-terms-close-btn" aria-label="Close terms window">Close</button>
+        </div>
+        <div class="legal-policy-modal-body">
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Studio Access</p>
+            <p class="legal-policy-section-text">
+              Doggfather Studio is intended for authorized team members, invited guests, and approved production collaborators. Access credentials, invite links, and role permissions may not be shared outside approved use.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Acceptable Use</p>
+            <p class="legal-policy-section-text">
+              Users may not use the platform to disrupt recordings, interfere with other participants, upload unlawful material, attempt unauthorized access, or misuse chat, media, or guest tools.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Content Responsibility</p>
+            <p class="legal-policy-section-text">
+              Each user is responsible for the content they submit, record, upload, or distribute through the studio. You must have the rights and permissions necessary for any audio, video, image, or written content you use.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Account Control</p>
+            <p class="legal-policy-section-text">
+              Turnbuckle Report administrators may suspend access, revoke invites, remove content, or restrict features to protect studio operations, service integrity, or legal compliance.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Service Availability</p>
+            <p class="legal-policy-section-text">
+              We may update, limit, or interrupt features as part of maintenance, security response, or platform improvements. Continued use of the studio indicates acceptance of these operating terms.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-cookies-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="about-cookies-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card legal-policy-modal-card" role="dialog" aria-modal="true" aria-labelledby="about-cookies-title">
+        <div class="legal-policy-modal-header">
+          <div>
+            <p id="about-cookies-title" class="chat-confirm-title">Cookie Notice</p>
+            <p class="chat-confirm-text">How Doggfather Studio uses browser storage and related session technology.</p>
+          </div>
+          <button type="button" class="user-admin-close-btn" id="about-cookies-close-btn" aria-label="Close cookies window">Close</button>
+        </div>
+        <div class="legal-policy-modal-body">
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Essential Session Use</p>
+            <p class="legal-policy-section-text">
+              Doggfather Studio uses essential browser storage and session data to keep users signed in, preserve secure access, and maintain live studio functionality such as chat, preferences, and role-aware controls.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Preference Storage</p>
+            <p class="legal-policy-section-text">
+              We store selected studio preferences such as device defaults, appearance settings, and workspace options so the platform can restore your working environment when you return.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Security and Verification</p>
+            <p class="legal-policy-section-text">
+              Browser data may also support security controls including login sessions, verification steps, access expiration, and fraud-prevention tooling needed to protect the studio and its users.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Managing Cookies</p>
+            <p class="legal-policy-section-text">
+              You may clear cookies or browser storage through your browser settings. Doing so may sign you out, reset saved preferences, or require you to complete authentication again.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-privacy-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="about-privacy-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card legal-policy-modal-card" role="dialog" aria-modal="true" aria-labelledby="about-privacy-title">
+        <div class="legal-policy-modal-header">
+          <div>
+            <p id="about-privacy-title" class="chat-confirm-title">Privacy Notice</p>
+            <p class="chat-confirm-text">What information is used to operate Doggfather Studio and support account security.</p>
+          </div>
+          <button type="button" class="user-admin-close-btn" id="about-privacy-close-btn" aria-label="Close privacy window">Close</button>
+        </div>
+        <div class="legal-policy-modal-body">
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Information We Use</p>
+            <p class="legal-policy-section-text">
+              Doggfather Studio may use account details, profile information, session activity, login timestamps, invite status, and operational data required to authenticate users, manage access, and run studio features.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Operational Purpose</p>
+            <p class="legal-policy-section-text">
+              Information is used to provide secure sign-in, guest access, chat and presence features, diagnostics, moderation tools, and administrative oversight needed to operate the podcast production environment.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Limited Access</p>
+            <p class="legal-policy-section-text">
+              Access to administrative data is limited to authorized personnel with the permissions required to support production, security, and account management responsibilities.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Retention and Protection</p>
+            <p class="legal-policy-section-text">
+              Data may be retained for operational continuity, audit review, and security response. Reasonable administrative and technical safeguards are used to protect account and service information.
+            </p>
+          </section>
+          <section class="legal-policy-section">
+            <p class="legal-policy-section-title">Support Contact</p>
+            <p class="legal-policy-section-text">
+              Questions about privacy or account access can be directed through the support contact configured for the studio or through Turnbuckle Report administration.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script src="./auth.js?v=20260311-94"></script>
+    <script src="./help.js?v=20260313-111"></script>
+  </body>
+</html>

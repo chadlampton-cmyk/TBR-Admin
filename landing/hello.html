@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello | Turnbuckle Report Admin</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260314-115" />
+  </head>
+  <body class="studio-page">
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="site-brand-corner">
+      <a class="site-logo-corner" href="./lounge" aria-label="Doggfather Studio home">
+        <img class="site-logo-img site-logo-dark" src="./dfswhite.png?v=20260313-112" alt="Doggfather Studio logo" />
+        <img class="site-logo-img site-logo-light" src="./dfsdark.png?v=20260313-112" alt="" aria-hidden="true" />
+      </a>
+      <header class="site-title-corner" aria-label="Site title">
+        <p class="title-stranger site-title-text" id="hello-title">Doggfather Studio</p>
+        <p class="site-title-subtitle">Great stories start with great preparation.</p>
+      </header>
+    </div>
+    <div class="site-profile-corner">
+      <div class="profile-menu" id="profile-menu">
+        <button
+          type="button"
+          id="profile-menu-btn"
+          class="profile-btn"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="Open profile menu"
+        >
+          <span class="profile-avatar" id="profile-avatar">JT</span>
+          <img class="profile-avatar-img hidden" id="profile-avatar-img" alt="" />
+        </button>
+        <div class="profile-dropdown hidden" id="profile-dropdown" role="menu" aria-label="Profile menu">
+          <p class="profile-meta">Signed in as <strong id="profile-user">unknown</strong></p>
+          <a href="./profile" class="profile-item profile-link" role="menuitem" id="profile-open-link">Profile</a>
+          <a href="./settings" class="profile-item profile-link" role="menuitem" id="settings-open-link">Settings</a>
+          <a href="./help" class="profile-item profile-link" role="menuitem" id="help-open-link">Help</a>
+          <hr class="profile-divider" />
+          <button type="button" class="profile-item danger" role="menuitem" id="profile-logout-btn">Log out</button>
+        </div>
+      </div>
+    </div>
+    <main class="shell">
+      <section class="card" aria-labelledby="hello-title">
+        <div class="alert warning hidden" id="runtime-warning" role="status"></div>
+        <div class="lounge-topbar" aria-label="Studio lounge status">
+          <p class="lounge-section-label">Studio Lounge</p>
+          <p class="air-status-text air-status-banner">
+            Room Status: <span id="air-status" class="air-status off">Off-Air</span>
+          </p>
+          <div class="air-status-row">
+            <button type="button" class="air-toggle-btn" id="air-toggle-btn">Go On-Air</button>
+          </div>
+        </div>
+        <section class="debug-panel hidden" id="media-debug-panel" aria-label="Media diagnostics">
+          <div class="debug-panel-header">
+            <h2 class="studio-heading">Media Diagnostics</h2>
+            <button type="button" class="btn tiny" id="media-debug-clear-btn">Clear</button>
+          </div>
+          <section class="recording-diagnostics" id="recording-diagnostics" aria-label="Recording diagnostics">
+            <div class="recording-diagnostics-grid">
+              <article class="recording-diagnostic-card">
+                <p class="recording-diagnostic-label">Recorder</p>
+                <p class="recording-diagnostic-value" id="recording-diagnostic-stage">Idle</p>
+                <p class="recording-diagnostic-note" id="recording-diagnostic-stage-note">Not recording yet.</p>
+              </article>
+              <article class="recording-diagnostic-card">
+                <p class="recording-diagnostic-label">Audio Feed</p>
+                <p class="recording-diagnostic-value" id="recording-diagnostic-audio">Unknown</p>
+                <p class="recording-diagnostic-note" id="recording-diagnostic-audio-note">Waiting for a recording start.</p>
+              </article>
+              <article class="recording-diagnostic-card">
+                <p class="recording-diagnostic-label">Chunks</p>
+                <p class="recording-diagnostic-value" id="recording-diagnostic-chunks">0</p>
+                <p class="recording-diagnostic-note" id="recording-diagnostic-chunks-note">No recorder chunks yet.</p>
+              </article>
+              <article class="recording-diagnostic-card">
+                <p class="recording-diagnostic-label">Review Cut</p>
+                <p class="recording-diagnostic-value" id="recording-diagnostic-review">Not Ready</p>
+                <p class="recording-diagnostic-note" id="recording-diagnostic-review-note">No saved review file yet.</p>
+              </article>
+            </div>
+          </section>
+          <pre class="debug-log" id="media-debug-log"></pre>
+        </section>
+
+        <section class="studio-layout" aria-label="studio preview">
+          <div class="studio-panel">
+            <h2 class="studio-heading">Live Video Room</h2>
+            <div class="video-stage" id="video-stage">
+              <div class="video-tile" id="local-video-tile">
+                <p class="video-label">You</p>
+                <div class="camera-frame">
+                  <video
+                    id="camera-video"
+                    class="camera-video"
+                    autoplay
+                    muted
+                    playsinline
+                    aria-label="Your live camera preview"
+                  ></video>
+                </div>
+              </div>
+              <div class="video-tile" id="remote-video-tile">
+                <p class="video-label" id="remote-video-label">Guest</p>
+                <div class="camera-frame">
+                  <video
+                    id="remote-video"
+                    class="camera-video remote-video"
+                    autoplay
+                    playsinline
+                    aria-label="Remote participant video"
+                  ></video>
+                  <div class="camera-placeholder hidden" id="remote-video-placeholder" aria-hidden="true">G</div>
+                </div>
+              </div>
+              <div class="video-extra-tiles" id="extra-video-tiles"></div>
+            </div>
+            <audio id="remote-audio" autoplay playsinline aria-hidden="true"></audio>
+            <p class="camera-status" id="camera-status">Camera is off.</p>
+            <p class="camera-status" id="video-room-status">Not connected to video room.</p>
+            <div class="camera-device-row">
+              <div class="device-select-wrap">
+                <span class="device-icon" aria-hidden="true">📷</span>
+                <span class="device-label">Current Camera</span>
+                <select id="camera-device-select" aria-label="Select camera source"></select>
+              </div>
+              <p class="device-hint">Default camera is managed in <a href="./settings">Settings</a>.</p>
+            </div>
+            <div class="camera-toggle-grid">
+              <label class="settings-toggle" for="camera-enabled-toggle">
+                <input id="camera-enabled-toggle" type="checkbox" />
+                <span>Camera On</span>
+              </label>
+              <label class="settings-toggle" for="camera-blur-toggle">
+                <input id="camera-blur-toggle" type="checkbox" />
+                <span>Background Blur (v1)</span>
+              </label>
+              <label class="settings-toggle" for="camera-background-image-toggle">
+                <input id="camera-background-image-toggle" type="checkbox" />
+                <span>Background Image</span>
+              </label>
+            </div>
+          </div>
+          <div class="studio-panel">
+            <h2 class="studio-heading">Microphone Check</h2>
+            <p class="camera-status" id="mic-status">Microphone is off.</p>
+            <div class="mic-action-toggle-grid">
+              <label class="settings-toggle" for="mic-enabled-toggle">
+                <input id="mic-enabled-toggle" type="checkbox" />
+                <span id="mic-enabled-label">Mic Off</span>
+              </label>
+              <label class="settings-toggle" for="mic-mute-btn">
+                <input id="mic-mute-btn" type="checkbox" />
+                <span>Mute Mic</span>
+              </label>
+            </div>
+            <div class="mic-meter" aria-label="microphone level meter">
+              <div class="mic-meter-fill" id="mic-meter-fill"></div>
+            </div>
+            <div class="mic-device-row">
+              <div class="device-select-wrap">
+                <span class="device-icon" aria-hidden="true">🎤</span>
+                <span class="device-label">Current Mic</span>
+                <select id="mic-device-select" aria-label="Select microphone source"></select>
+              </div>
+              <p class="device-hint">Default microphone is managed in <a href="./settings">Settings</a>.</p>
+            </div>
+            <div class="speaker-device-row">
+              <div class="device-select-wrap">
+                <span class="device-icon" aria-hidden="true">🔊</span>
+                <span class="device-label">Current Speaker</span>
+                <select id="speaker-device-select" aria-label="Select speaker output"></select>
+              </div>
+              <p class="device-hint" id="speaker-status">Speaker routing follows your browser default unless changed here.</p>
+            </div>
+            <div class="mic-toggle-grid">
+              <label class="settings-toggle" for="headphones-toggle">
+                <input id="headphones-toggle" type="checkbox" />
+                <span>I am using headphones</span>
+              </label>
+              <label class="settings-toggle" for="push-to-talk-toggle">
+                <input id="push-to-talk-toggle" type="checkbox" />
+                <span>Enable push-to-talk</span>
+              </label>
+            </div>
+            <details class="audio-rack" id="lounge-audio-rack">
+              <summary>Audio Rack</summary>
+              <div class="audio-rack-content">
+                <label class="settings-field" for="mic-gain">Mic Gain <span id="mic-gain-value">100%</span></label>
+                <input
+                  id="mic-gain"
+                  class="audio-slider"
+                  type="range"
+                  min="0"
+                  max="200"
+                  step="1"
+                  value="100"
+                  aria-label="Microphone input gain"
+                />
+                <div class="audio-toggle-grid">
+                  <label class="settings-toggle" for="limiter-toggle">
+                    <input id="limiter-toggle" type="checkbox" />
+                    <span>Limiter</span>
+                  </label>
+                  <label class="settings-toggle" for="noise-toggle">
+                    <input id="noise-toggle" type="checkbox" />
+                    <span>Noise Reduction</span>
+                  </label>
+                </div>
+                <p class="camera-status audio-rack-status" id="audio-status">Audio rack ready.</p>
+              </div>
+            </details>
+            <p class="camera-status">Mic processing defaults are in <a href="./settings">Settings</a>.</p>
+            <button type="button" class="ptt-hold-btn" id="ptt-hold-btn">Hold to Talk</button>
+            <button type="button" class="mic-test-btn" id="preflight-mic-check-btn">Run Mic Check</button>
+            <p class="mic-test-status" id="preflight-mic-check-status">Mic optimization is ready.</p>
+            <p class="echo-warning hidden" id="echo-warning" role="status">
+              Echo risk: microphone is live without headphones. Use headphones to avoid feedback.
+            </p>
+            <div class="permissions-panel" id="permissions-panel" aria-label="Device permission status">
+              <p class="permissions-title">Device Permissions</p>
+              <div class="permission-row">
+                <span class="permission-name">Camera</span>
+                <span class="permission-badge unknown" id="camera-permission-badge">Unknown</span>
+              </div>
+              <p class="permission-detail" id="camera-permission-detail">Checking browser permission state...</p>
+              <div class="permission-row">
+                <span class="permission-name">Microphone</span>
+                <span class="permission-badge unknown" id="mic-permission-badge">Unknown</span>
+              </div>
+              <p class="permission-detail" id="mic-permission-detail">Checking browser permission state...</p>
+            </div>
+
+            <h2 class="studio-heading participants-heading">Participants</h2>
+            <p class="camera-status" id="participants-status">Checking room presence...</p>
+            <div class="participants-list" id="participants-list" aria-live="polite"></div>
+            <p class="camera-status">Host controls are available after you click <strong>Go On-Air</strong>.</p>
+          </div>
+        </section>
+
+        <section class="preflight-card" aria-label="Studio preflight">
+          <div class="preflight-header">
+            <div class="preflight-header-copy">
+              <p class="preflight-kicker">Preflight</p>
+              <div class="preflight-title-row">
+                <h2 class="studio-heading preflight-title">Studio Readiness</h2>
+                <span class="preflight-pill neutral" id="preflight-overall-pill">Checking</span>
+              </div>
+              <p class="camera-status preflight-summary" id="preflight-overall-text">Checking camera, microphone, permissions, connection, and recording readiness.</p>
+            </div>
+          </div>
+          <div class="preflight-grid">
+            <article class="preflight-item">
+              <div class="preflight-item-top">
+                <p class="preflight-item-label">Camera</p>
+                <span class="preflight-pill neutral" id="preflight-camera-pill">Checking</span>
+              </div>
+              <p class="preflight-item-detail" id="preflight-camera-detail">Camera status is loading.</p>
+            </article>
+            <article class="preflight-item">
+              <div class="preflight-item-top">
+                <p class="preflight-item-label">Microphone</p>
+                <span class="preflight-pill neutral" id="preflight-mic-pill">Checking</span>
+              </div>
+              <p class="preflight-item-detail" id="preflight-mic-detail">Microphone status is loading.</p>
+            </article>
+            <article class="preflight-item">
+              <div class="preflight-item-top">
+                <p class="preflight-item-label">Permissions</p>
+                <span class="preflight-pill neutral" id="preflight-permissions-pill">Checking</span>
+              </div>
+              <p class="preflight-item-detail" id="preflight-permissions-detail">Device permission state is loading.</p>
+            </article>
+            <article class="preflight-item">
+              <div class="preflight-item-top">
+                <p class="preflight-item-label">Connection</p>
+                <span class="preflight-pill neutral" id="preflight-connection-pill">Checking</span>
+              </div>
+              <p class="preflight-item-detail" id="preflight-connection-detail">Realtime status is loading.</p>
+            </article>
+            <article class="preflight-item">
+              <div class="preflight-item-top">
+                <p class="preflight-item-label">Recording</p>
+                <span class="preflight-pill neutral" id="preflight-recording-pill">Checking</span>
+              </div>
+              <p class="preflight-item-detail" id="preflight-recording-detail">Recording readiness is loading.</p>
+            </article>
+          </div>
+        </section>
+
+      </section>
+    </main>
+
+    <section class="onair-overlay hidden" id="onair-overlay" aria-label="On-Air control room" aria-hidden="true">
+      <div class="onair-shell">
+        <section class="onair-countdown-popout hidden" id="onair-countdown-popout" aria-live="assertive" aria-atomic="true" aria-hidden="true">
+          <div class="onair-countdown-panel" role="status" aria-label="Recording countdown">
+            <div class="onair-countdown-light" aria-hidden="true">
+              <span class="onair-countdown-light-dot"></span>
+              <span class="onair-countdown-light-label">Recording</span>
+            </div>
+            <p class="onair-countdown-kicker">Quiet on set. Mics go hot in</p>
+            <p class="onair-countdown-number" id="onair-countdown-number">3</p>
+            <p class="onair-countdown-note" id="onair-countdown-note">Stand by for record start.</p>
+          </div>
+        </section>
+        <div class="onair-card">
+        <header class="onair-header">
+          <h2 class="studio-heading">
+            On-Air Control Room
+            <span class="onair-live-pill" id="onair-live-pill">LIVE</span>
+            <span class="onair-record-pill idle" id="onair-record-pill">REC</span>
+          </h2>
+          <button type="button" class="btn sso onair-close-btn" id="onair-close-btn">Exit On-Air</button>
+        </header>
+        <div class="onair-record-strip hidden" id="onair-record-strip" aria-label="Recording timeline">
+          <span class="onair-record-dot" id="onair-record-dot" aria-hidden="true"></span>
+          <span class="onair-record-label">REC</span>
+          <span class="onair-record-timer" id="onair-record-timer">00:00</span>
+          <span class="onair-record-level-badge safe" id="onair-record-level-badge">Safe</span>
+          <canvas id="onair-record-wave" class="onair-record-wave" width="900" height="56" aria-hidden="true"></canvas>
+        </div>
+        <section class="onair-workflow-strip" aria-label="Recording workflow state">
+          <span class="onair-workflow-pill active" id="workflow-ready-pill">Ready</span>
+          <span class="onair-workflow-pill" id="workflow-countdown-pill">Countdown</span>
+          <span class="onair-workflow-pill" id="workflow-recording-pill">Recording</span>
+          <span class="onair-workflow-pill" id="workflow-processing-pill">Processing</span>
+          <span class="onair-workflow-pill" id="workflow-review-pill">Review</span>
+          <span class="onair-workflow-pill" id="workflow-export-pill">Export Ready</span>
+        </section>
+        <p class="camera-status onair-status-line" id="onair-status-line">Live mode active. Cameras are enlarged and host tools are enabled.</p>
+
+        <div class="onair-video-stage" id="onair-video-stage">
+          <div class="video-tile onair-video-tile" id="onair-local-video-tile">
+            <p class="video-label">You</p>
+            <div class="camera-frame onair-camera-frame">
+              <video
+                id="onair-camera-video"
+                class="camera-video"
+                autoplay
+                muted
+                playsinline
+                aria-label="Your on-air camera"
+              ></video>
+            </div>
+          </div>
+          <div class="video-tile onair-video-tile" id="onair-remote-video-tile">
+            <p class="video-label" id="onair-remote-video-label">Guest</p>
+            <div class="camera-frame onair-camera-frame">
+              <video
+                id="onair-remote-video"
+                class="camera-video remote-video"
+                autoplay
+                playsinline
+                aria-label="Remote on-air camera"
+              ></video>
+              <div class="camera-placeholder hidden" id="onair-remote-video-placeholder" aria-hidden="true">G</div>
+            </div>
+          </div>
+          <div class="video-extra-tiles" id="onair-extra-video-tiles"></div>
+        </div>
+
+        <div class="onair-controls-grid">
+          <section class="onair-panel">
+            <h3 class="studio-heading">Live Controls</h3>
+            <button type="button" class="btn sso host-btn onair-pause-btn" id="onair-camera-pause-btn">Pause Camera</button>
+            <p class="camera-status" id="onair-camera-status">Camera is off.</p>
+            <div class="mic-action-toggle-grid">
+              <label class="settings-toggle" for="onair-mic-enabled-toggle">
+                <input id="onair-mic-enabled-toggle" type="checkbox" />
+                <span id="onair-mic-enabled-label">Mic Off</span>
+              </label>
+              <label class="settings-toggle" for="onair-mic-mute-btn">
+                <input id="onair-mic-mute-btn" type="checkbox" />
+                <span>Mute Mic</span>
+              </label>
+            </div>
+            <div class="onair-live-mic-strip" aria-label="Live mic level controls">
+              <div class="onair-live-mic-slider-shell">
+                <label class="settings-field onair-live-mic-slider-label" for="onair-live-mic-slider">Mic Level</label>
+                <div class="onair-live-mic-slider-track">
+                  <input id="onair-live-mic-slider" class="onair-live-mic-slider" type="range" min="0" max="200" step="1" value="100" aria-label="Live mic level slider" />
+                </div>
+                <p class="onair-live-mic-slider-value" id="onair-live-mic-slider-value">100%</p>
+              </div>
+              <div class="onair-live-mic-meter-shell" aria-label="Live mic activity meter">
+                <p class="settings-field onair-live-mic-meter-label">Mic Meter</p>
+                <div class="onair-live-mic-meter-track">
+                  <div class="onair-live-mic-meter-fill" id="onair-live-mic-meter-fill"></div>
+                </div>
+              </div>
+            </div>
+            <p class="camera-status" id="onair-mic-status">Microphone is off.</p>
+            <details class="audio-rack" id="onair-audio-rack">
+              <summary>Audio Rack</summary>
+              <div class="audio-rack-content">
+                <label class="settings-field" for="onair-mic-gain">Mic Gain <span id="onair-mic-gain-value">100%</span></label>
+                <input
+                  id="onair-mic-gain"
+                  class="audio-slider"
+                  type="range"
+                  min="0"
+                  max="200"
+                  step="1"
+                  value="100"
+                  aria-label="Microphone input gain"
+                />
+                <div class="audio-toggle-grid">
+                  <label class="settings-toggle" for="onair-limiter-toggle">
+                    <input id="onair-limiter-toggle" type="checkbox" />
+                    <span>Limiter</span>
+                  </label>
+                  <label class="settings-toggle" for="onair-noise-toggle">
+                    <input id="onair-noise-toggle" type="checkbox" />
+                    <span>Noise Reduction</span>
+                  </label>
+                </div>
+                <p class="camera-status audio-rack-status" id="onair-audio-status">Audio rack ready.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="onair-panel">
+            <h3 class="studio-heading">Host Controls</h3>
+            <p class="camera-status" id="host-owner-status">Host: Unassigned</p>
+            <div class="host-controls">
+              <button type="button" class="btn primary host-btn" id="host-claim-btn">Become Host</button>
+              <button type="button" class="btn sso host-btn" id="host-mute-all-btn">Mute All</button>
+              <button type="button" class="btn sso host-btn" id="host-clear-spotlight-btn">Clear Spotlight</button>
+            </div>
+            <div class="host-spotlight-row">
+              <label class="settings-field" for="host-spotlight-select">Spotlight speaker</label>
+              <select id="host-spotlight-select" class="settings-select"></select>
+              <button type="button" class="btn primary host-btn" id="host-spotlight-apply-btn">Apply Spotlight</button>
+            </div>
+            <div class="host-spotlight-row">
+              <label class="settings-field" for="host-transfer-select">Transfer host to</label>
+              <select id="host-transfer-select" class="settings-select"></select>
+              <button type="button" class="btn sso host-btn" id="host-transfer-btn">Transfer Host</button>
+            </div>
+            <p class="camera-status" id="host-status">Host controls ready.</p>
+          </section>
+
+          <section class="onair-panel onair-media-panel">
+            <h3 class="studio-heading">Media Actions</h3>
+            <div class="host-controls onair-media-buttons">
+              <button type="button" class="btn sso host-btn" id="onair-playback-btn">Playback</button>
+              <button type="button" class="btn primary host-btn" id="onair-record-btn">Record</button>
+              <button type="button" class="btn sso host-btn onair-download-btn" id="onair-download-btn">Download</button>
+            </div>
+            <section class="onair-music-cues" aria-label="Music cues">
+              <div class="onair-music-cues-head">
+                <p class="onair-music-cues-title">Music Library</p>
+                <span class="onair-music-cues-badge" id="onair-music-cues-badge">No tracks uploaded</span>
+              </div>
+              <div class="onair-music-cues-grid">
+                <div class="onair-music-cues-field">
+                  <label class="settings-field" for="onair-music-track-select">Track Library</label>
+                  <select id="onair-music-track-select" class="settings-select" aria-label="Choose a music track">
+                    <option value="">No uploaded tracks yet</option>
+                  </select>
+                </div>
+                <div class="onair-music-cues-field">
+                  <label class="settings-field" for="onair-music-slot-select">Cue Slot</label>
+                  <select id="onair-music-slot-select" class="settings-select" aria-label="Choose cue slot">
+                    <option value="intro">Intro</option>
+                    <option value="ad-break">Ad Break</option>
+                    <option value="segment-bed">Segment Bed</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="onair-music-cues-actions">
+                <button type="button" class="btn sso host-btn" id="onair-music-upload-btn">Upload Track</button>
+                <button type="button" class="btn sso host-btn" id="onair-library-open-btn">Open Library</button>
+                <button type="button" class="btn primary host-btn" id="onair-music-queue-btn">Queue Next</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-play-btn">Play Now</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-stop-btn">Stop Cue</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-clear-btn">Clear Queue</button>
+              </div>
+              <input
+                id="onair-music-upload-input"
+                type="file"
+                accept="audio/*"
+                class="hidden"
+                aria-label="Upload music track"
+              />
+              <audio id="onair-music-player" class="hidden" preload="auto" aria-label="Music cue playback"></audio>
+              <p class="camera-status" id="onair-music-next">Up Next: nothing queued.</p>
+              <p class="camera-status onair-music-cues-note" id="onair-music-cues-note">
+                Upload and queue production music from your track library.
+              </p>
+            </section>
+            <p class="camera-status" id="onair-media-status">Recording and export actions will run from this On-Air area.</p>
+            <section class="onair-review-panel hidden" id="onair-review-panel" aria-label="Review cut">
+              <div class="onair-review-head">
+                <div>
+                  <p class="onair-review-title">Review Cut</p>
+                  <p class="camera-status" id="onair-review-status">Stop recording to generate the review cut.</p>
+                </div>
+                <span class="onair-review-badge" id="onair-review-badge">No review yet</span>
+              </div>
+              <div class="onair-review-stage">
+                <video
+                  id="onair-review-video"
+                  class="onair-review-video hidden"
+                  playsinline
+                  preload="metadata"
+                  aria-label="Review video playback"
+                ></video>
+                <audio
+                  id="onair-review-audio"
+                  class="onair-review-audio hidden"
+                  preload="metadata"
+                  aria-label="Review audio playback"
+                ></audio>
+                <section class="onair-review-player hidden" id="onair-review-player" aria-label="Review player controls">
+                  <div class="onair-review-player-strip">
+                    <button type="button" class="onair-library-preview-play" id="onair-review-play-btn" aria-label="Play review" aria-pressed="false">▶</button>
+                    <p class="onair-library-preview-time" id="onair-review-time">00:00 / 00:00</p>
+                    <input
+                      type="range"
+                      class="onair-review-scrub"
+                      id="onair-review-scrub"
+                      min="0"
+                      max="1000"
+                      step="1"
+                      value="0"
+                      aria-label="Review playback position"
+                    />
+                    <button type="button" class="onair-library-preview-mute" id="onair-review-mute-btn" aria-label="Mute review" aria-pressed="false">🔊</button>
+                    <button type="button" class="onair-library-preview-close" id="onair-review-close-btn" aria-label="Close review">×</button>
+                  </div>
+                </section>
+              </div>
+              <div class="onair-review-actions">
+                <button type="button" class="btn sso host-btn" id="onair-review-open-video-btn">Play Video Review</button>
+                <button type="button" class="btn sso host-btn" id="onair-review-open-audio-btn">Play Audio Review</button>
+              </div>
+              <div class="onair-export-panel hidden" id="onair-export-panel" aria-label="Export options">
+                <p class="onair-review-title">Export</p>
+                <p class="camera-status" id="onair-export-note">Download the browser-generated show cut as video or audio-only.</p>
+                <div class="onair-review-actions">
+                  <button type="button" class="btn primary host-btn" id="onair-export-video-btn">Download Video Show</button>
+                  <button type="button" class="btn sso host-btn" id="onair-export-audio-btn">Download Audio Only</button>
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+        </div>
+        <div class="onair-audio-drawer" id="onair-audio-drawer">
+          <button type="button" class="onair-audio-side-tab" id="onair-audio-side-tab">Audio Controls</button>
+          <section class="onair-audio-panel hidden" id="onair-audio-panel" aria-label="Audio Controls">
+            <div class="onair-library-head">
+              <p class="onair-music-cues-title">Audio Controls</p>
+              <button type="button" class="btn sso" id="onair-audio-close-btn">Close</button>
+            </div>
+            <div class="onair-audio-mixer-grid">
+              <section class="onair-audio-panel-card onair-audio-music-master" aria-label="Music master">
+                <div class="onair-audio-card-head">
+                  <p class="onair-audio-card-title">Music Master</p>
+                </div>
+                <div class="onair-audio-actions onair-audio-actions-paired">
+                  <button type="button" class="btn sso" id="onair-audio-fade-in-btn">Fade In</button>
+                  <button type="button" class="btn sso" id="onair-audio-fade-out-btn">Fade Out</button>
+                </div>
+                <div class="onair-audio-actions onair-audio-actions-paired">
+                  <button type="button" class="btn sso" id="onair-audio-reset-mix-btn">Reset Mix</button>
+                  <button type="button" class="btn sso" id="onair-audio-stop-all-btn">Stop All</button>
+                </div>
+                <div class="onair-audio-toggle-stack onair-audio-mixer-toggle-stack">
+                  <label class="settings-toggle onair-audio-settings-toggle" for="onair-audio-auto-fade-in-toggle">
+                    <span>Auto Fade In</span>
+                    <input id="onair-audio-auto-fade-in-toggle" type="checkbox" />
+                  </label>
+                  <label class="settings-toggle onair-audio-settings-toggle" for="onair-audio-auto-fade-out-toggle">
+                    <span>Auto Fade Out</span>
+                    <input id="onair-audio-auto-fade-out-toggle" type="checkbox" />
+                  </label>
+                  <label class="settings-toggle onair-audio-settings-toggle" for="onair-audio-duck-voice-toggle">
+                    <span>Duck Voice</span>
+                    <input id="onair-audio-duck-voice-toggle" type="checkbox" />
+                  </label>
+                </div>
+                <div class="onair-audio-slider-shell onair-audio-master-slider-shell" aria-label="Music volume">
+                  <div class="onair-audio-slider-head">
+                    <label class="settings-field onair-audio-slider-label" for="onair-audio-volume-slider">Main Music Volume</label>
+                    <p class="onair-audio-slider-value" id="onair-audio-slider-value">62%</p>
+                  </div>
+                  <div class="onair-audio-slider-track">
+                    <input id="onair-audio-volume-slider" class="onair-audio-volume-slider" type="range" min="0" max="100" step="1" value="62" aria-label="Main music volume slider" />
+                  </div>
+                </div>
+                <section class="onair-audio-utility-row onair-audio-music-meter-row" aria-label="Music bus meter">
+                  <div class="onair-audio-utility-head">
+                    <span class="onair-audio-utility-title">Music Bus Meter</span>
+                    <span class="onair-audio-utility-value" id="onair-music-bus-meter-value">-8 dBFS</span>
+                  </div>
+                  <div class="onair-master-meter-track onair-music-bus-meter-track" aria-hidden="true">
+                    <div class="onair-master-meter-fill" id="onair-music-bus-meter-fill"></div>
+                  </div>
+                </section>
+              </section>
+
+              <section class="onair-audio-panel-card onair-audio-active-cues-card" aria-label="Active cues">
+                <div class="onair-audio-card-head">
+                  <p class="onair-audio-card-title">Active Cues</p>
+                  <span class="onair-audio-card-meta" id="onair-active-cues-meta">No active cues</span>
+                </div>
+                <div class="onair-active-cues-list onair-active-cues-rack" id="onair-active-cues-list"></div>
+              </section>
+
+              <section class="onair-audio-panel-card onair-audio-guests-card" aria-label="Guest channels">
+                <div class="onair-audio-card-head">
+                  <p class="onair-audio-card-title">Guest Channels</p>
+                </div>
+                <div class="onair-audio-guest-rack">
+                  <section class="onair-audio-guest-row" aria-label="Guest 1">
+                    <div class="onair-audio-guest-head">
+                      <strong>Guest 1</strong>
+                      <span class="onair-audio-guest-state" id="onair-guest-audio-name">No guest live</span>
+                    </div>
+                    <div class="onair-audio-slider-shell onair-audio-guest-slider-shell">
+                      <div class="onair-audio-slider-head">
+                        <label class="settings-field onair-audio-slider-label" for="onair-guest-volume-slider">Mic Level</label>
+                        <p class="onair-audio-slider-value" id="onair-guest-volume-value">100%</p>
+                      </div>
+                      <div class="onair-audio-slider-track">
+                        <input id="onair-guest-volume-slider" class="onair-guest-volume-slider" type="range" min="0" max="150" step="1" value="100" aria-label="Guest 1 mic level" />
+                      </div>
+                    </div>
+                    <div class="onair-audio-guest-meter-track" aria-hidden="true">
+                      <div class="onair-audio-guest-meter-fill" id="onair-guest-meter-fill"></div>
+                    </div>
+                  </section>
+                  <section class="onair-audio-guest-row onair-audio-guest-row-placeholder" aria-label="Guest 2">
+                    <div class="onair-audio-guest-head">
+                      <strong>Guest 2</strong>
+                      <span class="onair-audio-guest-state">Open</span>
+                    </div>
+                    <div class="onair-audio-slider-shell onair-audio-guest-slider-shell">
+                      <div class="onair-audio-slider-head">
+                        <span class="onair-audio-slider-label">Mic Level</span>
+                        <p class="onair-audio-slider-value">--</p>
+                      </div>
+                      <div class="onair-audio-slider-track onair-audio-slider-track-placeholder"></div>
+                    </div>
+                    <div class="onair-audio-guest-meter-track onair-audio-guest-meter-track-placeholder" aria-hidden="true"></div>
+                  </section>
+                  <section class="onair-audio-guest-row onair-audio-guest-row-placeholder" aria-label="Guest 3">
+                    <div class="onair-audio-guest-head">
+                      <strong>Guest 3</strong>
+                      <span class="onair-audio-guest-state">Open</span>
+                    </div>
+                    <div class="onair-audio-slider-shell onair-audio-guest-slider-shell">
+                      <div class="onair-audio-slider-head">
+                        <span class="onair-audio-slider-label">Mic Level</span>
+                        <p class="onair-audio-slider-value">--</p>
+                      </div>
+                      <div class="onair-audio-slider-track onair-audio-slider-track-placeholder"></div>
+                    </div>
+                    <div class="onair-audio-guest-meter-track onair-audio-guest-meter-track-placeholder" aria-hidden="true"></div>
+                  </section>
+                </div>
+              </section>
+
+              <section class="onair-audio-panel-card onair-audio-output-card" aria-label="Output">
+                <div class="onair-audio-card-head">
+                  <p class="onair-audio-card-title">Output</p>
+                </div>
+                <section class="onair-audio-utility-row" aria-label="Master output">
+                  <div class="onair-audio-utility-head">
+                    <span class="onair-audio-utility-title">Master Output Meter</span>
+                    <span class="onair-audio-utility-value" id="onair-master-meter-value">-6 dBFS</span>
+                  </div>
+                  <div class="onair-master-meter-track" aria-hidden="true">
+                    <div class="onair-master-meter-fill" id="onair-master-meter-fill"></div>
+                  </div>
+                </section>
+                <section class="onair-audio-utility-row" aria-label="Clipping">
+                  <div class="onair-audio-utility-head">
+                    <span class="onair-audio-utility-title">Clipping</span>
+                    <span class="onair-clipping-warning safe" id="onair-clipping-warning">Safe</span>
+                  </div>
+                  <div class="onair-clipping-bar-track" aria-hidden="true">
+                    <div class="onair-clipping-bar-fill" id="onair-clipping-bar-fill"></div>
+                  </div>
+                </section>
+                <div class="onair-audio-output-status-grid">
+                  <section class="onair-audio-status-card" aria-label="Recording safe">
+                    <strong>Recording Safe</strong>
+                    <span class="onair-audio-status-ok">Yes</span>
+                    <span class="onair-audio-status-note">Program bus active</span>
+                  </section>
+                  <section class="onair-audio-status-card" aria-label="Peak hold">
+                    <strong>Peak Hold</strong>
+                    <span class="onair-audio-status-warn" id="onair-peak-hold-value">-3 dBFS</span>
+                    <span class="onair-audio-status-note">Recent hottest point</span>
+                  </section>
+                </div>
+              </section>
+            </div>
+            <p class="camera-status onair-audio-note">Audio Controls are now organized as Music Master, Active Cues, Guest Channels, and Output.</p>
+          </section>
+        </div>
+        <div class="onair-library-drawer" id="onair-library-drawer">
+          <button type="button" class="onair-library-side-tab" id="onair-library-side-tab">Library</button>
+          <section class="onair-library-panel hidden" id="onair-library-panel" aria-label="Studio Library">
+            <div class="onair-library-head">
+              <p class="onair-music-cues-title">Studio Library</p>
+              <button type="button" class="btn sso" id="onair-library-close-btn">Close</button>
+            </div>
+            <div class="onair-library-tabs" role="tablist" aria-label="Library views">
+              <button type="button" class="onair-library-tab active" id="onair-library-tab-music" data-library-view="music">Music</button>
+              <button type="button" class="onair-library-tab" id="onair-library-tab-episodes" data-library-view="episodes">Episodes</button>
+              <button type="button" class="onair-library-tab" id="onair-library-tab-post" data-library-view="post-production">Post-Production</button>
+            </div>
+            <p class="camera-status onair-library-note" id="onair-library-note">Loading library assets.</p>
+            <section class="onair-library-preview hidden" id="onair-library-preview" aria-label="Track preview player">
+              <div class="onair-library-preview-strip">
+                <button type="button" class="onair-library-preview-play" id="onair-library-preview-play-btn" aria-label="Play preview" aria-pressed="false">▶</button>
+                <p class="onair-library-preview-time" id="onair-library-preview-time">00:00 / 00:00</p>
+                <button type="button" class="onair-library-preview-mute" id="onair-library-preview-mute-btn" aria-label="Mute preview" aria-pressed="false">🔊</button>
+                <button type="button" class="onair-library-preview-close" id="onair-library-preview-close-btn" aria-label="Close preview">×</button>
+              </div>
+              <audio id="onair-library-preview-audio" class="hidden" preload="metadata" aria-label="Library track preview"></audio>
+            </section>
+            <div class="onair-library-list" id="onair-library-list"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <button
+      type="button"
+      class="chat-launcher"
+      id="chat-launcher"
+      aria-label="Open chat"
+      aria-controls="studio-chat"
+      aria-expanded="false"
+    >
+      <span class="chat-launcher-icon" aria-hidden="true">💬</span>
+      <span class="chat-launcher-label">Chat</span>
+      <span class="chat-badge hidden" id="chat-unread-count">0</span>
+    </button>
+
+    <aside class="chat-drawer hidden" id="studio-chat" aria-label="Studio chat">
+      <header class="chat-header">
+        <div class="chat-title-wrap">
+          <h2>Studio Chat</h2>
+          <p class="chat-online" id="chat-online-status">0 online</p>
+        </div>
+        <div class="chat-search">
+          <input id="chat-search-input" type="text" placeholder="Search chat..." aria-label="Search chat" />
+          <button type="button" id="chat-search-next-btn" aria-label="Next result">Next</button>
+        </div>
+        <button type="button" class="chat-close" id="chat-close-btn" aria-label="Close chat">×</button>
+      </header>
+
+      <div class="chat-typing hidden" id="chat-typing" aria-live="polite"></div>
+      <div class="chat-status hidden" id="chat-status" role="status" aria-live="polite"></div>
+
+      <div class="chat-quick-wrap">
+        <button
+          type="button"
+          class="chat-quick-toggle"
+          id="chat-quick-toggle"
+          aria-expanded="false"
+          aria-controls="chat-quick-notes"
+        >
+          Quick Notes
+        </button>
+        <div class="chat-quick-notes collapsed" id="chat-quick-notes" aria-label="Quick notes">
+          <button type="button" class="quick-note-btn" data-note="We're live in 5.">We're live in 5.</button>
+          <button type="button" class="quick-note-btn" data-note="You're muted.">You're muted.</button>
+          <button type="button" class="quick-note-btn" data-note="Move to next topic.">Move to next topic.</button>
+          <button type="button" class="quick-note-btn" data-note="Wrap this segment.">Wrap this segment.</button>
+          <button type="button" class="quick-note-btn" data-note="Let's bring it home.">Let's bring it home.</button>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite"></div>
+
+      <form class="chat-input-row" id="chat-form">
+        <div class="chat-reply-preview hidden" id="chat-reply-preview" aria-live="polite">
+          <div class="chat-reply-preview-copy">
+            <p class="chat-reply-preview-title" id="chat-reply-preview-title">Replying</p>
+            <p class="chat-reply-preview-text" id="chat-reply-preview-text"></p>
+          </div>
+          <button type="button" class="chat-reply-preview-close" id="chat-reply-preview-close" aria-label="Cancel reply">
+            ×
+          </button>
+        </div>
+        <button type="button" class="chat-attach-btn" id="chat-attach-btn" aria-label="Attach image or video">+</button>
+        <div class="chat-plus-menu hidden" id="chat-plus-menu" aria-label="Message actions">
+          <button type="button" class="chat-plus-item" id="chat-plus-schedule-btn">Schedule Send</button>
+          <button type="button" class="chat-plus-item" id="chat-plus-attach-btn">Attach File</button>
+        </div>
+        <input
+          id="chat-attach-input"
+          type="file"
+          accept="image/*,video/*"
+          class="hidden"
+          aria-label="Select image or video"
+        />
+        <div class="chat-emoji-wrap">
+          <button
+            type="button"
+            class="chat-emoji-toggle"
+            id="chat-emoji-toggle"
+            aria-label="Open emoji picker"
+            aria-controls="chat-emoji-picker"
+            aria-expanded="false"
+          >
+            🙂
+          </button>
+          <div class="chat-emoji-picker hidden" id="chat-emoji-picker" aria-label="Emoji picker">
+            <div class="chat-emoji-section-title">Recently used</div>
+            <div class="chat-emoji-recent" id="chat-emoji-recent"></div>
+            <div class="chat-emoji-section-title">Studio & Show</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎙️" aria-label="Microphone">🎙️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎧" aria-label="Headphones">🎧</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🔥" aria-label="Fire">🔥</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="✅" aria-label="Check">✅</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="👍" aria-label="Thumbs up">👍</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="👏" aria-label="Clap">👏</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🚨" aria-label="Alert">🚨</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="⏱️" aria-label="Timer">⏱️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🔇" aria-label="Muted">🔇</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎬" aria-label="Action">🎬</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤝" aria-label="Handshake">🤝</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="💯" aria-label="100">💯</button>
+            <div class="chat-emoji-section-title">Faces & Emotions</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="😞" aria-label="Sad face">😞</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😢" aria-label="Crying face">😢</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😠" aria-label="Angry face">😠</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🖕" aria-label="Middle finger">🖕</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😂" aria-label="Laughing">😂</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤣" aria-label="Crying laughing">🤣</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😀" aria-label="Happy face">😀</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🙂" aria-label="Slight smile">🙂</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😄" aria-label="Big smile">😄</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😁" aria-label="Grin">😁</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😎" aria-label="Cool face">😎</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤔" aria-label="Thinking face">🤔</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="😐" aria-label="Neutral face">😐</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🙄" aria-label="Eye roll">🙄</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤯" aria-label="Mind blown">🤯</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🥳" aria-label="Party face">🥳</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤦‍♂️" aria-label="Man facepalm">🤦‍♂️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤦‍♀️" aria-label="Woman facepalm">🤦‍♀️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤷‍♂️" aria-label="Man shrug">🤷‍♂️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤷‍♀️" aria-label="Woman shrug">🤷‍♀️</button>
+            <div class="chat-emoji-section-title">Hand Gestures</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="👋" aria-label="Waving hand">👋</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤚" aria-label="Raised back of hand">🤚</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🖐️" aria-label="Hand with fingers splayed">🖐️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="✋" aria-label="Raised hand">✋</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="👌" aria-label="OK hand">👌</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="✌️" aria-label="Victory hand">✌️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤟" aria-label="Love-you gesture">🤟</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤘" aria-label="Sign of the horns">🤘</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="👊" aria-label="Oncoming fist">👊</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤛" aria-label="Left-facing fist">🤛</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🤜" aria-label="Right-facing fist">🤜</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🙏" aria-label="Folded hands">🙏</button>
+            <div class="chat-emoji-section-title">Drinks</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="🍺" aria-label="Beer mug">🍺</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🍻" aria-label="Clinking beer mugs">🍻</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🍷" aria-label="Wine glass">🍷</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🥂" aria-label="Clinking glasses">🥂</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🥃" aria-label="Tumbler glass">🥃</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🥤" aria-label="Cup with straw">🥤</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🧃" aria-label="Beverage box">🧃</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🧋" aria-label="Bubble tea">🧋</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="💧" aria-label="Water drop">💧</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🚰" aria-label="Potable water">🚰</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="☕" aria-label="Hot beverage">☕</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🫖" aria-label="Teapot">🫖</button>
+            <div class="chat-emoji-section-title">Holiday</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎄" aria-label="Christmas tree">🎄</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎅" aria-label="Santa Claus">🎅</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🕎" aria-label="Menorah">🕎</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🪔" aria-label="Diya lamp">🪔</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎃" aria-label="Jack-o-lantern">🎃</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="👻" aria-label="Ghost">👻</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎆" aria-label="Fireworks">🎆</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎇" aria-label="Sparkler">🎇</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎉" aria-label="Party popper">🎉</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🎊" aria-label="Confetti ball">🎊</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="❤️" aria-label="Red heart">❤️</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🧧" aria-label="Red envelope">🧧</button>
+            <div class="chat-emoji-section-title">Animals</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐶" aria-label="Dog">🐶</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐱" aria-label="Cat">🐱</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐻" aria-label="Bear">🐻</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🦁" aria-label="Lion">🦁</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐼" aria-label="Panda">🐼</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🦊" aria-label="Fox">🦊</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐺" aria-label="Wolf">🐺</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🦅" aria-label="Eagle">🦅</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐬" aria-label="Dolphin">🐬</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐘" aria-label="Elephant">🐘</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🦍" aria-label="Gorilla">🦍</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🐢" aria-label="Turtle">🐢</button>
+            <div class="chat-emoji-section-title">Flags</div>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇺🇸" aria-label="United States">🇺🇸</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇨🇦" aria-label="Canada">🇨🇦</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇲🇽" aria-label="Mexico">🇲🇽</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇬🇧" aria-label="United Kingdom">🇬🇧</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇮🇪" aria-label="Ireland">🇮🇪</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇫🇷" aria-label="France">🇫🇷</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇩🇪" aria-label="Germany">🇩🇪</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇮🇹" aria-label="Italy">🇮🇹</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇪🇸" aria-label="Spain">🇪🇸</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇧🇷" aria-label="Brazil">🇧🇷</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇯🇵" aria-label="Japan">🇯🇵</button>
+            <button type="button" class="chat-emoji-btn" data-emoji="🇦🇺" aria-label="Australia">🇦🇺</button>
+          </div>
+        </div>
+        <textarea
+          id="chat-input"
+          lang="en-US"
+          maxlength="240"
+          placeholder="Type a message..."
+          spellcheck="true"
+          autocorrect="on"
+          autocapitalize="sentences"
+          rows="1"
+        ></textarea>
+        <button type="submit" class="chat-send">Send</button>
+        <div class="chat-attach-preview hidden" id="chat-attach-preview" aria-live="polite">
+          <span id="chat-attach-preview-text">Attachment ready</span>
+          <div class="chat-attach-progress-wrap">
+            <div class="chat-attach-progress" id="chat-attach-progress"></div>
+          </div>
+          <div class="chat-attach-actions">
+            <button type="button" class="chat-attach-remove" id="chat-attach-cancel-btn" aria-label="Cancel upload">
+              Cancel
+            </button>
+            <button type="button" class="chat-attach-remove hidden" id="chat-attach-retry-btn" aria-label="Retry upload">
+              Retry
+            </button>
+            <button type="button" class="chat-attach-remove" id="chat-attach-remove-btn" aria-label="Remove attachment">
+              ×
+            </button>
+          </div>
+        </div>
+      </form>
+    </aside>
+
+    <div class="chat-media-modal hidden" id="chat-media-modal" aria-hidden="true" role="dialog" aria-label="Media preview">
+      <div class="chat-media-modal-backdrop" id="chat-media-modal-backdrop"></div>
+      <div class="chat-media-modal-card">
+        <button type="button" class="chat-media-modal-close" id="chat-media-modal-close" aria-label="Close preview">
+          ×
+        </button>
+        <div class="chat-media-modal-body" id="chat-media-modal-body"></div>
+        <div class="chat-media-modal-actions">
+          <button type="button" class="chat-media-modal-download" id="chat-media-modal-download">Download</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-confirm-modal hidden" id="chat-confirm-modal" aria-hidden="true" role="dialog" aria-label="Confirm action">
+      <div class="chat-confirm-backdrop" id="chat-confirm-backdrop"></div>
+      <div class="chat-confirm-card">
+        <h3 class="chat-confirm-title" id="chat-confirm-title">Confirm</h3>
+        <p class="chat-confirm-text" id="chat-confirm-text">Are you sure?</p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="chat-confirm-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn danger" id="chat-confirm-ok-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-schedule-modal hidden" id="chat-schedule-modal" aria-hidden="true" role="dialog" aria-label="Schedule message">
+      <div class="chat-schedule-backdrop" id="chat-schedule-backdrop"></div>
+      <div class="chat-schedule-card">
+        <h3 class="chat-confirm-title">Schedule Send</h3>
+        <p class="chat-confirm-text">Type your message, choose a send time, then it sends automatically.</p>
+        <label class="settings-field settings-subfield" for="chat-schedule-message-input">Message</label>
+        <textarea
+          id="chat-schedule-message-input"
+          class="chat-schedule-message"
+          rows="1"
+          maxlength="1200"
+          placeholder="Type a message to schedule..."
+        ></textarea>
+        <label class="settings-field settings-subfield" for="chat-schedule-preset-select">Schedule</label>
+        <select id="chat-schedule-preset-select" class="settings-select">
+          <option value="1">1 minute</option>
+          <option value="3">3 minutes</option>
+          <option value="5" selected>5 minutes</option>
+          <option value="10">10 minutes</option>
+          <option value="20">20 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="custom">Custom</option>
+        </select>
+        <div class="chat-schedule-custom hidden" id="chat-schedule-custom-wrap">
+          <label class="settings-field settings-subfield" for="chat-schedule-minutes-input">Custom delay (minutes, max 30)</label>
+          <input
+            id="chat-schedule-minutes-input"
+            type="number"
+            min="0.1"
+            max="30"
+            step="0.1"
+            value="5"
+            placeholder="5"
+          />
+        </div>
+        <p class="chat-schedule-warning hidden" id="chat-schedule-warning" role="status" aria-live="polite"></p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="btn sso chat-schedule-action-btn" id="chat-schedule-cancel-btn">Cancel</button>
+          <button type="button" class="btn primary chat-schedule-action-btn" id="chat-schedule-ok-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="lounge-profile-modal" class="lounge-page-modal hidden" aria-hidden="true">
+      <div class="lounge-page-backdrop" id="lounge-profile-backdrop"></div>
+      <section class="lounge-page-card lounge-profile-card card settings-card profile-card" role="dialog" aria-modal="true" aria-labelledby="lounge-profile-title">
+        <header class="card-header lounge-page-card-header">
+          <div>
+            <p class="eyebrow">User Profile</p>
+            <h1 id="lounge-profile-title" class="title-stranger">Profile</h1>
+            <p class="subtitle">Personalize your studio identity and security.</p>
+          </div>
+        </header>
+
+        <div class="settings-group">
+          <p class="settings-group-title">Profile Identity</p>
+          <div class="profile-hero">
+            <div class="lounge-profile-photo-column">
+              <div class="profile-photo-wrap" id="lounge-photo-studio">
+                <img id="lounge-profile-photo-preview" class="profile-photo hidden" alt="Profile photo preview" />
+                <span id="lounge-profile-photo-fallback" class="profile-photo-fallback">U</span>
+                <button
+                  type="button"
+                  class="profile-photo-edit-btn"
+                  id="lounge-profile-photo-edit-btn"
+                  aria-label="Edit profile photo"
+                  title="Edit profile photo"
+                >
+                  Edit
+                </button>
+              </div>
+              <div class="settings-inline settings-inline-actions lounge-profile-photo-actions">
+                <button type="button" class="btn sso settings-inline-btn" id="lounge-profile-photo-upload-btn">Upload Photo</button>
+                <button type="button" class="btn sso settings-inline-btn" id="lounge-profile-photo-remove-btn">Remove Photo</button>
+              </div>
+            </div>
+            <div class="profile-hero-text">
+              <p class="profile-display-name" id="lounge-profile-display-name">unknown</p>
+              <p class="profile-user-meta" id="lounge-profile-user-meta">@unknown</p>
+              <p class="profile-user-meta" id="lounge-profile-created-meta">Member since --</p>
+            </div>
+          </div>
+          <input id="lounge-profile-photo-input" class="hidden" type="file" accept="image/*" />
+          <p class="settings-help">Use <strong>Edit</strong> on the avatar for themed presets, or Upload Photo for your own image.</p>
+          <label class="settings-field settings-subfield" for="lounge-profile-alias-input">Alias name</label>
+          <input id="lounge-profile-alias-input" type="text" maxlength="32" placeholder="Example: Big Dogg / JT" />
+          <label class="settings-toggle" for="lounge-profile-use-alias-toggle">
+            <input id="lounge-profile-use-alias-toggle" type="checkbox" />
+            <span>Use alias instead of username in studio display</span>
+          </label>
+          <p class="settings-help">Alias affects display labels. Login username remains unchanged.</p>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-group-title">Security</p>
+          <label class="settings-field" for="lounge-profile-current-password-input">Current password</label>
+          <input
+            id="lounge-profile-current-password-input"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter current password"
+          />
+          <label class="settings-field settings-subfield" for="lounge-profile-new-password-input">New password</label>
+          <input
+            id="lounge-profile-new-password-input"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Create new password (8+ characters)"
+          />
+          <label class="settings-field settings-subfield" for="lounge-profile-confirm-password-input">Confirm new password</label>
+          <input
+            id="lounge-profile-confirm-password-input"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Re-enter new password"
+          />
+          <div class="settings-inline settings-inline-actions profile-security-actions">
+            <button type="button" class="btn primary settings-inline-btn" id="lounge-profile-change-password-btn">Change Password</button>
+          </div>
+          <p class="settings-help">Use at least 8 characters. Longer passphrases are recommended.</p>
+        </div>
+
+        <div class="settings-group profile-delete-group">
+          <p class="settings-group-title">Account</p>
+          <p class="settings-help">Delete your account and remove access from the studio.</p>
+          <div class="settings-inline profile-delete-actions">
+            <button type="button" class="btn danger settings-inline-btn" id="lounge-profile-delete-account-btn">Delete Account</button>
+          </div>
+        </div>
+
+        <p id="lounge-profile-message" class="form-message hidden" role="status"></p>
+
+        <div class="row action-row settings-action-row">
+          <button type="button" class="btn primary settings-action-btn lounge-profile-action-btn" id="lounge-profile-save-btn">Save Profile</button>
+          <button type="button" class="btn sso settings-action-btn lounge-profile-action-btn" id="lounge-profile-back-btn">Close</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="lounge-avatar-studio-modal" class="avatar-studio-modal hidden" aria-hidden="true">
+      <div class="avatar-studio-backdrop" id="lounge-avatar-studio-backdrop"></div>
+      <section class="avatar-studio-card" role="dialog" aria-modal="true" aria-labelledby="lounge-avatar-studio-title">
+        <header class="avatar-studio-card-header">
+          <h2 id="lounge-avatar-studio-title" class="studio-heading">Avatar Studio</h2>
+          <button type="button" class="avatar-studio-close" id="lounge-avatar-studio-close-btn" aria-label="Close Avatar Studio">
+            Close
+          </button>
+        </header>
+        <div class="avatar-studio">
+          <div class="avatar-studio-header">
+            <label class="settings-field avatar-category-label" for="lounge-avatar-category-select">Theme</label>
+            <select id="lounge-avatar-category-select" class="settings-select avatar-category-select">
+              <option value="all">All themes</option>
+              <option value="space">Outer Space</option>
+              <option value="animals">Animals</option>
+              <option value="mythical">Mythical</option>
+              <option value="sports">Sports</option>
+            </select>
+          </div>
+          <div id="lounge-avatar-preset-grid" class="avatar-preset-grid" aria-label="Avatar preset options"></div>
+          <p class="settings-help">Pick a preset, then click Save Profile.</p>
+        </div>
+      </section>
+    </div>
+
+    <div id="lounge-profile-delete-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="lounge-profile-delete-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card" role="dialog" aria-modal="true" aria-labelledby="lounge-profile-delete-title">
+        <p id="lounge-profile-delete-title" class="chat-confirm-title">Delete Your Account?</p>
+        <p id="lounge-profile-delete-text" class="chat-confirm-text">
+          Deleting your account cannot be reversed. Your profile and access will be permanently removed. Are you sure you want to continue?
+        </p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="lounge-profile-delete-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn danger" id="lounge-profile-delete-confirm-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="lounge-settings-modal" class="lounge-page-modal hidden" aria-hidden="true">
+      <div class="lounge-page-backdrop" id="lounge-settings-backdrop"></div>
+      <section
+        class="lounge-page-card lounge-settings-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+      >
+        <div class="lounge-settings-frame-wrap">
+          <iframe
+            id="lounge-settings-frame"
+            class="lounge-settings-frame"
+            title="Studio Settings"
+            loading="lazy"
+          ></iframe>
+        </div>
+      </section>
+    </div>
+
+    <div id="lounge-help-modal" class="lounge-page-modal hidden" aria-hidden="true">
+      <div class="lounge-page-backdrop" id="lounge-help-backdrop"></div>
+      <section
+        class="lounge-page-card lounge-help-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Help"
+      >
+        <div class="lounge-help-frame-wrap">
+          <iframe
+            id="lounge-help-frame"
+            class="lounge-help-frame"
+            title="Studio Help"
+            loading="lazy"
+          ></iframe>
+        </div>
+      </section>
+    </div>
+
+    <script src="./auth.js?v=20260311-92"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+    <script src="./vendor/twilio-video.min.js?v=20260312-01"></script>
+    <script src="./hello.js?v=20260313-111"></script>
+  </body>
+</html>

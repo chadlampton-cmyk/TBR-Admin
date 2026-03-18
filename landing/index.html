@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Turnbuckle Report Admin</title>
+    <meta
+      name="description"
+      content="Doggfather Studio by Turnbuckle Report. Secure podcast studio access for authorized staff."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Doggfather Studio" />
+    <meta property="og:title" content="Doggfather Studio" />
+    <meta
+      property="og:description"
+      content="Secure podcast studio access for authorized staff."
+    />
+    <meta property="og:url" content="https://admin.turnbucklereport.com/" />
+    <meta property="og:image" content="https://admin.turnbucklereport.com/dfs.png" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Doggfather Studio" />
+    <meta
+      name="twitter:description"
+      content="Secure podcast studio access for authorized staff."
+    />
+    <meta name="twitter:image" content="https://admin.turnbucklereport.com/dfs.png" />
+    <link rel="canonical" href="https://admin.turnbucklereport.com/" />
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260313-112" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <a class="site-logo-corner" href="./lounge" aria-label="Doggfather Studio home">
+      <img class="site-logo-img site-logo-dark" src="./dfswhite.png?v=20260313-112" alt="Doggfather Studio logo" />
+      <img class="site-logo-img site-logo-light" src="./dfsdark.png?v=20260313-112" alt="" aria-hidden="true" />
+    </a>
+    <main class="shell">
+      <section class="card" aria-labelledby="login-title">
+        <header class="card-header">
+          <p class="eyebrow">Admin Portal</p>
+          <h1 id="login-title" class="title-stranger">Turnbuckle Report</h1>
+          <p class="subtitle">Secure access for authorized staff only.</p>
+        </header>
+
+        <div class="alert warning hidden" id="attempt-warning" role="status">
+          Warning: next failed attempt will lock this account for 30 minutes.
+        </div>
+        <div class="alert danger hidden" id="lockout-warning" role="alert">
+          Account locked due to repeated failed sign-ins. Try again later.
+        </div>
+
+        <form id="login-form" class="login-form" novalidate>
+          <label for="username">Email or Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            required
+          />
+
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              required
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              id="password-toggle"
+              aria-label="Hold to show password"
+              aria-pressed="false"
+              title="Hold to show password"
+            >
+              <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M1.5 12s3.8-7 10.5-7 10.5 7 10.5 7-3.8 7-10.5 7S1.5 12 1.5 12Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="row">
+            <label class="remember">
+              <input id="remember" name="remember" type="checkbox" />
+              Remember me
+            </label>
+            <button type="button" class="muted-link muted-link-btn" id="forgot-password-link">Forgot password?</button>
+          </div>
+
+          <button type="submit" class="btn primary" id="login-btn">Sign in</button>
+        </form>
+        <div class="twofa-modal hidden" id="twofa-panel" role="dialog" aria-modal="true" aria-labelledby="twofa-title">
+          <div class="twofa-modal-backdrop" id="twofa-backdrop"></div>
+          <div class="twofa-modal-card">
+            <p class="eyebrow">Security Check</p>
+            <h2 id="twofa-title">Two-Factor Verification</h2>
+            <p id="twofa-hint">Enter the code sent by text message.</p>
+            <label for="twofa-phone" id="twofa-phone-label">Mobile Phone</label>
+            <input
+              id="twofa-phone"
+              name="twofaPhone"
+              type="tel"
+              autocomplete="tel"
+              inputmode="tel"
+              placeholder="+1 555 555 1234"
+              form="login-form"
+            />
+            <label for="twofa-code">Verification Code</label>
+            <input
+              id="twofa-code"
+              name="twofaCode"
+              type="text"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              placeholder="123456"
+              form="login-form"
+            />
+            <div class="twofa-modal-actions">
+              <button type="button" class="btn sso" id="twofa-cancel-btn">Cancel</button>
+              <button type="submit" class="btn primary" id="twofa-submit-btn" form="login-form">Verify code</button>
+            </div>
+          </div>
+        </div>
+        <div class="twofa-modal hidden" id="forgot-code-panel" role="dialog" aria-modal="true" aria-labelledby="forgot-code-title">
+          <div class="twofa-modal-backdrop" id="forgot-code-backdrop"></div>
+          <div class="twofa-modal-card auth-flow-modal-card">
+            <p class="eyebrow">Account Recovery</p>
+            <h2 id="forgot-code-title">Verify Reset Code</h2>
+            <p id="forgot-code-hint">Enter your username to receive a password reset code by text message.</p>
+            <label for="forgot-username">Username</label>
+            <input
+              id="forgot-username"
+              name="forgotUsername"
+              type="text"
+              autocomplete="username"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+            <label for="forgot-code">Verification Code</label>
+            <input
+              id="forgot-code"
+              name="forgotCode"
+              type="text"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              placeholder="123456"
+            />
+            <div class="twofa-modal-actions">
+              <button type="button" class="btn sso" id="forgot-code-cancel-btn">Cancel</button>
+              <button type="button" class="btn primary" id="forgot-code-submit-btn">Verify code</button>
+            </div>
+          </div>
+        </div>
+        <div class="twofa-modal hidden" id="forgot-reset-panel" role="dialog" aria-modal="true" aria-labelledby="forgot-reset-title">
+          <div class="twofa-modal-backdrop" id="forgot-reset-backdrop"></div>
+          <div class="twofa-modal-card auth-flow-modal-card">
+            <p class="eyebrow">Account Recovery</p>
+            <h2 id="forgot-reset-title">Set New Password</h2>
+            <p>Enter your new password twice, then save and sign in again.</p>
+            <label for="forgot-reset-password">New Password</label>
+            <input
+              id="forgot-reset-password"
+              name="forgotResetPassword"
+              type="password"
+              autocomplete="new-password"
+              placeholder="At least 8 characters"
+            />
+            <label for="forgot-reset-confirm">Confirm New Password</label>
+            <input
+              id="forgot-reset-confirm"
+              name="forgotResetConfirm"
+              type="password"
+              autocomplete="new-password"
+              placeholder="Re-enter new password"
+            />
+            <div class="twofa-modal-actions">
+              <button type="button" class="btn sso" id="forgot-reset-cancel-btn">Cancel</button>
+              <button type="button" class="btn primary" id="forgot-reset-submit-btn">Save Password</button>
+            </div>
+          </div>
+        </div>
+        <p class="form-message hidden" id="login-message" role="status"></p>
+
+        <p class="mini-action"><a href="./register" class="muted-link">Create User</a></p>
+
+        <div class="divider" role="separator" aria-label="alternative sign-in">
+          <span>or</span>
+        </div>
+
+        <div class="sso-group">
+          <button class="btn sso" id="google-sso-btn" type="button">
+            <svg class="sso-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="#EA4335"
+                d="M12 10.2v4.2h5.93c-.26 1.35-1.77 3.97-5.93 3.97-3.57 0-6.48-2.95-6.48-6.59S8.43 5.2 12 5.2c2.03 0 3.39.87 4.17 1.62l2.84-2.76C17.19 2.39 14.79 1.4 12 1.4 6.74 1.4 2.47 5.68 2.47 10.95S6.74 20.5 12 20.5c6.91 0 9.13-4.84 9.13-7.34 0-.49-.05-.84-.12-1.2H12Z"
+              />
+              <path fill="#34A853" d="M5.52 14.21 4.7 16.75 2.23 16.81A9.54 9.54 0 0 1 1.4 10.95c0-.99.15-1.95.44-2.86h.01l2.2.4.96 2.18a5.73 5.73 0 0 0 .51 3.54Z" />
+              <path fill="#4A90E2" d="M12 20.5c2.72 0 5-.9 6.66-2.45l-3.17-2.61c-.88.62-2.01 1-3.49 1-3.55 0-6.54-2.4-7.61-5.63l-3.16 2.43A9.55 9.55 0 0 0 12 20.5Z" />
+              <path fill="#FBBC05" d="M5.52 7.7a5.73 5.73 0 0 1 6.48-2.5c1.4 0 2.58.48 3.54 1.43l2.65-2.57A9.53 9.53 0 0 0 12 1.4a9.55 9.55 0 0 0-8.77 5.73l3.29 2.56Z" />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+          <button class="btn sso" id="facebook-sso-btn" type="button">
+            <svg class="sso-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="#1877F2"
+                d="M24 12a12 12 0 1 0-13.88 11.86v-8.39H7.08V12h3.04V9.36c0-3 1.79-4.66 4.52-4.66 1.31 0 2.68.23 2.68.23v2.95h-1.51c-1.49 0-1.95.93-1.95 1.88V12h3.33l-.53 3.47h-2.8v8.39A12 12 0 0 0 24 12Z"
+              />
+            </svg>
+            <span>Continue with Facebook</span>
+          </button>
+        </div>
+
+        <p class="footnote">
+          By signing in, you agree to monitoring and authorized-use policies.
+        </p>
+        <footer class="legal-footer" aria-label="site legal">
+          <p>&copy; 2019-2026 Turnbuckle Report. All rights reserved.</p>
+          <p class="developer-credit">Developed by CBC Consulting Solutions</p>
+        </footer>
+      </section>
+    </main>
+    <div class="captcha-modal hidden" id="captcha-panel" role="dialog" aria-modal="true" aria-labelledby="captcha-title">
+      <div class="captcha-modal-backdrop" id="captcha-backdrop"></div>
+      <div class="captcha-modal-card">
+        <p class="eyebrow">Security Check</p>
+        <h2 id="captcha-title">Verify You're Human</h2>
+        <p class="captcha-hint" id="captcha-hint">Complete this quick check before sign in.</p>
+        <div id="captcha-turnstile" class="captcha-turnstile-wrap"></div>
+        <div class="captcha-modal-actions">
+          <button type="button" class="btn sso" id="captcha-cancel-btn">Cancel</button>
+          <button type="button" class="btn primary" id="captcha-continue-btn" disabled>Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script src="./auth.js?v=20260311-95"></script>
+    <script src="./script.js?v=20260311-69"></script>
+  </body>
+</html>

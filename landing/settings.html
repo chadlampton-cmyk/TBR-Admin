@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Settings | Doggfather Studio</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260316-113" />
+  </head>
+  <body class="settings-page">
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="site-brand-corner">
+      <a class="site-logo-corner" href="./lounge" aria-label="Doggfather Studio home">
+        <img class="site-logo-img site-logo-dark" src="./dfswhite.png?v=20260316-113" alt="Doggfather Studio logo" />
+        <img class="site-logo-img site-logo-light" src="./dfsdark.png?v=20260316-113" alt="" aria-hidden="true" />
+      </a>
+      <header class="site-title-corner" aria-label="Site title">
+        <p class="title-stranger site-title-text">Doggfather Studio</p>
+        <p class="site-title-subtitle">Great stories start with great preparation.</p>
+      </header>
+    </div>
+    <div class="profile-menu site-profile-corner" id="profile-menu">
+      <button
+        type="button"
+        class="profile-btn"
+        id="profile-menu-btn"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-label="Open profile menu"
+      >
+        <span class="profile-avatar" id="profile-avatar">U</span>
+        <img class="profile-avatar-img hidden" id="profile-avatar-img" alt="" />
+      </button>
+      <div class="profile-dropdown hidden" id="profile-dropdown" role="menu" aria-label="Profile options">
+        <p class="profile-meta" id="profile-user">Signed in</p>
+        <a href="./profile" class="profile-item profile-link" role="menuitem">Profile</a>
+        <a href="./settings" class="profile-item profile-link" role="menuitem">Settings</a>
+        <a href="./help" class="profile-item profile-link" role="menuitem">Help</a>
+        <hr class="profile-divider" />
+        <button type="button" class="profile-item danger" role="menuitem" id="profile-logout-btn">Log out</button>
+      </div>
+    </div>
+    <main class="shell">
+      <section class="card settings-card" aria-labelledby="settings-title">
+        <header class="card-header">
+          <p class="eyebrow">Studio Preferences</p>
+          <h1 id="settings-title" class="title-stranger">Settings</h1>
+          <p class="subtitle">Configure defaults for this browser. Live controls stay in Lounge.</p>
+        </header>
+        <div class="settings-layout">
+          <nav class="settings-nav" aria-label="Settings sections">
+            <button type="button" class="settings-tab active" data-settings-tab="devices">Devices</button>
+            <button type="button" class="settings-tab" data-settings-tab="mic">Mic</button>
+            <button type="button" class="settings-tab" data-settings-tab="camera">Camera</button>
+            <button type="button" class="settings-tab" data-settings-tab="recording">Recording</button>
+            <button type="button" class="settings-tab" data-settings-tab="privacy">Privacy</button>
+            <button type="button" class="settings-tab" data-settings-tab="chat">Chat</button>
+            <button type="button" class="settings-tab" data-settings-tab="appearance">Appearance</button>
+            <button type="button" class="settings-tab" data-settings-tab="users" data-admin-only="true" data-guest-manage="true">Users</button>
+            <button type="button" class="settings-tab" data-settings-tab="studio-admin" data-admin-only="true" data-permission="siteSettings">Studio Admin</button>
+            <button type="button" class="settings-tab" data-settings-tab="recording-admin" data-admin-only="true" data-permission="siteSettings">Recording Admin</button>
+            <button type="button" class="settings-tab" data-settings-tab="chat-admin" data-admin-only="true" data-permission="chatModeration">Chat Admin</button>
+            <button type="button" class="settings-tab" data-settings-tab="security-admin" data-admin-only="true">Security</button>
+            <button type="button" class="settings-tab" data-settings-tab="operations-admin" data-admin-only="true">Operations</button>
+            <button type="button" class="settings-tab" data-settings-tab="diagnostics-admin" data-admin-only="true">Diagnostics</button>
+            <button type="button" class="settings-tab" data-settings-tab="audit-admin" data-admin-only="true">Audit</button>
+            <button type="button" class="settings-tab" data-settings-tab="realtime" data-admin-only="true">Realtime</button>
+          </nav>
+
+          <div class="settings-panels">
+            <section class="settings-panel active" data-settings-panel="chat">
+              <div class="settings-group">
+                <p class="settings-group-title">Chat Defaults</p>
+                <label class="settings-field settings-subfield" for="chat-bubble-theme-select">Chat bubble theme (your messages)</label>
+                <select id="chat-bubble-theme-select" class="settings-select">
+                  <option value="blue">Blue</option>
+                  <option value="black">Black</option>
+                  <option value="green">Green</option>
+                  <option value="purple">Purple</option>
+                  <option value="pink">Pink</option>
+                  <option value="orange">Orange</option>
+                  <option value="red">Red</option>
+                </select>
+                <p class="settings-help">Chat appearance defaults for your profile.</p>
+              </div>
+              <div class="settings-group">
+                <p class="settings-group-title">Chat Notifications</p>
+                <label class="settings-toggle" for="chat-alerts-disable-all-toggle">
+                  <input id="chat-alerts-disable-all-toggle" type="checkbox" />
+                  <span>Disable all chat alerts</span>
+                </label>
+                <label class="settings-toggle" for="chat-pulse-toggle">
+                  <input id="chat-pulse-toggle" type="checkbox" />
+                  <span>Pulse glow on new messages/reactions</span>
+                </label>
+                <label class="settings-toggle" for="chat-sound-toggle">
+                  <input id="chat-sound-toggle" type="checkbox" />
+                  <span>Play low-tone sound for new messages/reactions</span>
+                </label>
+                <label class="settings-toggle" for="chat-badge-toggle">
+                  <input id="chat-badge-toggle" type="checkbox" />
+                  <span>Show unread badge count</span>
+                </label>
+                <p class="settings-help">Alert preferences are saved per user profile in this browser.</p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="camera">
+              <div class="settings-group">
+                <p class="settings-group-title">Camera Defaults</p>
+                <label class="settings-toggle" for="camera-autostart-toggle">
+                  <input id="camera-autostart-toggle" type="checkbox" />
+                  <span>Auto-start camera after login (if browser permission is already allowed)</span>
+                </label>
+                <p class="settings-help">
+                  Browser permission is still required. If your browser remembers \"Allow\", camera starts automatically.
+                </p>
+                <label class="settings-field settings-subfield" for="camera-background-image-input">Background image</label>
+                <div class="camera-background-upload-row">
+                  <input id="camera-background-image-input" type="file" accept="image/*" class="settings-input settings-file-input" />
+                  <button type="button" class="btn muted camera-background-clear-btn" id="camera-background-image-clear-btn">Clear Image</button>
+                </div>
+                <p class="settings-help" id="camera-background-image-status">
+                  Upload a background image once, then turn on Background Image in the lounge when you want to use it.
+                </p>
+                <div class="background-image-preview hidden" id="camera-background-image-preview-wrap" aria-live="polite">
+                  <div class="background-image-preview-swatch" id="camera-background-image-preview" aria-hidden="true"></div>
+                  <p class="background-image-preview-name" id="camera-background-image-preview-name">No image selected.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="recording">
+              <div class="settings-group">
+                <p class="settings-group-title">Recording Defaults</p>
+                <label class="settings-field" for="recording-format-select">Default format</label>
+                <select id="recording-format-select" class="settings-select">
+                  <option value="video">Video + Audio</option>
+                  <option value="audio">Audio only</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-quality-select">Default quality</label>
+                <select id="recording-quality-select" class="settings-select">
+                  <option value="standard">Standard</option>
+                  <option value="high">High</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-name-pattern-select">File naming</label>
+                <select id="recording-name-pattern-select" class="settings-select">
+                  <option value="show-date">ShowName-YYYY-MM-DD</option>
+                  <option value="show-episode-date">ShowName-Episode-YYYY-MM-DD</option>
+                  <option value="custom">Prompt each download</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-countdown-seconds-select">Default start countdown</label>
+                <select id="recording-countdown-seconds-select" class="settings-select">
+                  <option value="3">3 seconds</option>
+                  <option value="5">5 seconds</option>
+                  <option value="10">10 seconds</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-auto-stop-minutes-select">Auto-stop safety timer</label>
+                <select id="recording-auto-stop-minutes-select" class="settings-select">
+                  <option value="0">Off</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-auto-split-minutes-select">Auto-split long recordings</label>
+                <select id="recording-auto-split-minutes-select" class="settings-select">
+                  <option value="0">Off</option>
+                  <option value="15">Every 15 minutes</option>
+                  <option value="30">Every 30 minutes</option>
+                  <option value="45">Every 45 minutes</option>
+                  <option value="60">Every 60 minutes</option>
+                </select>
+                <p class="settings-group-title">Music Fade Timing</p>
+                <label class="settings-field settings-subfield" for="recording-fade-in-duration-seconds-select">Fade In duration</label>
+                <select id="recording-fade-in-duration-seconds-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="recording-fade-out-duration-seconds-select">Fade Out duration</label>
+                <select id="recording-fade-out-duration-seconds-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="recording-auto-fade-in-start-seconds-select">Auto Fade In start</label>
+                <select id="recording-auto-fade-in-start-seconds-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="recording-auto-fade-in-duration-seconds-select">Auto Fade In duration</label>
+                <select id="recording-auto-fade-in-duration-seconds-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="recording-auto-fade-out-start-seconds-select">Auto Fade Out start</label>
+                <select id="recording-auto-fade-out-start-seconds-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="recording-auto-fade-out-duration-seconds-select">Auto Fade Out duration</label>
+                <select id="recording-auto-fade-out-duration-seconds-select" class="settings-select"></select>
+                <p class="settings-help">
+                  Recording defaults apply when you are the active host. During a live session, the current host's recording settings are used for everyone.
+                </p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="privacy">
+              <div class="settings-group">
+                <p class="settings-group-title">Privacy</p>
+                <label class="settings-toggle" for="chat-read-receipts-toggle">
+                  <input id="chat-read-receipts-toggle" type="checkbox" />
+                  <span>Send read receipts</span>
+                </label>
+                <label class="settings-toggle" for="presence-visible-toggle">
+                  <input id="presence-visible-toggle" type="checkbox" />
+                  <span>Show my online status to participants</span>
+                </label>
+                <label class="settings-toggle" for="reactions-visible-toggle">
+                  <input id="reactions-visible-toggle" type="checkbox" />
+                  <span>Allow reactions on my messages</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="appearance">
+              <div class="settings-group">
+                <p class="settings-group-title">Appearance</p>
+                <label class="settings-toggle" for="containers-light-toggle">
+                  <input id="containers-light-toggle" type="checkbox" />
+                  <span id="containers-mode-label">Light Mode</span>
+                </label>
+                <p class="settings-help">
+                  Toggle between Light Mode and Dark Mode.
+                </p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="mic">
+              <div class="settings-group">
+                <p class="settings-group-title">Mic Behavior Defaults</p>
+                <label class="settings-toggle" for="push-to-talk-default-toggle">
+                  <input id="push-to-talk-default-toggle" type="checkbox" />
+                  <span>Default push-to-talk enabled</span>
+                </label>
+                <label class="settings-toggle" for="headphones-default-toggle">
+                  <input id="headphones-default-toggle" type="checkbox" />
+                  <span>Default: I am using headphones</span>
+                </label>
+                <p class="settings-help">
+                  These default values load when the Lounge opens and can still be changed live.
+                </p>
+              </div>
+              <div class="settings-group settings-group-mic-quick">
+                <p class="settings-group-title">Quick Mic Setup</p>
+                <label class="settings-field" for="mic-preset-select">Preset</label>
+                <select id="mic-preset-select" class="settings-select">
+                  <option value="studio-safe">Studio Safe (Recommended)</option>
+                  <option value="noisy-room">Noisy Room</option>
+                  <option value="broadcast-punch">Broadcast Punch</option>
+                  <option value="natural-voice">Natural Voice</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <label class="settings-toggle" for="mic-auto-leveling-toggle">
+                  <input id="mic-auto-leveling-toggle" type="checkbox" />
+                  <span>Auto leveling</span>
+                </label>
+                <label class="settings-toggle" for="mic-clip-guard-toggle">
+                  <input id="mic-clip-guard-toggle" type="checkbox" />
+                  <span>Clip guard limiter</span>
+                </label>
+                <label class="settings-field settings-subfield" for="mic-noise-profile-select">Background noise control</label>
+                <select id="mic-noise-profile-select" class="settings-select">
+                  <option value="off">Off</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium (Recommended)</option>
+                  <option value="high">High</option>
+                </select>
+                <div class="settings-inline settings-inline-actions">
+                  <button type="button" class="btn sso settings-inline-btn" id="mic-check-wizard-btn">Run Mic Check</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="mic-reset-recommended-btn">Reset Recommended</button>
+                </div>
+                <p class="settings-help" id="mic-check-wizard-status">
+                  Use Studio Safe for most rooms, then run Mic Check for automatic fine-tuning.
+                </p>
+              </div>
+              <details class="settings-group settings-advanced-details">
+                <summary class="settings-group-title settings-advanced-summary">Advanced Mic Controls</summary>
+                <label class="settings-toggle" for="mic-echo-default-toggle">
+                  <input id="mic-echo-default-toggle" type="checkbox" />
+                  <span>Echo cancellation</span>
+                </label>
+                <label class="settings-toggle" for="mic-noise-default-toggle">
+                  <input id="mic-noise-default-toggle" type="checkbox" />
+                  <span>Noise suppression</span>
+                </label>
+                <label class="settings-toggle" for="mic-agc-default-toggle">
+                  <input id="mic-agc-default-toggle" type="checkbox" />
+                  <span>Auto gain control</span>
+                </label>
+                <label class="settings-toggle" for="mic-input-monitoring-toggle">
+                  <input id="mic-input-monitoring-toggle" type="checkbox" />
+                  <span>Input monitoring</span>
+                </label>
+                <label class="settings-field settings-subfield" for="mic-noise-gate-threshold-select">Noise gate threshold</label>
+                <select id="mic-noise-gate-threshold-select" class="settings-select">
+                  <option value="-100">Off</option>
+                  <option value="-55">-55 dB</option>
+                  <option value="-50">-50 dB</option>
+                  <option value="-45">-45 dB (Recommended)</option>
+                  <option value="-40">-40 dB</option>
+                  <option value="-35">-35 dB</option>
+                  <option value="-30">-30 dB</option>
+                </select>
+                <label class="settings-field settings-subfield" for="mic-loudness-target-select">Loudness target preset</label>
+                <select id="mic-loudness-target-select" class="settings-select">
+                  <option value="podcast-standard">Podcast Standard (-16 LUFS)</option>
+                  <option value="natural">Natural Voice</option>
+                  <option value="broadcast-loud">Broadcast Loud</option>
+                </select>
+                <p class="settings-help">
+                  Podcast Standard is tuned for spoken-word consistency and is recommended for episodes.
+                </p>
+              </details>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="devices">
+              <div class="settings-group settings-group-devices">
+                <p class="settings-group-title">Preferred Devices</p>
+                <div class="settings-inline settings-inline-actions">
+                  <button type="button" class="btn sso settings-inline-btn" id="detect-devices-btn">Detect Devices</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="refresh-devices-btn">Refresh List</button>
+                </div>
+                <p class="settings-help" id="device-status-message">
+                  If dropdowns are blank, click Detect Devices once to grant browser access.
+                </p>
+                <label class="settings-field" for="camera-default-select">Preferred camera</label>
+                <select id="camera-default-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="mic-default-select">Preferred microphone</label>
+                <select id="mic-default-select" class="settings-select"></select>
+                <label class="settings-field settings-subfield" for="speaker-default-select">Preferred speaker</label>
+                <select id="speaker-default-select" class="settings-select"></select>
+                <p class="settings-help">Speaker routing is applied when the browser supports audio output selection.</p>
+                <p class="settings-help">If selected device is unavailable, Lounge falls back to system default.</p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="realtime" data-admin-only="true">
+              <div class="settings-group">
+                <p class="settings-group-title">Realtime Service</p>
+                <label class="settings-field" for="realtime-url-input">Realtime Server URL</label>
+                <div class="settings-inline">
+                  <input id="realtime-url-input" type="text" placeholder="http://localhost:8787" />
+                  <button type="button" class="btn sso settings-inline-btn" id="use-localhost-btn">
+                    Use Localhost
+                  </button>
+                </div>
+                <p class="settings-help">
+                  Studio chat and online users use this endpoint. For local testing use `http://localhost:8787`.
+                </p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="users" data-admin-only="true" data-guest-manage="true">
+              <div class="settings-group">
+                <p class="settings-group-title">User Permissions</p>
+                <p class="settings-help">
+                  Admins can manage user roles here. Users with guest-management permission will see guest controls only.
+                </p>
+                <div id="users-admin-list" class="users-admin-list"></div>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="studio-admin" data-admin-only="true" data-permission="siteSettings">
+              <div class="settings-group">
+                <p class="settings-group-title">Studio Control Policy</p>
+                <label class="settings-toggle" for="admin-allow-user-host-toggle">
+                  <input id="admin-allow-user-host-toggle" type="checkbox" />
+                  <span>Allow non-admin users to claim host control</span>
+                </label>
+                <label class="settings-toggle" for="admin-allow-user-recording-toggle">
+                  <input id="admin-allow-user-recording-toggle" type="checkbox" />
+                  <span>Allow non-admin users to control recording</span>
+                </label>
+                <div class="settings-inline settings-inline-actions admin-action-grid">
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-mute-all-btn">Mute All Now</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-force-offair-btn">Force Off-Air</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-clear-host-btn">Clear Host</button>
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-clear-spotlight-btn">Clear Spotlight</button>
+                </div>
+                <p class="settings-help">These controls affect the live studio across connected tabs.</p>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="recording-admin" data-admin-only="true" data-permission="siteSettings">
+              <div class="settings-group">
+                <p class="settings-group-title">Recording Policy</p>
+                <label class="settings-field" for="admin-recording-max-minutes-select">Maximum recording length</label>
+                <select id="admin-recording-max-minutes-select" class="settings-select">
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="40">40 minutes</option>
+                  <option value="50">50 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="150">2.5 hours</option>
+                  <option value="180">3 hours</option>
+                </select>
+                <label class="settings-field settings-subfield" for="admin-recording-retention-select">Recording retention</label>
+                <select id="admin-recording-retention-select" class="settings-select">
+                  <option value="7">7 days</option>
+                  <option value="14">14 days</option>
+                  <option value="30">30 days</option>
+                  <option value="60">60 days</option>
+                  <option value="90">90 days</option>
+                </select>
+                <label class="settings-field settings-subfield" for="admin-recording-download-access-select">Download access</label>
+                <select id="admin-recording-download-access-select" class="settings-select">
+                  <option value="all">All users</option>
+                  <option value="host-admin">Host + admins</option>
+                  <option value="admin-only">Admins only</option>
+                </select>
+                <label class="settings-field settings-subfield" for="admin-recording-library-visibility-select">Recording library visibility</label>
+                <select id="admin-recording-library-visibility-select" class="settings-select">
+                  <option value="all-users">All users</option>
+                  <option value="host-admin">Host + admins</option>
+                  <option value="admin-only">Admins only</option>
+                </select>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="chat-admin" data-admin-only="true" data-permission="chatModeration">
+              <div class="settings-group">
+                <p class="settings-group-title">Chat Moderation</p>
+                <label class="settings-toggle" for="admin-chat-attachments-toggle">
+                  <input id="admin-chat-attachments-toggle" type="checkbox" />
+                  <span>Allow image/file attachments</span>
+                </label>
+                <label class="settings-toggle" for="admin-chat-video-attachments-toggle">
+                  <input id="admin-chat-video-attachments-toggle" type="checkbox" />
+                  <span>Allow video attachments</span>
+                </label>
+                <label class="settings-toggle" for="admin-chat-reactions-toggle">
+                  <input id="admin-chat-reactions-toggle" type="checkbox" />
+                  <span>Allow message reactions</span>
+                </label>
+                <label class="settings-field settings-subfield" for="admin-chat-image-max-select">Max image attachment size</label>
+                <select id="admin-chat-image-max-select" class="settings-select">
+                  <option value="2">2 MB</option>
+                  <option value="4">4 MB</option>
+                  <option value="8">8 MB</option>
+                  <option value="12">12 MB</option>
+                  <option value="16">16 MB</option>
+                  <option value="20">20 MB</option>
+                </select>
+                <label class="settings-field settings-subfield" for="admin-chat-video-max-select">Max video attachment size</label>
+                <select id="admin-chat-video-max-select" class="settings-select">
+                  <option value="5">5 MB</option>
+                  <option value="10">10 MB</option>
+                  <option value="20">20 MB</option>
+                  <option value="30">30 MB</option>
+                  <option value="40">40 MB</option>
+                </select>
+                <div class="settings-inline settings-inline-actions">
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-export-chat-btn">Export Chat Log</button>
+                  <button type="button" class="btn danger settings-inline-btn" id="clear-chat-history-btn">
+                    Clear Chat History
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="security-admin" data-admin-only="true">
+              <div class="settings-group">
+                <p class="settings-group-title">Security Controls</p>
+                <label class="settings-toggle" for="admin-force-2fa-toggle">
+                  <input id="admin-force-2fa-toggle" type="checkbox" />
+                  <span>Force SMS 2FA for all non-guest users</span>
+                </label>
+                <label class="settings-field settings-subfield" for="admin-captcha-reverify-days-select">CAPTCHA reverify window</label>
+                <select id="admin-captcha-reverify-days-select" class="settings-select">
+                  <option value="7">7 days</option>
+                  <option value="14">14 days</option>
+                  <option value="30">30 days</option>
+                  <option value="60">60 days</option>
+                  <option value="90">90 days</option>
+                </select>
+                <label class="settings-toggle" for="admin-google-login-toggle">
+                  <input id="admin-google-login-toggle" type="checkbox" />
+                  <span>Enable Google sign-in</span>
+                </label>
+                <label class="settings-toggle" for="admin-facebook-login-toggle">
+                  <input id="admin-facebook-login-toggle" type="checkbox" />
+                  <span>Enable Facebook sign-in</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="operations-admin" data-admin-only="true">
+              <div class="settings-group">
+                <p class="settings-group-title">Site Operations</p>
+                <label class="settings-toggle" for="admin-maintenance-mode-toggle">
+                  <input id="admin-maintenance-mode-toggle" type="checkbox" />
+                  <span>Enable maintenance mode for non-admin users</span>
+                </label>
+                <label class="settings-field settings-subfield" for="admin-maintenance-message-input">Maintenance message</label>
+                <input id="admin-maintenance-message-input" type="text" maxlength="180" placeholder="Studio maintenance is active right now." />
+                <label class="settings-field settings-subfield" for="admin-support-contact-input">Support contact email</label>
+                <input id="admin-support-contact-input" type="text" placeholder="admin@turnbucklereport.com" />
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="diagnostics-admin" data-admin-only="true">
+              <div class="settings-group">
+                <p class="settings-group-title">Realtime Diagnostics</p>
+                <div class="settings-inline settings-inline-actions settings-inline-actions-single">
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-refresh-health-btn">Refresh Health</button>
+                </div>
+                <div id="admin-health-output" class="admin-health-board">Loading diagnostics...</div>
+              </div>
+            </section>
+
+            <section class="settings-panel hidden" data-settings-panel="audit-admin" data-admin-only="true">
+              <div class="settings-group">
+                <p class="settings-group-title">Audit Log</p>
+                <div class="settings-inline settings-inline-actions settings-inline-actions-single">
+                  <button type="button" class="btn sso settings-inline-btn" id="admin-refresh-audit-btn">Refresh Audit Log</button>
+                </div>
+                <div id="admin-audit-list" class="admin-audit-list"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <p id="settings-message" class="form-message hidden" role="status"></p>
+
+        <div class="row action-row settings-action-row">
+          <button type="button" class="btn primary settings-action-btn" id="save-settings-btn">Save Settings</button>
+          <a href="./lounge" class="btn sso settings-action-btn" id="settings-back-link">Back to Studio</a>
+        </div>
+      </section>
+    </main>
+
+    <div id="settings-confirm-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="settings-confirm-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card" role="dialog" aria-modal="true" aria-labelledby="settings-confirm-title">
+        <p id="settings-confirm-title" class="chat-confirm-title">Clear Chat History?</p>
+        <p id="settings-confirm-text" class="chat-confirm-text">
+          This permanently deletes all chat messages and reactions for everyone. This action cannot be undone.
+        </p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="settings-confirm-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn danger" id="settings-confirm-delete-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings-password-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="settings-password-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card" role="dialog" aria-modal="true" aria-labelledby="settings-password-title">
+        <p id="settings-password-title" class="chat-confirm-title">Reset User Password</p>
+        <p id="settings-password-text" class="chat-confirm-text">Set a new password for this user.</p>
+        <label class="settings-field settings-subfield" for="settings-password-new-input">New password</label>
+        <input id="settings-password-new-input" type="password" minlength="8" placeholder="At least 8 characters" />
+        <label class="settings-field settings-subfield" for="settings-password-confirm-input">Confirm password</label>
+        <input id="settings-password-confirm-input" type="password" minlength="8" placeholder="Re-enter password" />
+        <p id="settings-password-error" class="form-message error hidden" role="status"></p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="settings-password-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn" id="settings-password-save-btn">Save Password</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="guest-invite-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="guest-invite-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card" role="dialog" aria-modal="true" aria-labelledby="guest-invite-title">
+        <p id="guest-invite-title" class="chat-confirm-title">Guest Invite Link</p>
+        <p class="chat-confirm-text" id="guest-invite-text">
+          Share this one-time guest link. It expires automatically.
+        </p>
+        <label class="settings-field settings-subfield" for="guest-invite-link-input">Invite link</label>
+        <input id="guest-invite-link-input" type="text" readonly />
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="guest-invite-close-btn">Close</button>
+          <button type="button" class="chat-confirm-btn" id="guest-invite-copy-btn">Copy Link</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="guest-admin-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="guest-admin-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card user-admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="guest-admin-title">
+        <div class="user-admin-modal-header">
+          <div class="user-admin-modal-heading">
+            <p id="guest-admin-title" class="chat-confirm-title">Guest Controls</p>
+            <p class="chat-confirm-text">Manage guest access, invite timing, and display settings.</p>
+          </div>
+          <button type="button" class="user-admin-close-btn" id="guest-admin-close-btn" aria-label="Close guest controls">Close</button>
+        </div>
+        <div class="user-admin-modal-body">
+          <div class="user-admin-summary">
+            <p class="user-admin-summary-name" id="guest-admin-name">@guest</p>
+            <p class="user-admin-summary-meta" id="guest-admin-alias">Display name: Guest</p>
+            <p class="user-admin-summary-meta" id="guest-admin-status">Guest access: Enabled</p>
+          </div>
+          <label class="settings-field user-admin-field-label" for="guest-admin-display-name-input">Guest display name</label>
+          <input id="guest-admin-display-name-input" type="text" maxlength="32" placeholder="Guest" />
+          <label class="settings-field user-admin-field-label" for="guest-admin-invite-expiry-select">Invite expiry</label>
+          <select id="guest-admin-invite-expiry-select" class="settings-select user-admin-role-select">
+            <option value="20">20 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="40">40 minutes</option>
+            <option value="50">50 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+            <option value="150">2.5 hours</option>
+            <option value="180">3 hours</option>
+          </select>
+          <label class="settings-field user-admin-field-label" for="guest-admin-session-max-select">Max session length</label>
+          <select id="guest-admin-session-max-select" class="settings-select user-admin-role-select">
+            <option value="20">20 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="40">40 minutes</option>
+            <option value="50">50 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+            <option value="150">2.5 hours</option>
+            <option value="180">3 hours</option>
+          </select>
+          <p class="settings-help" id="guest-invite-status">Guest invite link is one-time use and expires automatically.</p>
+        </div>
+        <div class="user-admin-modal-footer guest-admin-modal-footer">
+          <button type="button" class="btn sso user-admin-secondary-btn" id="guest-invite-btn">Invite Guest</button>
+          <button type="button" class="btn danger user-admin-danger-btn" id="guest-disable-btn">Disable Guest</button>
+        </div>
+        <div class="chat-confirm-actions user-admin-modal-actions">
+          <button type="button" class="chat-confirm-btn" id="guest-admin-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn" id="guest-admin-save-btn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="user-admin-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="user-admin-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card user-admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="user-admin-title">
+        <div class="user-admin-modal-header">
+          <div class="user-admin-modal-heading">
+            <p id="user-admin-title" class="chat-confirm-title">Manage User</p>
+            <p id="user-admin-subtitle" class="chat-confirm-text">Review role and access controls.</p>
+          </div>
+          <button type="button" class="user-admin-close-btn" id="user-admin-close-btn" aria-label="Close user manager">Close</button>
+        </div>
+        <div class="user-admin-modal-body">
+          <div class="user-admin-summary">
+            <p class="user-admin-summary-name" id="user-admin-name">@username</p>
+            <p class="user-admin-summary-meta" id="user-admin-alias">Alias: Not set</p>
+            <p class="user-admin-summary-meta" id="user-admin-created">Created: Unknown</p>
+            <p class="user-admin-summary-meta" id="user-admin-last-login">Last login: Unknown</p>
+          </div>
+          <label class="settings-field user-admin-field-label" for="user-admin-role-select">Role</label>
+          <select id="user-admin-role-select" class="settings-select user-admin-role-select">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+          <p class="settings-help user-admin-role-help" id="user-admin-role-help">
+            Admins always receive full control. Custom permissions apply only to users.
+          </p>
+          <div class="user-admin-toggle-stack">
+            <label class="settings-toggle user-admin-toggle-pill">
+              <input type="checkbox" id="user-admin-permission-host" data-user-admin-permission="hostControl" />
+              <span>Host Control</span>
+            </label>
+            <label class="settings-toggle user-admin-toggle-pill">
+              <input type="checkbox" id="user-admin-permission-recording" data-user-admin-permission="recordingControl" />
+              <span>Recording Control</span>
+            </label>
+            <label class="settings-toggle user-admin-toggle-pill">
+              <input type="checkbox" id="user-admin-permission-chat" data-user-admin-permission="chatModeration" />
+              <span>Chat Moderation</span>
+            </label>
+            <label class="settings-toggle user-admin-toggle-pill">
+              <input type="checkbox" id="user-admin-permission-guests" data-user-admin-permission="guestManagement" />
+              <span>Guest Management</span>
+            </label>
+            <label class="settings-toggle user-admin-toggle-pill">
+              <input type="checkbox" id="user-admin-permission-site" data-user-admin-permission="siteSettings" />
+              <span>Site Settings</span>
+            </label>
+          </div>
+        </div>
+        <div class="user-admin-modal-footer">
+          <button type="button" class="btn sso user-admin-secondary-btn" id="user-admin-reset-password-btn">Reset Password</button>
+          <button type="button" class="btn danger user-admin-danger-btn" id="user-admin-delete-user-btn">Delete User</button>
+        </div>
+        <div class="chat-confirm-actions user-admin-modal-actions">
+          <button type="button" class="chat-confirm-btn" id="user-admin-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn" id="user-admin-save-btn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./auth.js?v=20260316-95"></script>
+    <script src="./settings.js?v=20260316-111"></script>
+  </body>
+</html>

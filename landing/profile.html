@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile | Doggfather Studio</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260313-112" />
+  </head>
+  <body class="settings-page">
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="site-brand-corner">
+      <a class="site-logo-corner" href="./lounge" aria-label="Doggfather Studio home">
+        <img class="site-logo-img site-logo-dark" src="./dfswhite.png?v=20260313-112" alt="Doggfather Studio logo" />
+        <img class="site-logo-img site-logo-light" src="./dfsdark.png?v=20260313-112" alt="" aria-hidden="true" />
+      </a>
+      <header class="site-title-corner" aria-label="Site title">
+        <p class="title-stranger site-title-text">Doggfather Studio</p>
+        <p class="site-title-subtitle">Great stories start with great preparation.</p>
+      </header>
+    </div>
+    <div class="site-profile-corner">
+      <div class="profile-menu" id="profile-menu">
+        <button
+          type="button"
+          class="profile-btn"
+          id="profile-menu-btn"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-label="Open profile menu"
+        >
+          <span class="profile-avatar" id="profile-avatar">U</span>
+          <img class="profile-avatar-img hidden" id="profile-avatar-img" alt="" />
+        </button>
+        <div class="profile-dropdown hidden" id="profile-dropdown" role="menu" aria-label="Profile options">
+          <p class="profile-meta" id="profile-user">Signed in</p>
+          <a href="./profile" class="profile-item profile-link" role="menuitem">Profile</a>
+          <a href="./settings" class="profile-item profile-link" role="menuitem">Settings</a>
+          <a href="./help" class="profile-item profile-link" role="menuitem">Help</a>
+          <hr class="profile-divider" />
+          <button type="button" class="profile-item danger" role="menuitem" id="profile-logout-btn">Log out</button>
+        </div>
+      </div>
+    </div>
+    <main class="shell">
+      <section class="card settings-card profile-card" aria-labelledby="profile-title">
+        <header class="card-header">
+          <p class="eyebrow">User Profile</p>
+          <h1 id="profile-title" class="title-stranger">Profile</h1>
+          <p class="subtitle">Personalize your studio identity and security.</p>
+        </header>
+
+        <div class="settings-group">
+          <p class="settings-group-title">Profile Identity</p>
+          <div class="profile-hero">
+          <div class="profile-photo-wrap" id="photo-studio">
+            <img id="profile-photo-preview" class="profile-photo hidden" alt="Profile photo preview" />
+            <span id="profile-photo-fallback" class="profile-photo-fallback">U</span>
+            <button
+              type="button"
+              class="profile-photo-edit-btn"
+              id="profile-photo-edit-btn"
+              aria-label="Edit profile photo"
+              title="Edit profile photo"
+            >
+              Edit
+            </button>
+          </div>
+            <div class="profile-hero-text">
+              <p class="profile-display-name" id="profile-display-name">unknown</p>
+              <p class="profile-user-meta" id="profile-user-meta">@unknown</p>
+              <p class="profile-user-meta" id="profile-created-meta">Member since --</p>
+            </div>
+          </div>
+          <div class="settings-inline settings-inline-actions">
+            <button type="button" class="btn sso settings-inline-btn" id="profile-photo-upload-btn">Upload Photo</button>
+            <button type="button" class="btn sso settings-inline-btn" id="profile-photo-remove-btn">Remove Photo</button>
+          </div>
+          <input id="profile-photo-input" class="hidden" type="file" accept="image/*" />
+          <p class="settings-help">Use <strong>Edit</strong> on the avatar for themed presets, or Upload Photo for your own image.</p>
+          <label class="settings-field settings-subfield" for="profile-alias-input">Alias name</label>
+          <input id="profile-alias-input" type="text" maxlength="32" placeholder="Example: Big Dogg / JT" />
+          <label class="settings-toggle" for="profile-use-alias-toggle">
+            <input id="profile-use-alias-toggle" type="checkbox" />
+            <span>Use alias instead of username in studio display</span>
+          </label>
+          <p class="settings-help">Alias affects display labels. Login username remains unchanged.</p>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-group-title">Security</p>
+          <label class="settings-field" for="profile-current-password-input">Current password</label>
+          <input
+            id="profile-current-password-input"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter current password"
+          />
+          <label class="settings-field settings-subfield" for="profile-new-password-input">New password</label>
+          <input
+            id="profile-new-password-input"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Create new password (8+ characters)"
+          />
+          <label class="settings-field settings-subfield" for="profile-confirm-password-input">Confirm new password</label>
+          <input
+            id="profile-confirm-password-input"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Re-enter new password"
+          />
+          <div class="settings-inline settings-inline-actions profile-security-actions">
+            <button type="button" class="btn primary settings-inline-btn" id="profile-change-password-btn">Change Password</button>
+          </div>
+          <p class="settings-help">Use at least 8 characters. Longer passphrases are recommended.</p>
+        </div>
+
+        <div class="settings-group profile-delete-group">
+          <p class="settings-group-title">Account</p>
+          <p class="settings-help">Delete your account and remove access from the studio.</p>
+          <div class="settings-inline profile-delete-actions">
+            <button type="button" class="btn danger settings-inline-btn" id="profile-delete-account-btn">Delete Account</button>
+          </div>
+        </div>
+
+        <p id="profile-message" class="form-message hidden" role="status"></p>
+
+        <div class="row action-row settings-action-row">
+          <button type="button" class="btn primary settings-action-btn" id="profile-save-btn">Save Profile</button>
+          <a href="./lounge" class="btn sso settings-action-btn">Back to Studio</a>
+        </div>
+      </section>
+    </main>
+
+    <div id="avatar-studio-modal" class="avatar-studio-modal hidden" aria-hidden="true">
+      <div class="avatar-studio-backdrop" id="avatar-studio-backdrop"></div>
+      <section class="avatar-studio-card" role="dialog" aria-modal="true" aria-labelledby="avatar-studio-title">
+        <header class="avatar-studio-card-header">
+          <h2 id="avatar-studio-title" class="studio-heading">Avatar Studio</h2>
+          <button type="button" class="avatar-studio-close" id="avatar-studio-close-btn" aria-label="Close Avatar Studio">
+            Close
+          </button>
+        </header>
+        <div class="avatar-studio">
+          <div class="avatar-studio-header">
+            <label class="settings-field avatar-category-label" for="avatar-category-select">Theme</label>
+            <select id="avatar-category-select" class="settings-select avatar-category-select">
+              <option value="all">All themes</option>
+              <option value="space">Outer Space</option>
+              <option value="animals">Animals</option>
+              <option value="mythical">Mythical</option>
+              <option value="sports">Sports</option>
+            </select>
+          </div>
+          <div id="avatar-preset-grid" class="avatar-preset-grid" aria-label="Avatar preset options"></div>
+          <p class="settings-help">Pick a preset, then click Save Profile.</p>
+        </div>
+      </section>
+    </div>
+
+    <div id="profile-delete-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="profile-delete-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card" role="dialog" aria-modal="true" aria-labelledby="profile-delete-title">
+        <p id="profile-delete-title" class="chat-confirm-title">Delete Your Account?</p>
+        <p id="profile-delete-text" class="chat-confirm-text">
+          Deleting your account cannot be reversed. Your profile and access will be permanently removed. Are you sure you want to continue?
+        </p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="profile-delete-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn danger" id="profile-delete-confirm-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./auth.js?v=20260311-92"></script>
+    <script src="./profile.js?v=20260311-66"></script>
+  </body>
+</html>
