@@ -83,6 +83,18 @@ For local testing, the realtime URL is:
 For hosted testing, frontend defaults already point to:
 - `https://realtime.turnbucklereport.com`
 
+## GitHub Pages Preview
+A GitHub Pages workflow is configured in `.github/workflows/deploy-pages.yml`.
+
+What it does:
+- deploys the `landing/` folder to GitHub Pages on pushes to `main`
+- makes the Pages root redirect to `hello.html` so the preview opens the active build
+
+Important:
+- this does not affect GoDaddy
+- GitHub Pages is a preview/published repo view only
+- if Pages is not enabled yet in the repo settings, GitHub may ask you to approve the Pages deployment the first time
+
 ## Important
 - Do not treat local browser auth as production auth.
 - Use the docs in `docs/` as the handoff layer.
