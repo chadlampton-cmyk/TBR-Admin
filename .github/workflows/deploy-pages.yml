@@ -33,20 +33,7 @@ jobs:
           rm -rf _site
           mkdir -p _site
           cp -R landing/. _site/
-          cat > _site/index.html <<'EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <meta http-equiv="refresh" content="0; url=./hello.html" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Doggfather Studio Preview</title>
-            </head>
-            <body>
-              <p>Redirecting to <a href="./hello.html">hello.html</a>...</p>
-            </body>
-          </html>
-          EOF
+          cp _site/hello.html _site/index.html
           touch _site/.nojekyll
 
       - name: Upload Pages Artifact

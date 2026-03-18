@@ -1,0 +1,14 @@
+{
+  "name": "tbr-admin",
+  "private": true,
+  "scripts": {
+    "lint": "eslint landing realtime --ext .js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "eslint": "^9.22.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
