@@ -174,14 +174,24 @@ const onAirReviewLoopReadout = document.getElementById("onair-review-loop-readou
 const onAirReviewScrub = document.getElementById("onair-review-scrub");
 const onAirReviewWaveCanvas = document.getElementById("onair-review-wave-canvas");
 const onAirReviewWaveNote = document.getElementById("onair-review-wave-note");
+const onAirReviewUndoBtn = document.getElementById("onair-review-undo-btn");
+const onAirReviewRedoBtn = document.getElementById("onair-review-redo-btn");
+const onAirReviewMoveModeBtn = document.getElementById("onair-review-move-mode-btn");
 const onAirReviewSelectModeBtn = document.getElementById("onair-review-select-mode-btn");
 const onAirReviewSelectAllBtn = document.getElementById("onair-review-select-all-btn");
 const onAirReviewClearSelectionBtn = document.getElementById("onair-review-clear-selection-btn");
 const onAirReviewDeleteBtn = document.getElementById("onair-review-delete-btn");
 const onAirReviewRippleDeleteBtn = document.getElementById("onair-review-ripple-delete-btn");
+const onAirReviewSplitBtn = document.getElementById("onair-review-split-btn");
+const onAirReviewSplitSelectionBtn = document.getElementById("onair-review-split-selection-btn");
 const onAirReviewGainDownBtn = document.getElementById("onair-review-gain-down-btn");
 const onAirReviewGainReadout = document.getElementById("onair-review-gain-readout");
 const onAirReviewGainUpBtn = document.getElementById("onair-review-gain-up-btn");
+const onAirReviewGainResetBtn = document.getElementById("onair-review-gain-reset-btn");
+const onAirReviewGainNormalizeBtn = document.getElementById("onair-review-gain-normalize-btn");
+const onAirReviewOverlapBlendBtn = document.getElementById("onair-review-overlap-blend-btn");
+const onAirReviewOverlapFrontBtn = document.getElementById("onair-review-overlap-front-btn");
+const onAirReviewOverlapBackBtn = document.getElementById("onair-review-overlap-back-btn");
 const onAirReviewZoomOutBtn = document.getElementById("onair-review-zoom-out-btn");
 const onAirReviewZoomFitBtn = document.getElementById("onair-review-zoom-fit-btn");
 const onAirReviewZoomInBtn = document.getElementById("onair-review-zoom-in-btn");
@@ -644,14 +654,17 @@ let onAirReviewSelectionStart = 0;
 let onAirReviewSelectionEnd = 0;
 let onAirReviewSelectionActive = false;
 let onAirReviewSelectMode = false;
+let onAirReviewMoveMode = false;
 let onAirReviewSelectionDragMode = "";
 let onAirReviewSelectionAnchor = 0;
+let onAirReviewSelectionHandleOffset = 0;
 let onAirReviewSelectionPointerClientX = 0;
 let onAirReviewSelectionPointerId = null;
 let onAirReviewAutoPanFrameId = 0;
 let onAirReviewViewportFocusTime = 0;
 let onAirReviewTimelineSegments = [];
 let onAirReviewGainAdjustments = [];
+let onAirReviewOverlapMode = "blend";
 let onAirReviewTimelineSourceToken = "";
 let onAirReviewEditedDuration = 0;
 let onAirReviewEditedTime = 0;
@@ -664,8 +677,15 @@ let onAirReviewVideoSourceNode = null;
 let onAirReviewAudioSourceNode = null;
 let onAirReviewVideoGainNode = null;
 let onAirReviewAudioGainNode = null;
+let onAirReviewClipMixGainNode = null;
 let onAirReviewAudioGraphUnavailable = false;
 let onAirReviewMuted = false;
+let onAirReviewUndoStack = [];
+let onAirReviewRedoStack = [];
+let onAirReviewHistorySuspendDepth = 0;
+let onAirReviewClipDragState = null;
+let onAirReviewDecodedAudioBuffer = null;
+let onAirReviewScheduledClipNodes = [];
 let recordingAutoStopTimerId = null;
 let recordingAutoSplitTimerId = null;
 let recordingSplitInProgress = false;
@@ -3522,17 +3542,241 @@ function getOnAirReviewTimelineSourceToken() {
 }
 
 function recalculateOnAirReviewTimelineDuration() {
-  onAirReviewEditedDuration = onAirReviewTimelineSegments.reduce((total, segment) => total + Math.max(0, Number(segment && segment.duration) || 0), 0);
+  onAirReviewEditedDuration = onAirReviewTimelineSegments.reduce((maxEnd, segment) => {
+    const duration = Math.max(0, Number(segment && segment.duration) || 0);
+    const start = Math.max(0, Number(segment && segment.timelineStart) || 0);
+    return Math.max(maxEnd, start + duration);
+  }, 0);
 }
 
 function buildDefaultOnAirReviewTimeline(durationSeconds) {
   const duration = Math.max(0, Number(durationSeconds) || 0);
   onAirReviewTimelineSegments = duration > 0
-    ? [{ type: "media", sourceStart: 0, sourceEnd: duration, duration }]
+    ? [{ type: "media", sourceStart: 0, sourceEnd: duration, duration, timelineStart: 0 }]
     : [];
   onAirReviewGainAdjustments = [];
+  onAirReviewOverlapMode = "blend";
+  onAirReviewUndoStack = [];
+  onAirReviewRedoStack = [];
   recalculateOnAirReviewTimelineDuration();
   onAirReviewEditedTime = Math.max(0, Math.min(onAirReviewEditedTime, onAirReviewEditedDuration));
+  updateOnAirReviewOverlapModeUi();
+}
+
+function getOnAirReviewNormalizedSourceBounds(clipLike) {
+  const sourceStart = Math.max(0, Number(clipLike && clipLike.sourceStart) || 0);
+  const duration = Math.max(0, Number(clipLike && clipLike.duration) || 0);
+  const rawSourceEnd = Math.max(0, Number(clipLike && clipLike.sourceEnd) || 0);
+  const sourceEnd = rawSourceEnd > sourceStart + 0.0005
+    ? rawSourceEnd
+    : sourceStart + duration;
+  return {
+    sourceStart,
+    sourceEnd: Math.max(sourceStart, sourceEnd)
+  };
+}
+
+function getOnAirReviewMediaClips() {
+  return onAirReviewTimelineSegments
+    .filter((segment) => segment && segment.type === "media" && Math.max(0, Number(segment.duration) || 0) > 0.0005)
+    .map((segment, index) => {
+      const start = Math.max(0, Number(segment.timelineStart) || 0);
+      const duration = Math.max(0, Number(segment.duration) || 0);
+      const sourceBounds = getOnAirReviewNormalizedSourceBounds(segment);
+      return {
+        index,
+        type: "media",
+        start,
+        duration,
+        end: start + duration,
+        sourceStart: sourceBounds.sourceStart,
+        sourceEnd: sourceBounds.sourceEnd,
+        segment
+      };
+    })
+    .sort((left, right) => left.start - right.start || left.index - right.index);
+}
+
+function getOnAirReviewTimelineEntries() {
+  const entries = [];
+  let cursor = 0;
+  getOnAirReviewMediaClips().forEach((clip) => {
+    if (clip.start > cursor + 0.0005) {
+      entries.push({
+        index: -1,
+        segment: { type: "gap", duration: clip.start - cursor, timelineStart: cursor },
+        start: cursor,
+        end: clip.start,
+        duration: clip.start - cursor,
+        type: "gap"
+      });
+    }
+    entries.push({
+      index: clip.index,
+      segment: clip.segment,
+      start: clip.start,
+      end: clip.end,
+      duration: clip.duration,
+      type: "media"
+    });
+    cursor = Math.max(cursor, clip.end);
+  });
+  const totalDuration = getOnAirReviewTimelineDuration();
+  if (totalDuration > cursor + 0.0005) {
+    entries.push({
+      index: -1,
+      segment: { type: "gap", duration: totalDuration - cursor, timelineStart: cursor },
+      start: cursor,
+      end: totalDuration,
+      duration: totalDuration - cursor,
+      type: "gap"
+    });
+  }
+  return entries;
+}
+
+function rebuildOnAirReviewTimelineFromMediaClips(clips, totalDuration) {
+  const safeTotalDuration = Math.max(0, Number(totalDuration) || 0);
+  onAirReviewTimelineSegments = clips
+    .map((clip) => {
+      const start = Math.max(0, Math.min(safeTotalDuration, Number(clip && clip.start) || 0));
+      const duration = Math.max(0, Number(clip && clip.duration) || 0);
+      const end = Math.max(start, Math.min(safeTotalDuration, start + duration));
+      if (end - start <= 0.0005) {
+        return null;
+      }
+      const sourceBounds = getOnAirReviewNormalizedSourceBounds({
+        sourceStart: clip && clip.sourceStart,
+        sourceEnd: clip && clip.sourceEnd,
+        duration: end - start
+      });
+      return {
+        type: "media",
+        sourceStart: sourceBounds.sourceStart,
+        sourceEnd: sourceBounds.sourceEnd,
+        duration: end - start,
+        timelineStart: start
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (left.timelineStart - right.timelineStart) || (left.sourceStart - right.sourceStart));
+  recalculateOnAirReviewTimelineDuration();
+}
+
+function cloneOnAirReviewTimelineSegments(segments) {
+  return Array.isArray(segments)
+    ? segments.map((segment) => ({
+      type: "media",
+      sourceStart: Math.max(0, Number(segment && segment.sourceStart) || 0),
+      sourceEnd: Math.max(0, Number(segment && segment.sourceEnd) || 0),
+      duration: Math.max(0, Number(segment && segment.duration) || 0),
+      timelineStart: Math.max(0, Number(segment && segment.timelineStart) || 0)
+    }))
+    : [];
+}
+
+function cloneOnAirReviewGainAdjustments(adjustments) {
+  return Array.isArray(adjustments)
+    ? adjustments.map((adjustment) => ({
+      start: Math.max(0, Number(adjustment && adjustment.start) || 0),
+      end: Math.max(0, Number(adjustment && adjustment.end) || 0),
+      db: clampOnAirReviewGainDb(adjustment && adjustment.db)
+    }))
+    : [];
+}
+
+function captureOnAirReviewHistorySnapshot(label) {
+  return {
+    label: String(label || ""),
+    timelineSegments: cloneOnAirReviewTimelineSegments(onAirReviewTimelineSegments),
+    gainAdjustments: cloneOnAirReviewGainAdjustments(onAirReviewGainAdjustments),
+    overlapMode: String(onAirReviewOverlapMode || "blend"),
+    editedTime: Math.max(0, Number(onAirReviewEditedTime) || 0),
+    selectionStart: Math.max(0, Number(onAirReviewSelectionStart) || 0),
+    selectionEnd: Math.max(0, Number(onAirReviewSelectionEnd) || 0),
+    selectionActive: !!onAirReviewSelectionActive,
+    selectMode: !!onAirReviewSelectMode,
+    zoomLevel: clampOnAirReviewZoomLevel(onAirReviewZoomLevel),
+    viewportFocusTime: Math.max(0, Number(onAirReviewViewportFocusTime) || 0),
+    muted: !!onAirReviewMuted
+  };
+}
+
+function applyOnAirReviewHistorySnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return;
+  }
+  onAirReviewHistorySuspendDepth += 1;
+  try {
+    onAirReviewTimelineSegments = cloneOnAirReviewTimelineSegments(snapshot.timelineSegments);
+    onAirReviewGainAdjustments = cloneOnAirReviewGainAdjustments(snapshot.gainAdjustments);
+    normalizeOnAirReviewGainAdjustments();
+    recalculateOnAirReviewTimelineDuration();
+    onAirReviewOverlapMode = normalizeOnAirReviewOverlapMode(snapshot.overlapMode);
+    onAirReviewEditedTime = Math.max(0, Math.min(getOnAirReviewTimelineDuration(), Number(snapshot.editedTime) || 0));
+    onAirReviewZoomLevel = clampOnAirReviewZoomLevel(snapshot.zoomLevel);
+    onAirReviewMuted = !!snapshot.muted;
+    onAirReviewMoveMode = false;
+    onAirReviewClipDragState = null;
+    setOnAirReviewSelectMode(!!snapshot.selectMode);
+    if (snapshot.selectionActive) {
+      setOnAirReviewSelection(snapshot.selectionStart, snapshot.selectionEnd);
+    } else {
+      clearOnAirReviewSelection();
+    }
+    setOnAirReviewViewportFocusTime(snapshot.viewportFocusTime || onAirReviewEditedTime);
+    seekOnAirReviewEditedTime(onAirReviewEditedTime);
+    updateOnAirReviewMuteState();
+    updateOnAirReviewOverlapModeUi();
+    updateOnAirReviewZoomControls();
+    updateOnAirReviewSelectionControls();
+    applyOnAirReviewPlaybackGain(true);
+    queueOnAirReviewWaveRender();
+  } finally {
+    onAirReviewHistorySuspendDepth = Math.max(0, onAirReviewHistorySuspendDepth - 1);
+  }
+}
+
+function updateOnAirReviewHistoryControls() {
+  if (onAirReviewUndoBtn) {
+    onAirReviewUndoBtn.disabled = !onAirReviewUndoStack.length;
+  }
+  if (onAirReviewRedoBtn) {
+    onAirReviewRedoBtn.disabled = !onAirReviewRedoStack.length;
+  }
+}
+
+function pushOnAirReviewHistorySnapshot(label) {
+  if (onAirReviewHistorySuspendDepth > 0) {
+    return;
+  }
+  const snapshot = captureOnAirReviewHistorySnapshot(label);
+  onAirReviewUndoStack.push(snapshot);
+  if (onAirReviewUndoStack.length > 40) {
+    onAirReviewUndoStack.shift();
+  }
+  onAirReviewRedoStack = [];
+  updateOnAirReviewHistoryControls();
+}
+
+function restoreOnAirReviewHistory(targetStack, oppositeStack) {
+  if (!targetStack.length) {
+    return null;
+  }
+  const current = captureOnAirReviewHistorySnapshot("");
+  const snapshot = targetStack.pop();
+  oppositeStack.push(current);
+  applyOnAirReviewHistorySnapshot(snapshot);
+  updateOnAirReviewHistoryControls();
+  return snapshot;
+}
+
+function undoOnAirReviewEdit() {
+  return restoreOnAirReviewHistory(onAirReviewUndoStack, onAirReviewRedoStack);
+}
+
+function redoOnAirReviewEdit() {
+  return restoreOnAirReviewHistory(onAirReviewRedoStack, onAirReviewUndoStack);
 }
 
 function getOnAirReviewSelectionDuration() {
@@ -3642,6 +3886,59 @@ function shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd
   normalizeOnAirReviewGainAdjustments();
 }
 
+function removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd) {
+  const safeStart = Math.max(0, Number(selectionStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(selectionEnd) || safeStart);
+  const nextAdjustments = [];
+  onAirReviewGainAdjustments.forEach((adjustment) => {
+    const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
+    const end = Math.max(start, Number(adjustment && adjustment.end) || start);
+    const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+    if (end <= safeStart || start >= safeEnd) {
+      nextAdjustments.push({ start, end, db });
+      return;
+    }
+    if (start < safeStart) {
+      nextAdjustments.push({ start, end: safeStart, db });
+    }
+    if (end > safeEnd) {
+      nextAdjustments.push({ start: safeEnd, end, db });
+    }
+  });
+  onAirReviewGainAdjustments = nextAdjustments;
+  normalizeOnAirReviewGainAdjustments();
+}
+
+function shiftOnAirReviewGainAdjustmentsForClipMove(sourceStart, sourceEnd, deltaSeconds) {
+  const safeStart = Math.max(0, Number(sourceStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(sourceEnd) || safeStart);
+  const delta = Number(deltaSeconds) || 0;
+  if (Math.abs(delta) < 0.0005 || safeEnd - safeStart <= 0.0005) {
+    return;
+  }
+  const nextAdjustments = [];
+  onAirReviewGainAdjustments.forEach((adjustment) => {
+    const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
+    const end = Math.max(start, Number(adjustment && adjustment.end) || start);
+    const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+    if (end <= safeStart || start >= safeEnd) {
+      nextAdjustments.push({ start, end, db });
+      return;
+    }
+    if (start < safeStart) {
+      nextAdjustments.push({ start, end: safeStart, db });
+    }
+    const movedStart = Math.max(safeStart, start) + delta;
+    const movedEnd = Math.min(safeEnd, end) + delta;
+    nextAdjustments.push({ start: movedStart, end: movedEnd, db });
+    if (end > safeEnd) {
+      nextAdjustments.push({ start: safeEnd, end, db });
+    }
+  });
+  onAirReviewGainAdjustments = nextAdjustments;
+  normalizeOnAirReviewGainAdjustments();
+}
+
 function applyOnAirReviewSelectionGain(deltaDb) {
   if (!hasOnAirReviewSelection()) {
     return false;
@@ -3651,6 +3948,7 @@ function applyOnAirReviewSelectionGain(deltaDb) {
   if (end - start <= 0.01) {
     return false;
   }
+  pushOnAirReviewHistorySnapshot("gain");
   onAirReviewGainAdjustments.push({
     start,
     end,
@@ -3659,10 +3957,138 @@ function applyOnAirReviewSelectionGain(deltaDb) {
   normalizeOnAirReviewGainAdjustments();
   updateOnAirReviewSelectionControls();
   applyOnAirReviewPlaybackGain();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent =
       "Selection gain updated to " + formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb()) + ".";
+  }
+  return true;
+}
+
+function getOnAirReviewMixedPeakForRange(startSeconds, endSeconds) {
+  const buffer = onAirReviewDecodedAudioBuffer;
+  if (!buffer || !buffer.length || !(buffer.sampleRate > 0)) {
+    return null;
+  }
+  const start = Math.max(0, Number(startSeconds) || 0);
+  const end = Math.max(start, Number(endSeconds) || start);
+  const duration = end - start;
+  if (duration <= 0.01) {
+    return null;
+  }
+  const clips = getOnAirReviewMediaClips().filter((clip) => clip.end > start && clip.start < end);
+  if (!clips.length) {
+    return null;
+  }
+  const channels = [];
+  for (let channel = 0; channel < Math.max(1, buffer.numberOfChannels); channel += 1) {
+    channels.push(buffer.getChannelData(channel));
+  }
+  const sampleCount = Math.max(900, Math.min(12000, Math.round(duration * 2200)));
+  let peak = 0;
+  for (let index = 0; index < sampleCount; index += 1) {
+    const progress = sampleCount === 1 ? 0 : index / (sampleCount - 1);
+    const editedTime = start + duration * progress;
+    let mixedSample = 0;
+    clips.forEach((clip) => {
+      if (editedTime < clip.start || editedTime > clip.end) {
+        return;
+      }
+      const sourceTime = clip.sourceStart + (editedTime - clip.start);
+      const sampleIndex = Math.max(0, Math.min(buffer.length - 1, Math.round(sourceTime * buffer.sampleRate)));
+      let clipSample = 0;
+      channels.forEach((data) => {
+        clipSample += Number(data[sampleIndex] || 0);
+      });
+      mixedSample += clipSample / Math.max(1, channels.length);
+    });
+    const gainedSample = mixedSample * dbToGainMultiplier(getOnAirReviewGainDbAt(editedTime));
+    peak = Math.max(peak, Math.abs(gainedSample));
+  }
+  return peak;
+}
+
+function normalizeOnAirReviewSelectionGain() {
+  if (!hasOnAirReviewSelection()) {
+    return false;
+  }
+  const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (end - start <= 0.01) {
+    return false;
+  }
+  const peak = getOnAirReviewMixedPeakForRange(start, end);
+  if (!(peak > 0.00001)) {
+    return false;
+  }
+  const targetPeakDb = -3;
+  const currentPeakDb = 20 * Math.log10(Math.max(peak, 0.000001));
+  const normalizeDeltaDb = clampOnAirReviewGainDb(targetPeakDb - currentPeakDb);
+  if (Math.abs(normalizeDeltaDb) < 0.1) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("gain-normalize");
+  onAirReviewGainAdjustments.push({
+    start,
+    end,
+    db: normalizeDeltaDb
+  });
+  normalizeOnAirReviewGainAdjustments();
+  updateOnAirReviewSelectionControls();
+  applyOnAirReviewPlaybackGain(true);
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent =
+      "Selection normalized to a peak target of -3 dB using " + formatOnAirReviewGainDb(normalizeDeltaDb) + ".";
+  }
+  return true;
+}
+
+function resetOnAirReviewSelectionGain() {
+  if (!hasOnAirReviewSelection()) {
+    return false;
+  }
+  const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (end - start <= 0.01) {
+    return false;
+  }
+  const beforeCount = onAirReviewGainAdjustments.length;
+  pushOnAirReviewHistorySnapshot("gain-reset");
+  removeOnAirReviewGainAdjustmentsInRange(start, end);
+  if (onAirReviewGainAdjustments.length === beforeCount) {
+    if (onAirReviewUndoStack.length) {
+      const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
+      if (lastSnapshot && lastSnapshot.label === "gain-reset") {
+        onAirReviewUndoStack.pop();
+        updateOnAirReviewHistoryControls();
+      }
+    }
+    return false;
+  }
+  updateOnAirReviewSelectionControls();
+  applyOnAirReviewPlaybackGain(true);
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Selection gain reset to 0 dB.";
   }
   return true;
 }
@@ -3686,19 +4112,33 @@ function ensureOnAirReviewTimeline() {
 function getOnAirReviewTimelinePosition(seconds) {
   const totalDuration = getOnAirReviewTimelineDuration();
   const target = Math.max(0, Math.min(totalDuration, Number(seconds) || 0));
-  let cursor = 0;
-  for (const segment of onAirReviewTimelineSegments) {
-    const duration = Math.max(0, Number(segment && segment.duration) || 0);
-    if (target <= cursor + duration || segment === onAirReviewTimelineSegments[onAirReviewTimelineSegments.length - 1]) {
-      const offset = Math.max(0, Math.min(duration, target - cursor));
+  const clips = getOnAirReviewMediaClips();
+  let activeClip = null;
+  clips.forEach((clip) => {
+    if (target >= clip.start && target <= clip.end) {
+      if (!activeClip || clip.start >= activeClip.start) {
+        activeClip = clip;
+      }
+    }
+  });
+  if (activeClip) {
+    const offset = Math.max(0, Math.min(activeClip.duration, target - activeClip.start));
+    return {
+      segment: activeClip.segment,
+      offset,
+      editedTime: target,
+      sourceTime: activeClip.sourceStart + offset
+    };
+  }
+  for (const entry of getOnAirReviewTimelineEntries()) {
+    if (target >= entry.start && target <= entry.end) {
       return {
-        segment,
-        offset,
+        segment: entry.segment,
+        offset: Math.max(0, Math.min(entry.duration, target - entry.start)),
         editedTime: target,
-        sourceTime: segment && segment.type === "media" ? Number(segment.sourceStart || 0) + offset : 0
+        sourceTime: 0
       };
     }
-    cursor += duration;
   }
   return null;
 }
@@ -3713,7 +4153,28 @@ function seekOnAirReviewEditedTime(seconds, options) {
   }
   const media = getActiveOnAirReviewMediaElement();
   const position = getOnAirReviewTimelinePosition(onAirReviewEditedTime);
-  if (media && position && position.segment && position.segment.type === "media") {
+  const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+  if (canUseOnAirReviewClipPlayback()) {
+    if (media) {
+      try {
+        media.pause();
+      } catch (error) {
+        // Ignore pause races.
+      }
+      if (position && position.segment && position.segment.type === "media") {
+        try {
+          media.currentTime = Math.max(0, Number(position.sourceTime) || 0);
+        } catch (error) {
+          // Ignore seek races.
+        }
+      }
+    }
+    if (isOnAirReviewPlaying()) {
+      scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    } else {
+      stopOnAirReviewClipPlayback();
+    }
+  } else if (media && position && position.segment && position.segment.type === "media") {
     const targetSourceTime = Math.max(0, Number(position.sourceTime) || 0);
     if (Math.abs(Number(media.currentTime || 0) - targetSourceTime) > 0.06) {
       try {
@@ -3774,16 +4235,37 @@ function tickOnAirReviewPlayback() {
   if (loopBounds) {
     if (nextEditedTime >= loopBounds.end - 0.01) {
       nextEditedTime = loopBounds.start;
-      seekOnAirReviewEditedTime(loopBounds.start, { play: true });
+      if (canUseOnAirReviewClipPlayback()) {
+        onAirReviewEditedTime = loopBounds.start;
+        if (!onAirReviewWavePointerDown || !onAirReviewSelectMode) {
+          setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
+        }
+        stopOnAirReviewClipPlayback();
+        scheduleOnAirReviewClipPlayback(loopBounds.start, loopBounds.end);
+        updateOnAirReviewTime();
+        queueOnAirReviewWaveRender();
+      } else {
+        seekOnAirReviewEditedTime(loopBounds.start, { play: true });
+      }
       onAirReviewPlaybackAnchorAt = performance.now();
       onAirReviewPlaybackAnchorEditedTime = loopBounds.start;
       onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
       return;
     }
   }
-  seekOnAirReviewEditedTime(nextEditedTime, { play: true });
+  if (canUseOnAirReviewClipPlayback()) {
+    onAirReviewEditedTime = nextEditedTime;
+    if (!onAirReviewWavePointerDown || !onAirReviewSelectMode) {
+      setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
+    }
+    updateOnAirReviewTime();
+    queueOnAirReviewWaveRender();
+  } else {
+    seekOnAirReviewEditedTime(nextEditedTime, { play: true });
+  }
   if (nextEditedTime >= totalDuration - 0.01) {
     stopOnAirReviewPlaybackLoop();
+    stopOnAirReviewClipPlayback();
     if (media) {
       media.pause();
     }
@@ -3803,16 +4285,32 @@ async function startOnAirReviewPlaybackLoop() {
   stopOnAirReviewPlaybackLoop();
   const loopBounds = getOnAirReviewLoopBounds();
   onAirReviewLoopSelectionActive = !!loopBounds;
-  const playbackStart = loopBounds
-    ? (onAirReviewEditedTime >= loopBounds.start && onAirReviewEditedTime <= loopBounds.end ? onAirReviewEditedTime : loopBounds.start)
-    : onAirReviewEditedTime;
+  const totalDuration = getOnAirReviewTimelineDuration();
+  let playbackStart = onAirReviewEditedTime;
+  if (loopBounds) {
+    playbackStart = onAirReviewEditedTime >= loopBounds.start && onAirReviewEditedTime <= loopBounds.end
+      ? onAirReviewEditedTime
+      : loopBounds.start;
+  } else if (totalDuration > 0 && onAirReviewEditedTime >= totalDuration - 0.01) {
+    playbackStart = 0;
+  }
   onAirReviewPlaybackAnchorAt = performance.now();
   onAirReviewPlaybackAnchorEditedTime = playbackStart;
-  const position = getOnAirReviewTimelinePosition(playbackStart);
-  if (position && position.segment && position.segment.type === "media") {
-    seekOnAirReviewEditedTime(playbackStart, { play: true });
+  if (canUseOnAirReviewClipPlayback()) {
+    try {
+      media.pause();
+    } catch (error) {
+      // Ignore pause races.
+    }
+    seekOnAirReviewEditedTime(playbackStart);
+    scheduleOnAirReviewClipPlayback(playbackStart, loopBounds ? loopBounds.end : undefined);
   } else {
-    media.pause();
+    const position = getOnAirReviewTimelinePosition(playbackStart);
+    if (position && position.segment && position.segment.type === "media") {
+      seekOnAirReviewEditedTime(playbackStart, { play: true });
+    } else {
+      media.pause();
+    }
   }
   onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
   updateOnAirReviewPlayState();
@@ -3821,6 +4319,7 @@ async function startOnAirReviewPlaybackLoop() {
 function pauseOnAirReviewPlaybackLoop() {
   stopOnAirReviewPlaybackLoop();
   onAirReviewLoopSelectionActive = false;
+  stopOnAirReviewClipPlayback();
   const media = getActiveOnAirReviewMediaElement();
   if (media) {
     media.pause();
@@ -3835,59 +4334,61 @@ function applyOnAirReviewDeleteToTimeline(mode) {
   ensureOnAirReviewTimeline();
   const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const removedDuration = selectionEnd - selectionStart;
   if (selectionEnd - selectionStart <= 0.01) {
     return false;
   }
-  const nextSegments = [];
-  let cursor = 0;
-  for (const segment of onAirReviewTimelineSegments) {
-    const duration = Math.max(0, Number(segment && segment.duration) || 0);
-    const segmentStart = cursor;
-    const segmentEnd = cursor + duration;
-    cursor = segmentEnd;
-    if (selectionEnd <= segmentStart || selectionStart >= segmentEnd) {
-      nextSegments.push(segment);
-      continue;
+  pushOnAirReviewHistorySnapshot(mode === "ripple" ? "ripple" : "delete");
+  const nextClips = [];
+  getOnAirReviewMediaClips().forEach((clip) => {
+    const clipStart = clip.start;
+    const clipEnd = clip.end;
+    if (selectionEnd <= clipStart || selectionStart >= clipEnd) {
+      nextClips.push({
+        start: mode === "ripple" && clipStart >= selectionEnd ? clipStart - removedDuration : clipStart,
+        duration: clip.duration,
+        sourceStart: clip.sourceStart,
+        sourceEnd: clip.sourceEnd
+      });
+      return;
     }
-    const overlapStart = Math.max(selectionStart, segmentStart);
-    const overlapEnd = Math.min(selectionEnd, segmentEnd);
-    const leading = overlapStart - segmentStart;
-    const trailing = segmentEnd - overlapEnd;
+    const overlapStart = Math.max(selectionStart, clipStart);
+    const overlapEnd = Math.min(selectionEnd, clipEnd);
+    const leading = overlapStart - clipStart;
+    const trailing = clipEnd - overlapEnd;
     if (leading > 0) {
-      if (segment.type === "media") {
-        nextSegments.push({
-          type: "media",
-          sourceStart: Number(segment.sourceStart || 0),
-          sourceEnd: Number(segment.sourceStart || 0) + leading,
-          duration: leading
-        });
-      } else {
-        nextSegments.push({ type: "gap", duration: leading });
-      }
+      nextClips.push({
+        start: clipStart,
+        duration: leading,
+        sourceStart: clip.sourceStart,
+        sourceEnd: clip.sourceStart + leading
+      });
     }
     if (trailing > 0) {
-      if (segment.type === "media") {
-        nextSegments.push({
-          type: "media",
-          sourceStart: Number(segment.sourceEnd || 0) - trailing,
-          sourceEnd: Number(segment.sourceEnd || 0),
-          duration: trailing
-        });
-      } else {
-        nextSegments.push({ type: "gap", duration: trailing });
-      }
+      const nextStart = mode === "ripple" ? overlapStart : selectionEnd;
+      nextClips.push({
+        start: nextStart,
+        duration: trailing,
+        sourceStart: clip.sourceEnd - trailing,
+        sourceEnd: clip.sourceEnd
+      });
     }
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, mode === "ripple"
+    ? Math.max(0, getOnAirReviewTimelineDuration() - removedDuration)
+    : getOnAirReviewTimelineDuration());
+  if (mode === "ripple") {
+    shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd);
+  } else {
+    removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd);
   }
-  onAirReviewTimelineSegments = nextSegments.filter((segment) => Math.max(0, Number(segment && segment.duration) || 0) > 0.005);
-  recalculateOnAirReviewTimelineDuration();
-  shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd);
-  const resumeAt = mode === "ripple" ? selectionStart : Math.min(selectionStart, onAirReviewEditedDuration);
+  const resumeAt = Math.min(selectionStart, onAirReviewEditedDuration);
   clearOnAirReviewSelection();
   seekOnAirReviewEditedTime(resumeAt);
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent = mode === "ripple"
       ? "Ripple delete removed the selected range and closed the gap."
-      : "Delete removed the selected range and closed the edit seamlessly.";
+      : "Delete removed the selected range and left a gap for manual pacing edits.";
   }
   return true;
 }
@@ -3938,6 +4439,7 @@ function clearOnAirReviewSelection() {
   onAirReviewSelectionEnd = 0;
   onAirReviewSelectionActive = false;
   onAirReviewSelectionDragMode = "";
+  onAirReviewSelectionHandleOffset = 0;
   updateOnAirReviewSelectionControls();
   queueOnAirReviewWaveRender();
 }
@@ -3981,11 +4483,11 @@ function getOnAirReviewSelectionHandleHit(seconds) {
 
 function updateOnAirReviewSelectionFromDrag(seconds) {
   if (onAirReviewSelectionDragMode === "start") {
-    setOnAirReviewSelection(seconds, onAirReviewSelectionEnd);
+    setOnAirReviewSelection(seconds - onAirReviewSelectionHandleOffset, onAirReviewSelectionEnd);
     return;
   }
   if (onAirReviewSelectionDragMode === "end") {
-    setOnAirReviewSelection(onAirReviewSelectionStart, seconds);
+    setOnAirReviewSelection(onAirReviewSelectionStart, seconds - onAirReviewSelectionHandleOffset);
     return;
   }
   setOnAirReviewSelection(onAirReviewSelectionAnchor, seconds);
@@ -4040,6 +4542,9 @@ function startOnAirReviewSelectionAutoPan() {
 
 function setOnAirReviewSelectMode(enabled) {
   onAirReviewSelectMode = !!enabled;
+  if (onAirReviewSelectMode) {
+    onAirReviewMoveMode = false;
+  }
   if (onAirReviewSelectModeBtn) {
     onAirReviewSelectModeBtn.setAttribute("aria-pressed", onAirReviewSelectMode ? "true" : "false");
     onAirReviewSelectModeBtn.classList.toggle("active", onAirReviewSelectMode);
@@ -4055,11 +4560,96 @@ function setOnAirReviewSelectMode(enabled) {
         : "Scrub mode is on. Click or drag in the waveform to move through the show.";
     }
   }
+  if (onAirReviewMoveModeBtn) {
+    onAirReviewMoveModeBtn.setAttribute("aria-pressed", onAirReviewMoveMode ? "true" : "false");
+    onAirReviewMoveModeBtn.classList.toggle("active", onAirReviewMoveMode);
+  }
+}
+
+function setOnAirReviewMoveMode(enabled) {
+  onAirReviewMoveMode = !!enabled;
+  if (onAirReviewMoveMode) {
+    onAirReviewSelectMode = false;
+    onAirReviewSelectionDragMode = "";
+  }
+  if (onAirReviewMoveModeBtn) {
+    onAirReviewMoveModeBtn.setAttribute("aria-pressed", onAirReviewMoveMode ? "true" : "false");
+    onAirReviewMoveModeBtn.classList.toggle("active", onAirReviewMoveMode);
+  }
+  if (onAirReviewSelectModeBtn) {
+    onAirReviewSelectModeBtn.setAttribute("aria-pressed", onAirReviewSelectMode ? "true" : "false");
+    onAirReviewSelectModeBtn.classList.toggle("active", onAirReviewSelectMode);
+  }
+  if (onAirReviewWaveNote) {
+    if (onAirReviewMoveMode) {
+      onAirReviewWaveNote.textContent = "Move mode is on. Drag a clip to reposition it across gaps. Ripple still closes gaps automatically.";
+    } else if (onAirReviewWavePeaks.length && !onAirReviewSelectMode) {
+      onAirReviewWaveNote.textContent = hasOnAirReviewSelection()
+        ? "Scrub mode is on. Current selection is highlighted and ready for the next edit feature."
+        : "Scrub mode is on. Click or drag in the waveform to move through the show.";
+    }
+  }
+}
+
+function normalizeOnAirReviewOverlapMode(mode) {
+  const value = String(mode || "").toLowerCase();
+  if (value === "front" || value === "back") {
+    return value;
+  }
+  return "blend";
+}
+
+function updateOnAirReviewOverlapModeUi() {
+  const mode = normalizeOnAirReviewOverlapMode(onAirReviewOverlapMode);
+  [
+    [onAirReviewOverlapBlendBtn, "blend"],
+    [onAirReviewOverlapFrontBtn, "front"],
+    [onAirReviewOverlapBackBtn, "back"]
+  ].forEach(([button, value]) => {
+    if (!button) {
+      return;
+    }
+    const active = mode === value;
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    button.classList.toggle("active", active);
+  });
+}
+
+function setOnAirReviewOverlapMode(mode) {
+  const nextMode = normalizeOnAirReviewOverlapMode(mode);
+  if (nextMode === onAirReviewOverlapMode) {
+    updateOnAirReviewOverlapModeUi();
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("overlap-mode");
+  onAirReviewOverlapMode = nextMode;
+  updateOnAirReviewOverlapModeUi();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Overlap mode set to " + nextMode + " for stacked clips.";
+  }
+  return true;
+}
+
+function hasOnAirReviewSelectableAsset() {
+  return !!(
+    recordingAudioUrl ||
+    recordingMediaUrl ||
+    (onAirActiveReviewMedia && onAirActiveReviewMedia.src) ||
+    getOnAirReviewAssetDuration() ||
+    getOnAirReviewTimelineDuration()
+  );
 }
 
 function updateOnAirReviewSelectionControls() {
-  const hasAsset = !!getOnAirReviewTimelineDuration() || !!getOnAirReviewAssetDuration();
+  const hasAsset = hasOnAirReviewSelectableAsset();
   const hasSelection = hasOnAirReviewSelection();
+  updateOnAirReviewHistoryControls();
   if (onAirReviewSelectAllBtn) {
     onAirReviewSelectAllBtn.disabled = !hasAsset;
   }
@@ -4072,11 +4662,23 @@ function updateOnAirReviewSelectionControls() {
   if (onAirReviewRippleDeleteBtn) {
     onAirReviewRippleDeleteBtn.disabled = !hasSelection;
   }
+  if (onAirReviewSplitBtn) {
+    onAirReviewSplitBtn.disabled = !getOnAirReviewSplitCandidate();
+  }
+  if (onAirReviewSplitSelectionBtn) {
+    onAirReviewSplitSelectionBtn.disabled = !canSplitOnAirReviewSelectionEdges();
+  }
   if (onAirReviewGainDownBtn) {
     onAirReviewGainDownBtn.disabled = !hasSelection;
   }
   if (onAirReviewGainUpBtn) {
     onAirReviewGainUpBtn.disabled = !hasSelection;
+  }
+  if (onAirReviewGainResetBtn) {
+    onAirReviewGainResetBtn.disabled = !hasSelection;
+  }
+  if (onAirReviewGainNormalizeBtn) {
+    onAirReviewGainNormalizeBtn.disabled = !hasSelection;
   }
   if (onAirReviewGainReadout) {
     onAirReviewGainReadout.textContent = formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb());
@@ -4084,6 +4686,251 @@ function updateOnAirReviewSelectionControls() {
   if (onAirReviewLoopReadout) {
     onAirReviewLoopReadout.textContent = hasSelection ? "Loop On" : "Loop Off";
   }
+}
+
+function getOnAirReviewClipHit(seconds) {
+  const target = Math.max(0, Number(seconds) || 0);
+  const entries = getOnAirReviewTimelineEntries();
+  for (const entry of entries) {
+    if (entry.type !== "media") {
+      continue;
+    }
+    if (target >= entry.start && target <= entry.end) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+function beginOnAirReviewClipDrag(entry, pointerSeconds) {
+  if (!entry || entry.type !== "media") {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("move");
+  onAirReviewClipDragState = {
+    entryIndex: entry.index,
+    originalStart: entry.start,
+    duration: entry.duration,
+    pointerOffset: Math.max(0, Math.min(entry.duration, Number(pointerSeconds) - entry.start)),
+    moved: false
+  };
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Clip move is active. Drag the clip across the gap and release to place it.";
+  }
+  queueOnAirReviewWaveRender();
+  return true;
+}
+
+function updateOnAirReviewClipDrag(pointerSeconds) {
+  if (!onAirReviewClipDragState) {
+    return;
+  }
+  const desiredStart = Number(pointerSeconds) - Number(onAirReviewClipDragState.pointerOffset || 0);
+  if (moveOnAirReviewClip(onAirReviewClipDragState.entryIndex, desiredStart)) {
+    onAirReviewClipDragState.moved = true;
+  }
+}
+
+function endOnAirReviewClipDrag() {
+  if (!onAirReviewClipDragState) {
+    return;
+  }
+  if (!onAirReviewClipDragState.moved && onAirReviewUndoStack.length) {
+    const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
+    if (lastSnapshot && lastSnapshot.label === "move") {
+      onAirReviewUndoStack.pop();
+      updateOnAirReviewHistoryControls();
+    }
+  }
+  onAirReviewClipDragState = null;
+  if (onAirReviewWaveNote && onAirReviewMoveMode) {
+    onAirReviewWaveNote.textContent = "Move mode is on. Drag a clip to reposition it across gaps. Ripple still closes gaps automatically.";
+  }
+  queueOnAirReviewWaveRender();
+}
+
+function moveOnAirReviewClip(entryIndex, targetStart) {
+  const totalDuration = getOnAirReviewTimelineDuration();
+  const mediaEntries = getOnAirReviewMediaClips();
+  const clipIndex = mediaEntries.findIndex((entry) => entry.index === entryIndex);
+  if (clipIndex === -1) {
+    return false;
+  }
+  const clip = mediaEntries[clipIndex];
+  const previous = mediaEntries[clipIndex - 1] || null;
+  const next = mediaEntries[clipIndex + 1] || null;
+  const overlapLimit = Math.min(4.5, clip.duration * 0.72);
+  const minStart = Math.max(0, previous ? previous.start - overlapLimit : 0);
+  const maxStart = Math.max(0, next ? next.end - Math.max(0.12, clip.duration * 0.28) : totalDuration);
+  let nextStart = Math.max(minStart, Math.min(maxStart, Number(targetStart) || 0));
+  const snapTolerance = Math.max(0.08, clip.duration * 0.04);
+  if (previous && Math.abs(nextStart - previous.end) <= snapTolerance) {
+    nextStart = previous.end;
+  }
+  if (next && Math.abs(nextStart - Math.max(0, next.start - clip.duration)) <= snapTolerance) {
+    nextStart = Math.max(0, next.start - clip.duration);
+  }
+  if (Math.abs(nextStart - clip.start) < 0.0005) {
+    return false;
+  }
+  const nextClips = mediaEntries.map((entry) => ({
+    start: entry.start,
+    duration: entry.duration,
+    sourceStart: Math.max(0, Number(entry.segment && entry.segment.sourceStart) || 0),
+    sourceEnd: Math.max(0, Number(entry.segment && entry.segment.sourceEnd) || 0)
+  }));
+  nextClips[clipIndex].start = nextStart;
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(totalDuration, nextStart + clip.duration));
+  shiftOnAirReviewGainAdjustmentsForClipMove(clip.start, clip.end, nextStart - clip.start);
+  if (hasOnAirReviewSelection()) {
+    const delta = nextStart - clip.start;
+    const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    if (selectionStart >= clip.start && selectionEnd <= clip.end) {
+      setOnAirReviewSelection(selectionStart + delta, selectionEnd + delta);
+    }
+  }
+  setOnAirReviewViewportFocusTime(nextStart + clip.duration / 2);
+  seekOnAirReviewEditedTime(Math.max(0, Math.min(getOnAirReviewTimelineDuration(), onAirReviewEditedTime)));
+  return true;
+}
+
+function getOnAirReviewSplitCandidate() {
+  const clip = getOnAirReviewClipHit(onAirReviewEditedTime);
+  if (!clip || clip.type !== "media") {
+    return null;
+  }
+  const splitTime = Math.max(clip.start, Math.min(clip.end, Number(onAirReviewEditedTime) || 0));
+  if (splitTime - clip.start <= 0.02 || clip.end - splitTime <= 0.02) {
+    return null;
+  }
+  return { clip, splitTime };
+}
+
+function applyOnAirReviewSplitAtPlayhead() {
+  const candidate = getOnAirReviewSplitCandidate();
+  if (!candidate) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("split");
+  const { clip, splitTime } = candidate;
+  const leadingDuration = splitTime - clip.start;
+  const trailingDuration = clip.end - splitTime;
+  const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+  const sourceSplitTime = Math.max(
+    sourceBounds.sourceStart,
+    Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + leadingDuration)
+  );
+  const nextClips = getOnAirReviewMediaClips().flatMap((entry) => {
+    if (entry.index !== clip.index) {
+      return [{
+        start: entry.start,
+        duration: entry.duration,
+        sourceStart: entry.sourceStart,
+        sourceEnd: entry.sourceEnd
+      }];
+    }
+    return [
+      {
+        start: clip.start,
+        duration: leadingDuration,
+        sourceStart: clip.sourceStart,
+        sourceEnd: sourceSplitTime
+      },
+      {
+        start: splitTime,
+        duration: trailingDuration,
+        sourceStart: sourceSplitTime,
+        sourceEnd: clip.sourceEnd
+      }
+    ];
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  seekOnAirReviewEditedTime(splitTime);
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Clip split at the playhead. You can now move or edit each side separately.";
+  }
+  return true;
+}
+
+function canSplitOnAirReviewSelectionEdges() {
+  if (!hasOnAirReviewSelection()) {
+    return false;
+  }
+  const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (selectionEnd - selectionStart <= 0.02) {
+    return false;
+  }
+  return getOnAirReviewMediaClips().some((clip) => {
+    if (selectionEnd <= clip.start || selectionStart >= clip.end) {
+      return false;
+    }
+    const canSplitAtStart = selectionStart > clip.start + 0.02 && selectionStart < clip.end - 0.02;
+    const canSplitAtEnd = selectionEnd > clip.start + 0.02 && selectionEnd < clip.end - 0.02;
+    return canSplitAtStart || canSplitAtEnd;
+  });
+}
+
+function applyOnAirReviewSplitAtSelectionEdges() {
+  if (!canSplitOnAirReviewSelectionEdges()) {
+    return false;
+  }
+  const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  pushOnAirReviewHistorySnapshot("split-selection");
+  const nextClips = [];
+  getOnAirReviewMediaClips().forEach((clip) => {
+    if (selectionEnd <= clip.start || selectionStart >= clip.end) {
+      nextClips.push({
+        start: clip.start,
+        duration: clip.duration,
+        sourceStart: clip.sourceStart,
+        sourceEnd: clip.sourceEnd
+      });
+      return;
+    }
+    const overlapStart = Math.max(selectionStart, clip.start);
+    const overlapEnd = Math.min(selectionEnd, clip.end);
+    const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+    const overlapSourceStart = Math.max(
+      sourceBounds.sourceStart,
+      Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + (overlapStart - clip.start))
+    );
+    const overlapSourceEnd = Math.max(
+      overlapSourceStart,
+      Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + (overlapEnd - clip.start))
+    );
+    if (overlapStart > clip.start + 0.02) {
+      nextClips.push({
+        start: clip.start,
+        duration: overlapStart - clip.start,
+        sourceStart: clip.sourceStart,
+        sourceEnd: overlapSourceStart
+      });
+    }
+    nextClips.push({
+      start: overlapStart,
+      duration: overlapEnd - overlapStart,
+      sourceStart: overlapSourceStart,
+      sourceEnd: overlapSourceEnd
+    });
+    if (overlapEnd < clip.end - 0.02) {
+      nextClips.push({
+        start: overlapEnd,
+        duration: clip.end - overlapEnd,
+        sourceStart: overlapSourceEnd,
+        sourceEnd: clip.sourceEnd
+      });
+    }
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  setOnAirReviewSelection(selectionStart, selectionEnd);
+  seekOnAirReviewEditedTime(selectionStart);
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Selection edges split the overlapping clips so the highlighted range stands on its own.";
+  }
+  return true;
 }
 
 function updateOnAirReviewZoomControls() {
@@ -4168,6 +5015,7 @@ async function refreshOnAirReviewWaveform() {
     onAirReviewWaveToken = 0;
     onAirReviewWaveDuration = 0;
     onAirReviewWavePeaks = [];
+    onAirReviewDecodedAudioBuffer = null;
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "No review file loaded yet.";
     }
@@ -4190,6 +5038,7 @@ async function refreshOnAirReviewWaveform() {
       const decoded = await decodeContext.decodeAudioData(arrayBuffer.slice(0));
       onAirReviewWavePeaks = sampleWaveformPeaksFromAudioBuffer(decoded, 220);
       onAirReviewWaveDuration = Math.max(duration, Number(decoded.duration || 0));
+      onAirReviewDecodedAudioBuffer = decoded;
     } finally {
       decodeContext.close().catch(() => {});
     }
@@ -4198,6 +5047,7 @@ async function refreshOnAirReviewWaveform() {
     }
   } catch (error) {
     onAirReviewWavePeaks = buildFallbackReviewWaveformPeaks(duration);
+    onAirReviewDecodedAudioBuffer = null;
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "Waveform preview is approximate on this browser, but scrubbing and playback are still available.";
     }
@@ -4254,6 +5104,50 @@ function renderOnAirReviewWaveform() {
   const currentProgress = viewport.currentProgress;
   const windowSize = viewport.windowSize;
   const windowStart = viewport.windowStart;
+  const mediaClips = duration > 0 ? getOnAirReviewMediaClips() : [];
+  const visibleMediaClips = [];
+  const overlapRanges = [];
+  const overlapClipIndices = new Set();
+  if (duration > 0 && mediaClips.length) {
+    const activeLanes = [];
+    mediaClips
+      .slice()
+      .sort((left, right) => {
+        if (Math.abs(left.start - right.start) > 0.0005) {
+          return left.start - right.start;
+        }
+        return left.index - right.index;
+      })
+      .forEach((clip) => {
+        let laneIndex = 0;
+        while (laneIndex < activeLanes.length && activeLanes[laneIndex] > clip.start + 0.001) {
+          laneIndex += 1;
+        }
+        activeLanes[laneIndex] = clip.end;
+        visibleMediaClips.push({ ...clip, laneIndex });
+      });
+    for (let index = 0; index < visibleMediaClips.length; index += 1) {
+      for (let inner = index + 1; inner < visibleMediaClips.length; inner += 1) {
+        const leftClip = visibleMediaClips[index];
+        const rightClip = visibleMediaClips[inner];
+        if (rightClip.start >= leftClip.end) {
+          break;
+        }
+        const overlapStart = Math.max(leftClip.start, rightClip.start);
+        const overlapEnd = Math.min(leftClip.end, rightClip.end);
+        if (overlapEnd - overlapStart > 0.01) {
+          overlapClipIndices.add(leftClip.index);
+          overlapClipIndices.add(rightClip.index);
+          overlapRanges.push({
+            start: overlapStart,
+            end: overlapEnd,
+            frontLane: rightClip.laneIndex,
+            backLane: leftClip.laneIndex
+          });
+        }
+      }
+    }
+  }
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
   ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
@@ -4265,6 +5159,114 @@ function renderOnAirReviewWaveform() {
   ctx.fillRect(meterX, bottomLaneY, meterWidth, laneHeight);
   ctx.fillStyle = "rgba(214, 225, 236, 0.18)";
   ctx.fillRect(meterX, Math.round(height / 2) - Math.floor(dividerHeight / 2), meterWidth, dividerHeight);
+
+  if (duration > 0 && visibleMediaClips.length) {
+    visibleMediaClips.forEach((clip, clipIndex) => {
+      if (!overlapClipIndices.has(clip.index)) {
+        return;
+      }
+      const startProgress = Math.max(0, Math.min(1, clip.start / duration));
+      const endProgress = Math.max(startProgress, Math.min(1, clip.end / duration));
+      const visibleStart = windowSize < 1
+        ? (startProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : startProgress;
+      const visibleEnd = windowSize < 1
+        ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : endProgress;
+      const clipX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
+      const clipWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+      if (clipWidth <= 0.75) {
+        return;
+      }
+      const laneOffset = Math.min(11, clip.laneIndex * Math.max(4, Math.floor(laneHeight * 0.11)));
+      const clipY = meterY + 7 + laneOffset;
+      const clipHeight = Math.max(14, meterHeight - 14 - laneOffset * 0.2);
+      const radius = Math.max(5, Math.floor(clipHeight * 0.14));
+      const fill = ctx.createLinearGradient(0, clipY, 0, clipY + clipHeight);
+      if (clip.laneIndex % 2 === 0) {
+        fill.addColorStop(0, "rgba(48, 67, 88, 0.16)");
+        fill.addColorStop(1, "rgba(17, 27, 37, 0.09)");
+      } else {
+        fill.addColorStop(0, "rgba(62, 83, 108, 0.14)");
+        fill.addColorStop(1, "rgba(21, 34, 47, 0.08)");
+      }
+      ctx.fillStyle = fill;
+      fillRoundedRect(ctx, clipX, clipY, clipWidth, clipHeight, radius);
+      ctx.strokeStyle = onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === clip.index
+        ? "rgba(255, 177, 102, 0.92)"
+        : clip.laneIndex % 2 === 0
+          ? "rgba(143, 168, 194, 0.2)"
+          : "rgba(125, 154, 182, 0.18)";
+      ctx.lineWidth = 1;
+      strokeRoundedRect(ctx, clipX + 0.5, clipY + 0.5, Math.max(0, clipWidth - 1), Math.max(0, clipHeight - 1), radius);
+      ctx.fillStyle = clip.laneIndex % 2 === 0 ? "rgba(193, 214, 235, 0.22)" : "rgba(176, 198, 220, 0.2)";
+      ctx.fillRect(clipX + 6, clipY + 5, Math.max(10, Math.min(clipWidth - 12, 20 + (clipIndex % 2) * 8)), 2);
+    });
+    if (overlapRanges.length) {
+      const animationClock = performance.now();
+      const pulse = 0.42 + 0.1 * Math.sin(animationClock / 520);
+      overlapRanges.forEach((range) => {
+        const startProgress = Math.max(0, Math.min(1, range.start / duration));
+        const endProgress = Math.max(startProgress, Math.min(1, range.end / duration));
+        const visibleStart = windowSize < 1
+          ? (startProgress - windowStart) / Math.max(windowSize, 1e-6)
+          : startProgress;
+        const visibleEnd = windowSize < 1
+          ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
+          : endProgress;
+        const overlapX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
+        const overlapWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+        if (overlapWidth <= 1) {
+          return;
+        }
+        const overlapTopOffset = Math.min(range.backLane, range.frontLane) * Math.max(5, Math.floor(laneHeight * 0.16));
+        const overlapBottomOffset = Math.max(range.backLane, range.frontLane) * Math.max(5, Math.floor(laneHeight * 0.16));
+        const overlapY = meterY + 5 + overlapTopOffset;
+        const overlapHeight = Math.max(16, meterHeight - 10 - overlapBottomOffset * 0.35);
+        const overlapRadius = Math.max(4, Math.floor(overlapHeight * 0.12));
+        const overlapCenterY = overlapY + overlapHeight / 2;
+        const overlapGradient = ctx.createLinearGradient(0, overlapY, 0, overlapY + overlapHeight);
+        overlapGradient.addColorStop(0, "rgba(255, 180, 108, 0.08)");
+        overlapGradient.addColorStop(0.22, "rgba(255, 164, 92, 0.16)");
+        overlapGradient.addColorStop(0.5, "rgba(255, 142, 74, 0.24)");
+        overlapGradient.addColorStop(0.78, "rgba(255, 160, 98, 0.16)");
+        overlapGradient.addColorStop(1, "rgba(255, 189, 125, 0.08)");
+        ctx.fillStyle = overlapGradient;
+        fillRoundedRect(ctx, overlapX, overlapY, overlapWidth, overlapHeight, overlapRadius);
+        const coreBandHeight = Math.max(6, Math.min(12, overlapHeight * 0.28));
+        const coreBandY = overlapCenterY - coreBandHeight / 2;
+        const coreBand = ctx.createLinearGradient(0, coreBandY, 0, coreBandY + coreBandHeight);
+        coreBand.addColorStop(0, "rgba(255, 227, 188, 0.18)");
+        coreBand.addColorStop(0.5, "rgba(255, 181, 112, 0.34)");
+        coreBand.addColorStop(1, "rgba(255, 225, 183, 0.18)");
+        ctx.fillStyle = coreBand;
+        fillRoundedRect(ctx, overlapX, coreBandY, overlapWidth, coreBandHeight, Math.max(3, Math.floor(coreBandHeight / 2)));
+        ctx.strokeStyle = "rgba(255, 176, 97, 0.44)";
+        ctx.lineWidth = 1;
+        strokeRoundedRect(ctx, overlapX + 0.5, overlapY + 0.5, Math.max(0, overlapWidth - 1), Math.max(0, overlapHeight - 1), overlapRadius);
+        const seamX = overlapX + overlapWidth / 2;
+        const seamGradient = ctx.createLinearGradient(seamX, overlapY, seamX, overlapY + overlapHeight);
+        seamGradient.addColorStop(0, "rgba(255, 236, 207, 0)");
+        seamGradient.addColorStop(0.5, "rgba(255, 218, 169, 0.34)");
+        seamGradient.addColorStop(1, "rgba(255, 236, 207, 0)");
+        ctx.fillStyle = seamGradient;
+        ctx.fillRect(seamX - 1, overlapY + 2, 2, Math.max(6, overlapHeight - 4));
+        const sheenWidth = Math.max(16, Math.min(overlapWidth * 0.28, 42));
+        const sheenOffset = overlapWidth > sheenWidth
+          ? ((animationClock / 22) % (overlapWidth + sheenWidth)) - sheenWidth
+          : 0;
+        const sheenX = overlapX + sheenOffset;
+        const sheen = ctx.createLinearGradient(sheenX, 0, sheenX + sheenWidth, 0);
+        sheen.addColorStop(0, "rgba(255, 255, 255, 0)");
+        sheen.addColorStop(0.35, "rgba(255, 244, 224, " + (pulse * 0.55).toFixed(3) + ")");
+        sheen.addColorStop(0.5, "rgba(255, 232, 196, " + pulse.toFixed(3) + ")");
+        sheen.addColorStop(0.65, "rgba(255, 244, 224, " + (pulse * 0.55).toFixed(3) + ")");
+        sheen.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = sheen;
+        ctx.fillRect(overlapX, overlapY + 2, overlapWidth, Math.max(8, overlapHeight - 4));
+      });
+    }
+  }
 
   if (hasOnAirReviewSelection() && duration > 0) {
     const selectionStartProgress = Math.max(0, Math.min(1, onAirReviewSelectionStart / duration));
@@ -4310,6 +5312,29 @@ function renderOnAirReviewWaveform() {
         ? "rgba(70, 166, 112, 0.12)"
         : "rgba(199, 146, 71, 0.12)";
       ctx.fillRect(overlayX, meterY, overlayWidth, meterHeight);
+    });
+  }
+
+  if (duration > 0) {
+    getOnAirReviewTimelineEntries().forEach((entry) => {
+      const startProgress = Math.max(0, Math.min(1, entry.start / duration));
+      const endProgress = Math.max(startProgress, Math.min(1, entry.end / duration));
+      const visibleStart = windowSize < 1
+        ? (startProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : startProgress;
+      const visibleEnd = windowSize < 1
+        ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : endProgress;
+      const clipX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
+      const clipWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+      if (clipWidth <= 0.5) {
+        return;
+      }
+      if (entry.type === "gap") {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
+        ctx.fillRect(clipX, meterY, clipWidth, meterHeight);
+        return;
+      }
     });
   }
 
@@ -9611,6 +10636,10 @@ function getActiveOnAirReviewMediaElement() {
   return onAirActiveReviewMedia && onAirActiveReviewMedia.src ? onAirActiveReviewMedia : null;
 }
 
+function canUseOnAirReviewClipPlayback() {
+  return getActiveOnAirReviewMediaElement() === onAirReviewAudio && !!onAirReviewDecodedAudioBuffer;
+}
+
 function ensureOnAirReviewAudioGraph() {
   if (onAirReviewAudioGraphUnavailable) {
     return null;
@@ -9639,6 +10668,11 @@ function ensureOnAirReviewAudioGraph() {
       onAirReviewAudioSourceNode.connect(onAirReviewAudioGainNode);
       onAirReviewAudioGainNode.connect(onAirReviewAudioContext.destination);
     }
+    if (!onAirReviewClipMixGainNode) {
+      onAirReviewClipMixGainNode = onAirReviewAudioContext.createGain();
+      onAirReviewClipMixGainNode.gain.value = 1;
+      onAirReviewClipMixGainNode.connect(onAirReviewAudioContext.destination);
+    }
   } catch (error) {
     onAirReviewAudioGraphUnavailable = true;
     pushRecordingDiagnostic(
@@ -9651,6 +10685,9 @@ function ensureOnAirReviewAudioGraph() {
 }
 
 function getOnAirReviewActiveGainNode() {
+  if (canUseOnAirReviewClipPlayback()) {
+    return onAirReviewClipMixGainNode;
+  }
   const media = getActiveOnAirReviewMediaElement();
   if (!media) {
     return null;
@@ -9680,6 +10717,149 @@ async function resumeOnAirReviewAudioGraph() {
   applyOnAirReviewPlaybackGain(true);
 }
 
+function stopOnAirReviewClipPlayback() {
+  onAirReviewScheduledClipNodes.forEach((entry) => {
+    if (entry && entry.source) {
+      try {
+        entry.source.stop();
+      } catch (error) {
+        // Ignore stop races.
+      }
+      try {
+        entry.source.disconnect();
+      } catch (error) {
+        // Ignore disconnect races.
+      }
+    }
+    if (entry && entry.gainNode) {
+      try {
+        entry.gainNode.disconnect();
+      } catch (error) {
+        // Ignore disconnect races.
+      }
+    }
+  });
+  onAirReviewScheduledClipNodes = [];
+}
+
+function getOnAirReviewGainBoundariesForClip(clip, fromEditedTime) {
+  const clipStart = Math.max(0, Number(clip && clip.start) || 0);
+  const clipEnd = Math.max(clipStart, Number(clip && clip.end) || clipStart);
+  const rangeStart = Math.max(clipStart, Number(fromEditedTime) || 0);
+  const boundaries = [rangeStart, clipEnd];
+  onAirReviewGainAdjustments.forEach((adjustment) => {
+    const start = Math.max(clipStart, Number(adjustment && adjustment.start) || 0);
+    const end = Math.min(clipEnd, Math.max(start, Number(adjustment && adjustment.end) || start));
+    if (end <= rangeStart || start >= clipEnd) {
+      return;
+    }
+    boundaries.push(Math.max(rangeStart, start));
+    boundaries.push(end);
+  });
+  return boundaries
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right)
+    .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.0005);
+}
+
+function getOnAirReviewOverlapMixMultiplier(clip, chunkStart, chunkDuration, clips) {
+  const mode = normalizeOnAirReviewOverlapMode(onAirReviewOverlapMode);
+  if (!clip || !Array.isArray(clips) || !clips.length) {
+    return 1;
+  }
+  const midpoint = Math.max(chunkStart, chunkStart + Math.max(0.005, chunkDuration / 2));
+  const overlapping = clips
+    .filter((entry) => entry && midpoint >= entry.start && midpoint <= entry.end)
+    .sort((left, right) => {
+      if (Math.abs(left.start - right.start) > 0.0005) {
+        return left.start - right.start;
+      }
+      return left.sourceStart - right.sourceStart;
+    });
+  if (overlapping.length <= 1) {
+    return 1;
+  }
+  if (mode === "blend") {
+    return Math.max(0.55, 1 / Math.sqrt(overlapping.length));
+  }
+  const frontClip = overlapping[overlapping.length - 1];
+  const backClip = overlapping[0];
+  if (mode === "front") {
+    return frontClip === clip ? 1 : 0.16;
+  }
+  if (mode === "back") {
+    return backClip === clip ? 1 : 0.16;
+  }
+  return 1;
+}
+
+function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
+  if (!canUseOnAirReviewClipPlayback()) {
+    return false;
+  }
+  const context = ensureOnAirReviewAudioGraph();
+  const buffer = onAirReviewDecodedAudioBuffer;
+  if (!context || !buffer || !onAirReviewClipMixGainNode) {
+    return false;
+  }
+  stopOnAirReviewClipPlayback();
+  const playbackStart = Math.max(0, Number(fromEditedTime) || 0);
+  const playbackEnd = Number.isFinite(endEditedTime)
+    ? Math.max(playbackStart, Number(endEditedTime) || playbackStart)
+    : getOnAirReviewTimelineDuration();
+  const clockStart = context.currentTime + 0.02;
+  const clips = getOnAirReviewMediaClips();
+  clips.forEach((clip) => {
+    if (clip.end <= playbackStart || clip.start >= playbackEnd) {
+      return;
+    }
+    const boundaries = getOnAirReviewGainBoundariesForClip(clip, playbackStart)
+      .map((value) => Math.max(playbackStart, Math.min(playbackEnd, value)));
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const chunkStart = Math.max(playbackStart, boundaries[index]);
+      const chunkEnd = Math.min(playbackEnd, Math.max(chunkStart, boundaries[index + 1]));
+      const chunkDuration = chunkEnd - chunkStart;
+      if (chunkDuration <= 0.01) {
+        continue;
+      }
+      const sourceOffset = Math.max(0, clip.sourceStart + (chunkStart - clip.start));
+      if (sourceOffset >= buffer.duration) {
+        continue;
+      }
+      const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+      const clipSourceEnd = Math.min(buffer.duration, sourceBounds.sourceEnd);
+      const availableClipDuration = Math.max(0, clipSourceEnd - sourceOffset);
+      if (availableClipDuration <= 0.005) {
+        continue;
+      }
+      const safeDuration = Math.min(
+        chunkDuration,
+        Math.max(0.01, buffer.duration - sourceOffset),
+        availableClipDuration
+      );
+      if (safeDuration <= 0.01) {
+        continue;
+      }
+      const source = context.createBufferSource();
+      const gainNode = context.createGain();
+      const midpoint = chunkStart + safeDuration / 2;
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint));
+      const overlapGain = getOnAirReviewOverlapMixMultiplier(clip, chunkStart, safeDuration, clips);
+      gainNode.gain.value = Math.max(0, Math.min(1.2, clipGain * overlapGain));
+      source.buffer = buffer;
+      source.connect(gainNode);
+      gainNode.connect(onAirReviewClipMixGainNode);
+      try {
+        source.start(clockStart + Math.max(0, chunkStart - playbackStart), sourceOffset, safeDuration);
+      } catch (error) {
+        continue;
+      }
+      onAirReviewScheduledClipNodes.push({ source, gainNode });
+    }
+  });
+  return true;
+}
+
 function applyOnAirReviewPlaybackGain(immediate) {
   const media = getActiveOnAirReviewMediaElement();
   if (!media) {
@@ -9687,9 +10867,11 @@ function applyOnAirReviewPlaybackGain(immediate) {
   }
   const gainNode = onAirReviewAudioGraphUnavailable ? null : getOnAirReviewActiveGainNode();
   const targetDb = getOnAirReviewGainDbAt(onAirReviewEditedTime);
-  const targetGain = onAirReviewMuted ? 0 : dbToGainMultiplier(targetDb);
+  const targetGain = onAirReviewMuted ? 0 : (canUseOnAirReviewClipPlayback() ? 1 : dbToGainMultiplier(targetDb));
   media.muted = false;
-  media.volume = Math.max(0, Math.min(1, onAirReviewMuted ? 0 : Math.min(1, targetGain)));
+  media.volume = canUseOnAirReviewClipPlayback()
+    ? 0
+    : Math.max(0, Math.min(1, onAirReviewMuted ? 0 : Math.min(1, targetGain)));
   const context = onAirReviewAudioContext;
   if (gainNode && context) {
     const now = context.currentTime;
@@ -9747,6 +10929,7 @@ function updateOnAirReviewTime() {
 
 function pauseOnAirReviewMedia() {
   stopOnAirReviewPlaybackLoop();
+  stopOnAirReviewClipPlayback();
   [onAirReviewVideo, onAirReviewAudio].forEach((media) => {
     if (!media) {
       return;
@@ -15097,6 +16280,26 @@ onAirReviewPlayBtn?.addEventListener("click", async () => {
   updateOnAirReviewPlayState();
 });
 
+onAirReviewUndoBtn?.addEventListener("click", () => {
+  const snapshot = undoOnAirReviewEdit();
+  if (snapshot) {
+    onAirMediaStatus.textContent = "Review edit undone.";
+    if (onAirReviewWaveNote) {
+      onAirReviewWaveNote.textContent = "Undo restored the previous review draft state.";
+    }
+  }
+});
+
+onAirReviewRedoBtn?.addEventListener("click", () => {
+  const snapshot = redoOnAirReviewEdit();
+  if (snapshot) {
+    onAirMediaStatus.textContent = "Review edit restored.";
+    if (onAirReviewWaveNote) {
+      onAirReviewWaveNote.textContent = "Redo restored the next review draft state.";
+    }
+  }
+});
+
 onAirReviewMuteBtn?.addEventListener("click", () => {
   const media = getActiveOnAirReviewMediaElement();
   if (!media || !media.src) {
@@ -15111,17 +16314,26 @@ onAirReviewZoomOutBtn?.addEventListener("click", () => {
   setOnAirReviewZoomLevel(onAirReviewZoomLevel / 1.6);
 });
 
+onAirReviewMoveModeBtn?.addEventListener("click", () => {
+  setOnAirReviewMoveMode(!onAirReviewMoveMode);
+});
+
 onAirReviewSelectModeBtn?.addEventListener("click", () => {
   setOnAirReviewSelectMode(!onAirReviewSelectMode);
+  if (onAirReviewSelectMode && onAirReviewSelectAllBtn && hasOnAirReviewSelectableAsset()) {
+    onAirReviewSelectAllBtn.disabled = false;
+  }
 });
 
 onAirReviewSelectAllBtn?.addEventListener("click", () => {
+  ensureOnAirReviewTimeline();
   const duration = getOnAirReviewTimelineDuration();
   if (!(duration > 0)) {
     return;
   }
-  setOnAirReviewSelection(0, duration);
   setOnAirReviewSelectMode(true);
+  setOnAirReviewSelection(0, duration);
+  setOnAirReviewViewportFocusTime(duration / 2);
 });
 
 onAirReviewClearSelectionBtn?.addEventListener("click", () => {
@@ -15140,6 +16352,18 @@ onAirReviewRippleDeleteBtn?.addEventListener("click", () => {
   }
 });
 
+onAirReviewSplitBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewSplitAtPlayhead()) {
+    onAirMediaStatus.textContent = "Clip split at the playhead.";
+  }
+});
+
+onAirReviewSplitSelectionBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewSplitAtSelectionEdges()) {
+    onAirMediaStatus.textContent = "Selection edges split into their own clip range.";
+  }
+});
+
 onAirReviewGainDownBtn?.addEventListener("click", () => {
   if (applyOnAirReviewSelectionGain(-3)) {
     onAirMediaStatus.textContent = "Selected range lowered by 3 dB.";
@@ -15149,6 +16373,36 @@ onAirReviewGainDownBtn?.addEventListener("click", () => {
 onAirReviewGainUpBtn?.addEventListener("click", () => {
   if (applyOnAirReviewSelectionGain(3)) {
     onAirMediaStatus.textContent = "Selected range raised by 3 dB.";
+  }
+});
+
+onAirReviewGainResetBtn?.addEventListener("click", () => {
+  if (resetOnAirReviewSelectionGain()) {
+    onAirMediaStatus.textContent = "Selected range gain reset.";
+  }
+});
+
+onAirReviewGainNormalizeBtn?.addEventListener("click", () => {
+  if (normalizeOnAirReviewSelectionGain()) {
+    onAirMediaStatus.textContent = "Selected range normalized.";
+  }
+});
+
+onAirReviewOverlapBlendBtn?.addEventListener("click", () => {
+  if (setOnAirReviewOverlapMode("blend")) {
+    onAirMediaStatus.textContent = "Overlap mode set to blend.";
+  }
+});
+
+onAirReviewOverlapFrontBtn?.addEventListener("click", () => {
+  if (setOnAirReviewOverlapMode("front")) {
+    onAirMediaStatus.textContent = "Overlap mode set to front clip priority.";
+  }
+});
+
+onAirReviewOverlapBackBtn?.addEventListener("click", () => {
+  if (setOnAirReviewOverlapMode("back")) {
+    onAirMediaStatus.textContent = "Overlap mode set to back clip priority.";
   }
 });
 
@@ -15187,14 +16441,18 @@ onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
   onAirReviewSelectionPointerClientX = event.clientX;
   onAirReviewSelectionPointerId = event.pointerId;
   onAirReviewWaveCanvas.setPointerCapture?.(event.pointerId);
+  const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
   if (onAirReviewSelectMode) {
-    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
     const hitHandle = getOnAirReviewSelectionHandleHit(seconds);
     if (hitHandle) {
       onAirReviewSelectionDragMode = hitHandle;
+      onAirReviewSelectionHandleOffset = hitHandle === "start"
+        ? seconds - onAirReviewSelectionStart
+        : seconds - onAirReviewSelectionEnd;
     } else {
       onAirReviewSelectionDragMode = "new";
       onAirReviewSelectionAnchor = seconds;
+      onAirReviewSelectionHandleOffset = 0;
       setOnAirReviewSelection(seconds, seconds);
     }
     if (onAirReviewSelectionDragMode === "start") {
@@ -15205,6 +16463,13 @@ onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
     setOnAirReviewViewportFocusTime(seconds);
     startOnAirReviewSelectionAutoPan();
     return;
+  }
+  if (onAirReviewMoveMode) {
+    const clipHit = getOnAirReviewClipHit(seconds);
+    if (clipHit && beginOnAirReviewClipDrag(clipHit, seconds)) {
+      setOnAirReviewViewportFocusTime(seconds);
+      return;
+    }
   }
   onAirReviewSelectionDragMode = "";
   seekOnAirReviewFromClientX(event.clientX);
@@ -15220,6 +16485,11 @@ onAirReviewWaveCanvas?.addEventListener("pointermove", (event) => {
     updateOnAirReviewSelectionFromDrag(seconds);
     return;
   }
+  if (onAirReviewMoveMode && onAirReviewClipDragState) {
+    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+    updateOnAirReviewClipDrag(seconds);
+    return;
+  }
   seekOnAirReviewFromClientX(event.clientX);
 });
 
@@ -15230,14 +16500,18 @@ onAirReviewWaveCanvas?.addEventListener("pointerup", (event) => {
     onAirReviewWaveCanvas.releasePointerCapture?.(onAirReviewSelectionPointerId);
   }
   onAirReviewSelectionPointerId = null;
+  endOnAirReviewClipDrag();
   onAirReviewSelectionDragMode = "";
+  onAirReviewSelectionHandleOffset = 0;
   resetOnAirReviewViewportFocusTime();
 });
 
 onAirReviewWaveCanvas?.addEventListener("pointerleave", () => {
   if (!onAirReviewSelectMode) {
     onAirReviewWavePointerDown = false;
+    endOnAirReviewClipDrag();
     onAirReviewSelectionDragMode = "";
+    onAirReviewSelectionHandleOffset = 0;
   }
 });
 
@@ -15245,7 +16519,9 @@ onAirReviewWaveCanvas?.addEventListener("pointercancel", () => {
   onAirReviewWavePointerDown = false;
   stopOnAirReviewSelectionAutoPan();
   onAirReviewSelectionPointerId = null;
+  endOnAirReviewClipDrag();
   onAirReviewSelectionDragMode = "";
+  onAirReviewSelectionHandleOffset = 0;
   resetOnAirReviewViewportFocusTime();
 });
 
@@ -15262,6 +16538,7 @@ setHostStatus("Host controls ready.", false);
 setRecordingState(false, false);
 setRecordingWorkflowState("ready");
 syncReviewPanelUI();
+updateOnAirReviewOverlapModeUi();
 updateOnAirReviewZoomControls();
 updateOnAirReviewSelectionControls();
 setOnAirLibraryOpen(false);

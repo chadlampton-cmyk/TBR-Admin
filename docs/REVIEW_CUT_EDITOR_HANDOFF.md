@@ -1,6 +1,6 @@
 # Review Cut Editor Handoff
 
-Last updated: 2026-03-18
+Last updated: 2026-03-19
 
 ## Purpose
 This doc captures the actual current state of the `Review Cut` editor in the active `hello` build, plus the next feature queue.
@@ -58,41 +58,80 @@ Primary implementation area:
 ### Loop
 - if a selection exists, pressing play loops the selected range automatically
 - transport shows `Loop On` when a selection exists
+- loop playback now replays audible audio on every pass, not just the first pass
+- live gain changes during loop playback are now heard immediately instead of waiting for the next pass
 
 ### Cut behavior
 - delete works on the edited timeline
 - ripple delete works on the edited timeline
-- current delete behavior closes the gap immediately
-- there is currently no dead-air-preserving delete mode; `Delete` and `Ripple` both effectively close the cut
+- `Delete` now leaves a gap for manual pacing edits
+- `Ripple` removes the selected section and closes the gap
+- clips can be manually moved after a gap delete
+- moved clips can overlap instead of being hard-blocked
 
 ### Gain editing
 - `Vol−` lowers the selected range by `3 dB`
 - `Vol+` raises the selected range by `3 dB`
+- `Reset` clears gain edits from the current selection
+- `Norm` normalizes the current selection toward a `-3 dB` peak target
 - current gain amount is shown in the toolbar readout
 - gain-edited regions are tinted in the waveform
 - playback honors selection gain edits during review
 - gain edits shift correctly when earlier sections are cut out
 
+### Undo / redo
+- undo is built
+- redo is built
+- undo/redo restores review timeline, gain edits, selection, zoom, playhead position, and related review draft state
+
+### Clip editing
+- `Move` mode is built
+- clips can be dragged manually across gaps
+- clips can overlap on the timeline
+- overlapping clips are now heard together during audio review playback
+- `Split` is built
+- `Split` cuts the clip under the orange playhead into two separate clips
+- `Split Sel` is built
+- `Split Sel` isolates the current highlighted range as its own clip block
+- overlap behavior modes are built:
+  - `Blend`
+  - `Front`
+  - `Back`
+- split/source-window playback has been hardened after recent regressions where post-split clips could duplicate the same source half or go silent
+
+### Review toolbar
+- review toolbar has been regrouped into compact sections so controls wrap inside the modal instead of falling outside the container
+- current groups are transport, edit history, edit modes, edit actions, gain, overlap, and zoom
+
+### Visual polish
+- overlap regions now render with a softer orange blend treatment instead of a harsher stacked-card look
+- overlap animation was slowed and flattened so the merge reads more like a controlled crossfade
+- only true overlap regions receive the layered merge treatment; ordinary split clips should not read like duplicate stacked audio
+
 ## Current Interaction Notes
 - selection behavior was slowed down and stabilized after the viewport was previously re-centering too aggressively during drag
 - auto-pan is intentionally slower now so the editor does not “run away” while extending a selection
 - loop playback is tied to active selection, not a separate toggle
+- overlap playback is isolated to audio review mode so video review, recording, export, and live music remain on their existing paths
+- `All` selection now works regardless of where the orange playhead is sitting
+- if playback has completed, pressing play again restarts from the beginning automatically
+- selection-edge dragging was revised so the handle follows the original grab point instead of snapping too far on first move
 
 ## Known Constraints / Current Gaps
-- undo / redo is not built yet
-- there is no `reset gain` action yet
-- there is no `normalize selection` action yet
-- there is no split-at-playhead or split-at-selection-edge action yet
 - there is no marker system yet
 - there is no noise-floor overlay yet
 - there is no white-noise cleanup pass yet
 - there is no library insert/edit path inside the review window yet
-- there is no multi-lane clip timeline yet
-- current delete and ripple behavior are effectively the same user outcome because both close the gap
+- there is no visible marker/range-marker lane yet
+- there is no dedicated fade-handle UI yet for overlap regions
+- there is no clip insert/edit path from the library yet
+- there is no quick debug/open helper yet for opening `Review Cut` without first making a recording
+- overlap visuals are improved, but overlap UX still needs dedicated fade-length/crossfade controls if transitions are meant to be tuned precisely
 
 ## Important Audio / Logging Notes
 - review playback now prefers the dedicated audio review asset because some browsers can produce a video file whose audio is less reliable than the separate audio review file
 - the review gain path uses a guarded Web Audio graph with fallback to native media playback if the graph cannot initialize
+- overlap audio playback in `Review Cut` now uses scheduled Web Audio clip playback against a decoded audio buffer
 - music-at-record-start behavior was expanded:
   - queued cue still takes priority
   - if nothing is queued, the currently selected music track now auto-starts when recording begins
@@ -132,6 +171,8 @@ Recommended edit operation types going forward:
 - `clipFade`
 - `markerAdd`
 - `splitAtPlayhead`
+- `splitAtSelectionEdges`
+- `overlapModeChange`
 
 ## Performance Guardrails
 - do not re-decode large media blobs on every edit
@@ -144,18 +185,23 @@ Recommended edit operation types going forward:
 ## Remaining Feature Queue
 Highest-value next work:
 
-1. undo / redo
-2. reset gain
-3. normalize selection
-4. split at playhead
-5. split at selection edges
-6. markers / range markers
-7. noise-floor overlay
-8. auto white-noise cleanup on selection / full show
-9. preview original vs cleaned
-10. library drawer integration inside review window
-11. insert library audio at playhead / replace selection
-12. clip fades and per-insert gain
+1. markers / range markers
+2. noise-floor overlay
+3. auto white-noise cleanup on selection / full show
+4. preview original vs cleaned
+5. library drawer integration inside review window
+6. insert library audio at playhead / replace selection
+7. clip fades and per-insert gain
+8. dedicated crossfade-length / fade-shape controls for overlap regions
+9. debug helper to open `Review Cut` without recording, for UI review and styling passes
+
+## Tomorrow Resume Target
+Resume with marker support unless a fresh split/overlap regression appears during testing.
+
+Recommended restart order:
+1. verify split still preserves the original source correctly after upload
+2. if stable, build markers / range markers next
+3. after markers, move to noise-floor overlay before attempting cleanup processing
 
 ## Resume Guidance
 If restarting this work:

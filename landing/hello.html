@@ -557,18 +557,40 @@
                   <span class="onair-review-gain-readout" id="onair-review-loop-readout">Loop Off</span>
                   <button type="button" class="onair-library-preview-mute" id="onair-review-mute-btn" aria-label="Mute review" aria-pressed="false">🔊</button>
                 </div>
-                <div class="onair-review-zoom-group" aria-label="Zoom controls">
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-mode-btn" aria-label="Selection mode" aria-pressed="false">Sel</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-all-btn" aria-label="Select all">All</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-clear-selection-btn" aria-label="Clear selection">Clr</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-delete-btn" aria-label="Delete selection">Del</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-ripple-delete-btn" aria-label="Ripple delete selection">Rip</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-down-btn" aria-label="Lower selected volume">Vol−</button>
-                  <span class="onair-review-gain-readout" id="onair-review-gain-readout">0 dB</span>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-up-btn" aria-label="Raise selected volume">Vol+</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-out-btn" aria-label="Zoom out">−</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-fit-btn" aria-label="Fit full show">Fit</button>
-                  <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-in-btn" aria-label="Zoom in">+</button>
+                <div class="onair-review-toolbar-groups" aria-label="Review editor toolbar">
+                  <div class="onair-review-toolbar-group" aria-label="Edit history">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-undo-btn" aria-label="Undo last review edit">Undo</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-redo-btn" aria-label="Redo last review edit">Redo</button>
+                  </div>
+                  <div class="onair-review-toolbar-group" aria-label="Edit modes">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-move-mode-btn" aria-label="Move clip mode" aria-pressed="false">Move</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-mode-btn" aria-label="Selection mode" aria-pressed="false">Sel</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-all-btn" aria-label="Select all">All</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-clear-selection-btn" aria-label="Clear selection">Clr</button>
+                  </div>
+                  <div class="onair-review-toolbar-group" aria-label="Edit actions">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-delete-btn" aria-label="Delete selection">Del</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-ripple-delete-btn" aria-label="Ripple delete selection">Rip</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-btn" aria-label="Split clip at playhead">Split</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-selection-btn" aria-label="Split clip at selection edges">Split Sel</button>
+                  </div>
+                  <div class="onair-review-toolbar-group" aria-label="Gain controls">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-down-btn" aria-label="Lower selected volume">Vol−</button>
+                    <span class="onair-review-gain-readout" id="onair-review-gain-readout">0 dB</span>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-up-btn" aria-label="Raise selected volume">Vol+</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-reset-btn" aria-label="Reset selected volume">Reset</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-normalize-btn" aria-label="Normalize selected volume">Norm</button>
+                  </div>
+                  <div class="onair-review-toolbar-group" aria-label="Overlap controls">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-overlap-blend-btn" aria-label="Blend overlapped clips" aria-pressed="true">Blend</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-overlap-front-btn" aria-label="Favor the front clip during overlap" aria-pressed="false">Front</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-overlap-back-btn" aria-label="Favor the back clip during overlap" aria-pressed="false">Back</button>
+                  </div>
+                  <div class="onair-review-toolbar-group" aria-label="Zoom controls">
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-out-btn" aria-label="Zoom out">−</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-fit-btn" aria-label="Fit full show">Fit</button>
+                    <button type="button" class="onair-review-toolbar-btn" id="onair-review-zoom-in-btn" aria-label="Zoom in">+</button>
+                  </div>
                 </div>
               </div>
               <div class="onair-review-wave-shell">

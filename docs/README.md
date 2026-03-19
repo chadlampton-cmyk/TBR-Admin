@@ -1,6 +1,6 @@
 # DFS Docs Index
 
-Last updated: 2026-03-18
+Last updated: 2026-03-19
 
 ## Purpose
 This folder is the current handoff layer for the live DFS build.
@@ -33,13 +33,13 @@ What is done:
 - Railway deploy root is understood
 - live music now routes to recording and remote listeners
 - recording can pick up music added after recording starts
-- `Review Cut` is now a working editor shell with playback, zoom, persistent selection, looped selection playback, cut/splice behavior, and section gain editing
+- `Review Cut` is now a working editor surface with playback, zoom, persistent selection, select-all, looped selection playback, delete-to-gap, ripple delete, move mode, overlap playback, split tools, undo/redo, gain tools, and overlap mode controls
 - recording start can now auto-start the selected music track if nothing is queued
 
 What is next:
-- add undo / redo to `Review Cut`
-- add gain reset / normalize tools
-- add split / markers / cleanup overlay work to `Review Cut`
+- add markers / range markers to `Review Cut`
+- add noise-floor overlay and cleanup preview work to `Review Cut`
+- add library insert/edit workflow inside `Review Cut`
 - continue `Active Cues` fit and polish
 - validate guest audio behavior against live and recorded output
 
