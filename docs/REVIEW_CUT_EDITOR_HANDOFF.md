@@ -1,212 +1,249 @@
 # Review Cut Editor Handoff
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Purpose
-This doc captures the actual current state of the `Review Cut` editor in the active `hello` build, plus the next feature queue.
+This doc captures the actual current state of `Review Cut` in the active `landing/hello.*` build.
 
-This is the restart note for the current browser-based editing surface.
-
-## Current Product Position
-`Review Cut` is now an active post-record editing window, not just a playback widget.
-
-Current intent remains:
-- keep the original recording untouched
-- let users review, select, cut, loop, and adjust level on the show
-- grow this into the future cleanup and post-production surface
-- keep the browser responsive while features are added one at a time
+This is the restart note for the browser-based post-record editor.
 
 ## Active Files
-Primary implementation area:
 - `landing/hello.html`
 - `landing/hello.js`
 - `landing/styles.css`
 
-## What Is Implemented Now
+## Current Product Position
+`Review Cut` is no longer a playback widget.
 
-### Review window shell
-- `Review Cut` button sits below Music Library
-- button stays disabled until a recording exists
-- review opens in a foreground modal over the control room
-- export/review status stays in the existing control-room review panel
+It is now a real browser-based editing surface with:
+- multitrack timeline lanes
+- clip movement
+- overlap playback
+- cut/split tools
+- gain and fade tools
+- cleanup preview
+- library insert/replace
+- markers
 
-### Playback and waveform
-- play / pause works
-- mute works
-- click-to-seek works
-- drag scrub works
-- waveform is rendered in a larger Audition-inspired review strip
-- orange playhead tracks the current position
-- review prefers the dedicated audio review asset first, then falls back to video
+It is still in the `strong prototype becoming product` stage, not a hardened production editor yet.
 
-### Zoom
-- zoom in
-- zoom out
-- fit whole show
-- waveform viewport follows the edited timeline, not only the raw source duration
+## What Was Built Before Today
 
-### Selection
-- selection mode toggle
+### Core editor shell
+- `Review Cut` opens as a near full-screen editor over the control room
+- can open anytime from the control room
+- can load a saved local audio or video file with `Load Recording`
+- transport, timeline, library, and inspector are all inside the editor shell
+
+### Playback and timeline
+- play / pause
+- mute
+- orange playhead
+- click-to-seek
+- drag scrub
+- zoom in / out / fit
+- horizontal pan control
+- adaptive time ruler above the tracks
+- timeline height grows as tracks are added
+
+### Selection and looping
+- selection mode
 - drag-to-select
-- select all
-- clear selection
-- selection stays active after release
-- existing selection edges can be grabbed and stretched
-- visible selection handles are drawn at both edges
-- when zoomed in, dragging a selection to the left or right edge auto-pans the viewport so the selection can extend beyond currently visible audio
+- `All`
+- `Clr`
+- persistent selection
+- stretchable selection edges
+- selection auto-pan while zoomed
+- selected range loops automatically on play
 
-### Loop
-- if a selection exists, pressing play loops the selected range automatically
-- transport shows `Loop On` when a selection exists
-- loop playback now replays audible audio on every pass, not just the first pass
-- live gain changes during loop playback are now heard immediately instead of waiting for the next pass
-
-### Cut behavior
-- delete works on the edited timeline
-- ripple delete works on the edited timeline
-- `Delete` now leaves a gap for manual pacing edits
-- `Ripple` removes the selected section and closes the gap
-- clips can be manually moved after a gap delete
-- moved clips can overlap instead of being hard-blocked
-
-### Gain editing
-- `Vol−` lowers the selected range by `3 dB`
-- `Vol+` raises the selected range by `3 dB`
-- `Reset` clears gain edits from the current selection
-- `Norm` normalizes the current selection toward a `-3 dB` peak target
-- current gain amount is shown in the toolbar readout
-- gain-edited regions are tinted in the waveform
-- playback honors selection gain edits during review
-- gain edits shift correctly when earlier sections are cut out
-
-### Undo / redo
-- undo is built
-- redo is built
-- undo/redo restores review timeline, gain edits, selection, zoom, playhead position, and related review draft state
-
-### Clip editing
-- `Move` mode is built
-- clips can be dragged manually across gaps
-- clips can overlap on the timeline
-- overlapping clips are now heard together during audio review playback
-- `Split` is built
-- `Split` cuts the clip under the orange playhead into two separate clips
-- `Split Sel` is built
-- `Split Sel` isolates the current highlighted range as its own clip block
-- overlap behavior modes are built:
+### Editing tools
+- delete to gap
+- ripple delete
+- move mode
+- overlap clip placement
+- overlap playback
+- overlap modes:
   - `Blend`
   - `Front`
   - `Back`
-- split/source-window playback has been hardened after recent regressions where post-split clips could duplicate the same source half or go silent
+- split at playhead
+- split at selection edges
+- undo / redo
 
-### Review toolbar
-- review toolbar has been regrouped into compact sections so controls wrap inside the modal instead of falling outside the container
-- current groups are transport, edit history, edit modes, edit actions, gain, overlap, and zoom
+### Level and cleanup tools
+- selection gain down / up
+- reset selection gain
+- normalize selection
+- per-insert gain for library clips
+- noise-floor overlay
+- cleanup on selection
+- cleanup on full cut
+- cleanup clear
+- cleanup preview:
+  - `Auto`
+  - `Original`
+  - `Cleaned`
 
-### Visual polish
-- overlap regions now render with a softer orange blend treatment instead of a harsher stacked-card look
-- overlap animation was slowed and flattened so the merge reads more like a controlled crossfade
-- only true overlap regions receive the layered merge treatment; ordinary split clips should not read like duplicate stacked audio
+### Clip polish tools
+- fade in / fade out controls
+- fade reset
+- fade visualization inside clip blocks
+- inserted library clips can be previewed, inserted at playhead, or used to replace a selected range
+
+### Track model
+- multitrack lanes now exist in the editor
+- original recording defaults to `T1`
+- inserted library clips default to a secondary lane
+- clips can be moved between tracks with `Track−` and `Track+`
+- current lane ceiling is now intentionally capped at `T1-T5`
+
+### Marker tools
+- point markers
+- range markers
+- marker clear
+- markers render on the timeline and shift with ripple edits
+
+## What Was Fixed Today
+
+### Structural stabilization
+- playhead, viewport, and selection coupling was reduced
+- viewport focus now has a real unset state instead of overloading `0` as both left edge and fallback state
+- clip-playback end now resets the orange playhead back to the left cleanly
+- clicks in the left track-header gutter no longer behave like timeline clicks
+- selection no longer forces viewport focus on pointer-down
+- pointer-up / pointer-cancel no longer snap the viewport back to the playhead
+- a shared Review Cut UI update path now handles time/scrub/pan/render updates more consistently
+
+### Timeline and movement corrections
+- clip rebuilds now protect against silent truncation when moved
+- Review Cut timeline duration is now based on the edited timeline state once the editor exists, not the original source duration
+- delete-to-gap / ripple behavior now lets edited time change instead of preserving stale original time
+- moving clips left after cuts no longer stretches the waveform
+- moving clips right no longer condenses the waveform due to automatic fit-style refitting
+- drag now tracks pointer delta in pixels-to-seconds space instead of recomputing from a shifting viewport on every move
+- snap during active clip drag was reduced so movement feels less sticky
+
+### Waveform and visual trust work
+- clip waveform drawing now samples actual visible source ranges instead of relying only on coarse cached peaks
+- waveform flattening after deletes was reduced by using higher-resolution / more truthful clip-local sampling
+- track rendering was pushed further toward clip-local visuals instead of lane-wide wash
+- clip labels moved to the top-right tag area to keep wave detail readable
+- zoom context improved with visible start/end times and zoom badge
+
+### Fade integrity and polish
+- fade actions now snapshot history before any selection-isolation split
+- `Undo` can now restore the true pre-fade timeline state
+- fade controls now reject ambiguous selections that are not fully inside one clip
+- fade readout now distinguishes clip-level vs selection-level fades
+- fade wedges now render at their real relative width instead of being capped at `45%`
+- fade visuals were cleaned up to look more deliberate and less noisy
+- fade playback now uses a softer shaped curve instead of a plain linear ramp ratio
+
+### Review library hot-path cleanup
+- removed the full Review Library rerender from selection updates
+- replace buttons now update in place instead of rebuilding the list on hot interaction paths
+
+### Track ceiling
+- Review Cut now uses a hard cap of `5` tracks total
+- lane reassignment and lane clamping now consistently use `T1-T5`
+- timeline height growth was tightened so added tracks get room without blowing up the editor vertically
 
 ## Current Interaction Notes
-- selection behavior was slowed down and stabilized after the viewport was previously re-centering too aggressively during drag
-- auto-pan is intentionally slower now so the editor does not “run away” while extending a selection
-- loop playback is tied to active selection, not a separate toggle
-- overlap playback is isolated to audio review mode so video review, recording, export, and live music remain on their existing paths
-- `All` selection now works regardless of where the orange playhead is sitting
-- if playback has completed, pressing play again restarts from the beginning automatically
-- selection-edge dragging was revised so the handle follows the original grab point instead of snapping too far on first move
+- selection is much better than earlier passes, but still not yet at mature DAW precision
+- fade behavior is now substantially safer, but still needs one more polish pass around usability
+- Review Cut is still audio-first in behavior even though it can load video files
+- overlap playback is isolated to the Review Cut audio engine so it does not disturb live recording/music paths
+- the main remaining pain point is clip drag smoothness and timeline-follow behavior when moving clips right past the current visible edge
+- current desired movement model:
+  - preserve the clip waveform shape
+  - moving left or right changes only clip location
+  - moving right should extend the edited timeline and allow pan/scroll, not compress the clip
+  - moving left after a cut should not preserve stale dead time
 
-## Known Constraints / Current Gaps
-- there is no marker system yet
-- there is no noise-floor overlay yet
-- there is no white-noise cleanup pass yet
-- there is no library insert/edit path inside the review window yet
-- there is no visible marker/range-marker lane yet
-- there is no dedicated fade-handle UI yet for overlap regions
-- there is no clip insert/edit path from the library yet
-- there is no quick debug/open helper yet for opening `Review Cut` without first making a recording
-- overlap visuals are improved, but overlap UX still needs dedicated fade-length/crossfade controls if transitions are meant to be tuned precisely
+## Critical Known Issues
 
-## Important Audio / Logging Notes
-- review playback now prefers the dedicated audio review asset because some browsers can produce a video file whose audio is less reliable than the separate audio review file
-- the review gain path uses a guarded Web Audio graph with fallback to native media playback if the graph cannot initialize
-- overlap audio playback in `Review Cut` now uses scheduled Web Audio clip playback against a decoded audio buffer
-- music-at-record-start behavior was expanded:
-  - queued cue still takes priority
-  - if nothing is queued, the currently selected music track now auto-starts when recording begins
+### Product / behavior risks
+1. Move mode is still not fully smooth.
+   Dragging right can still feel mechanical instead of gliding, especially near the right wall of the visible viewport. This is now the top active Review Cut issue.
 
-Relevant runtime diagnostics to inspect in browser if needed:
-- `music.recording_selected_play_ok`
-- `music.recording_selected_play_failed`
-- `music.recording_queue_play_skipped`
-- `music.recording_start_cue_failed`
-- `recording.build_stream`
-- `recording.audio_start`
-- `recording.audio_stop`
-- `recording.review_audio_graph_unavailable`
-- `recording.review_audio_graph_failed`
-- `recording.review_audio_graph_resume_failed`
+2. Edited export is only solved for audio.
+   `Download Audio Only` renders the edited Review Cut timeline, but `Download Video Show` still exports the source video, not an edited rendered video.
 
-## Non-Destructive Editing Rule
-This must remain non-destructive.
+3. `Load Recording` still replaces the active local review source.
+   That is risky because opening a past file can overwrite the current browser-held review/export source instead of behaving like a separate project/session.
 
-Do not rewrite the source blob for each edit.
+### Editor / enterprise gaps
+4. The modal is not a proper dialog yet.
+   It still needs `role="dialog"`, `aria-modal="true"`, and focus trapping.
 
-Current architecture direction:
-- original recording asset remains intact
-- editor works from an edited timeline model
-- gain edits are stored as range adjustments against edited time
-- future cleanup and library insert work should follow the same pattern
+5. Keyboard ownership is not editor-grade yet.
+   Spacebar push-to-talk still exists globally and Review Cut does not fully own transport shortcuts while open.
 
-Recommended edit operation types going forward:
-- `cutRange`
-- `rippleDeleteRange`
-- `muteRange`
-- `gainRange`
-- `normalizeRange`
-- `denoiseRange`
-- `denoiseFull`
-- `insertLibraryClip`
-- `clipFade`
-- `markerAdd`
-- `splitAtPlayhead`
-- `splitAtSelectionEdges`
-- `overlapModeChange`
+6. Clip identity in the timeline is improving but still not yet at mature DAW quality.
+   Track blocks need stronger labels and source identity to read more like a serious editor.
+
+7. Review Cut state is still heavy and shared.
+   The renderer and editor state still live in one large controller, which is why regressions can still appear in movement/selection/playhead interactions.
+
+## Priority Order
+1. Finish move-mode smoothing and right-edge timeline-follow behavior
+2. Make import/session behavior non-destructive
+3. Bring Review Cut modal/accessibility up to enterprise standards
+4. Finish timeline visual identity and inspector polish
+5. Add project persistence
+6. Add a true past recordings/archive system
+7. Add edited video render path if Review Cut is expected to be the final video editor too
+
+## Recommended Next Steps
+1. Finish clip drag so it behaves like a smooth slide across a fixed timescale.
+2. Keep clip shape stable when moving beyond the visible right edge and rely on pan/follow instead of any visual rescaling.
+3. Make Review Cut file import/session handling non-destructive.
+4. Add dialog/focus/keyboard ownership so Review Cut behaves like a true editor workspace.
+5. Continue visual polish only after move/selection behavior is trustworthy.
+
+## Enterprise Standards Still Missing
+- fully hardened movement/selection behavior
+- edited video output
+- project save/load for edit state
+- proper dialog accessibility
+- keyboard shortcut ownership while editor is open
+- stronger clip metadata and labeling
+- more intentional track targeting
+- duplicate clip and similar clip-level actions
+
+## Non-Destructive Rule
+Keep this editor non-destructive.
+
+Do not rewrite source blobs on each edit.
+
+Preferred architecture remains:
+- original/imported source intact
+- timeline edits stored as operations/state
+- final render/export generated from the edited timeline
 
 ## Performance Guardrails
-- do not re-decode large media blobs on every edit
-- reuse waveform peak data once built
+- do not re-decode media on every edit
+- keep waveform/noise data cached
 - keep redraws on `requestAnimationFrame`
-- avoid DOM-heavy interaction during drag, scrub, zoom, and loop playback
-- keep cleanup analysis on-demand and chunked
-- keep new features isolated so review-window work does not break live music or recording again
-
-## Remaining Feature Queue
-Highest-value next work:
-
-1. markers / range markers
-2. noise-floor overlay
-3. auto white-noise cleanup on selection / full show
-4. preview original vs cleaned
-5. library drawer integration inside review window
-6. insert library audio at playhead / replace selection
-7. clip fades and per-insert gain
-8. dedicated crossfade-length / fade-shape controls for overlap regions
-9. debug helper to open `Review Cut` without recording, for UI review and styling passes
+- avoid rebuilding library/sidebar UI during hot interactions
+- keep Review Cut engine changes isolated from live recording/music paths
+- do not let timeline-duration recalculation silently rewrite clip source windows
+- preserve clip source audio first, then resolve timeline duration/pan behavior around it
 
 ## Tomorrow Resume Target
-Resume with marker support unless a fresh split/overlap regression appears during testing.
+Resume with the highest-value product gap, not another cosmetic feature.
 
-Recommended restart order:
-1. verify split still preserves the original source correctly after upload
-2. if stable, build markers / range markers next
-3. after markers, move to noise-floor overlay before attempting cleanup processing
+Recommended order:
+1. finish move drag smoothing at the right edge
+2. verify clip shape remains stable under left/right movement
+3. import/session safety
+4. dialog/accessibility hardening
+5. further visual polish only after movement feels correct
 
 ## Resume Guidance
 If restarting this work:
-1. treat `Review Cut` as the active edit surface, not a simple player
-2. do not regress live music during recording while changing review features
-3. keep edits non-destructive
-4. keep selection interaction stable before adding more tools
-5. build one feature at a time and test after each step
+1. treat Review Cut as a serious editor, not a modal helper
+2. prioritize correctness and deliverable output over more feature count
+3. do not regress live recording/music paths while changing Review Cut
+4. keep edits non-destructive
+5. prefer product hardening over new experimental features

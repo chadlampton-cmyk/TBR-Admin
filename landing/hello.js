@@ -162,6 +162,8 @@ const onAirReviewLaunchBtn = document.getElementById("onair-review-launch-btn");
 const onAirReviewPanel = document.getElementById("onair-review-panel");
 const onAirReviewStatus = document.getElementById("onair-review-status");
 const onAirReviewBadge = document.getElementById("onair-review-badge");
+const onAirReviewLoadBtn = document.getElementById("onair-review-load-btn");
+const onAirReviewFileInput = document.getElementById("onair-review-file-input");
 const onAirReviewVideo = document.getElementById("onair-review-video");
 const onAirReviewAudio = document.getElementById("onair-review-audio");
 const onAirReviewModal = document.getElementById("onair-review-modal");
@@ -171,9 +173,12 @@ const onAirReviewPlayer = document.getElementById("onair-review-player");
 const onAirReviewPlayBtn = document.getElementById("onair-review-play-btn");
 const onAirReviewTime = document.getElementById("onair-review-time");
 const onAirReviewLoopReadout = document.getElementById("onair-review-loop-readout");
+const onAirReviewPan = document.getElementById("onair-review-pan");
 const onAirReviewScrub = document.getElementById("onair-review-scrub");
 const onAirReviewWaveCanvas = document.getElementById("onair-review-wave-canvas");
 const onAirReviewWaveNote = document.getElementById("onair-review-wave-note");
+const onAirReviewLibraryNote = document.getElementById("onair-review-library-note");
+const onAirReviewLibraryList = document.getElementById("onair-review-library-list");
 const onAirReviewUndoBtn = document.getElementById("onair-review-undo-btn");
 const onAirReviewRedoBtn = document.getElementById("onair-review-redo-btn");
 const onAirReviewMoveModeBtn = document.getElementById("onair-review-move-mode-btn");
@@ -184,11 +189,38 @@ const onAirReviewDeleteBtn = document.getElementById("onair-review-delete-btn");
 const onAirReviewRippleDeleteBtn = document.getElementById("onair-review-ripple-delete-btn");
 const onAirReviewSplitBtn = document.getElementById("onair-review-split-btn");
 const onAirReviewSplitSelectionBtn = document.getElementById("onair-review-split-selection-btn");
+const onAirReviewRemoveClipBtn = document.getElementById("onair-review-remove-clip-btn");
+const onAirReviewTrackUpBtn = document.getElementById("onair-review-track-up-btn");
+const onAirReviewTrackReadout = document.getElementById("onair-review-track-readout");
+const onAirReviewTrackDownBtn = document.getElementById("onair-review-track-down-btn");
+const onAirReviewAddMarkerBtn = document.getElementById("onair-review-add-marker-btn");
+const onAirReviewAddRangeMarkerBtn = document.getElementById("onair-review-add-range-marker-btn");
+const onAirReviewMarkerReadout = document.getElementById("onair-review-marker-readout");
+const onAirReviewClearMarkersBtn = document.getElementById("onair-review-clear-markers-btn");
+const onAirReviewCleanSelectionBtn = document.getElementById("onair-review-clean-selection-btn");
+const onAirReviewCleanAllBtn = document.getElementById("onair-review-clean-all-btn");
+const onAirReviewCleanupReadout = document.getElementById("onair-review-cleanup-readout");
+const onAirReviewPreviewAutoBtn = document.getElementById("onair-review-preview-auto-btn");
+const onAirReviewPreviewOriginalBtn = document.getElementById("onair-review-preview-original-btn");
+const onAirReviewPreviewCleanedBtn = document.getElementById("onair-review-preview-cleaned-btn");
+const onAirReviewClearCleanupBtn = document.getElementById("onair-review-clear-cleanup-btn");
 const onAirReviewGainDownBtn = document.getElementById("onair-review-gain-down-btn");
 const onAirReviewGainReadout = document.getElementById("onair-review-gain-readout");
 const onAirReviewGainUpBtn = document.getElementById("onair-review-gain-up-btn");
 const onAirReviewGainResetBtn = document.getElementById("onair-review-gain-reset-btn");
 const onAirReviewGainNormalizeBtn = document.getElementById("onair-review-gain-normalize-btn");
+const onAirReviewInsertGainReadout = document.getElementById("onair-review-insert-gain-readout");
+const onAirReviewInsertGainDownBtn = document.getElementById("onair-review-insert-gain-down-btn");
+const onAirReviewInsertGainUpBtn = document.getElementById("onair-review-insert-gain-up-btn");
+const onAirReviewInsertGainResetBtn = document.getElementById("onair-review-insert-gain-reset-btn");
+const onAirReviewFadeReadout = document.getElementById("onair-review-fade-readout");
+const onAirReviewFadeInDownBtn = document.getElementById("onair-review-fade-in-down-btn");
+const onAirReviewFadeInUpBtn = document.getElementById("onair-review-fade-in-up-btn");
+const onAirReviewFadeOutDownBtn = document.getElementById("onair-review-fade-out-down-btn");
+const onAirReviewFadeOutUpBtn = document.getElementById("onair-review-fade-out-up-btn");
+const onAirReviewFadeResetBtn = document.getElementById("onair-review-fade-reset-btn");
+const onAirReviewFadeCurveLinearBtn = document.getElementById("onair-review-fade-curve-linear-btn");
+const onAirReviewFadeCurveSoftBtn = document.getElementById("onair-review-fade-curve-soft-btn");
 const onAirReviewOverlapBlendBtn = document.getElementById("onair-review-overlap-blend-btn");
 const onAirReviewOverlapFrontBtn = document.getElementById("onair-review-overlap-front-btn");
 const onAirReviewOverlapBackBtn = document.getElementById("onair-review-overlap-back-btn");
@@ -645,6 +677,7 @@ let onAirReviewScrubInFlight = false;
 let onAirReviewModalOpen = false;
 let onAirReviewWaveContext = null;
 let onAirReviewWavePeaks = [];
+let onAirReviewNoiseFloorMap = [];
 let onAirReviewWaveDuration = 0;
 let onAirReviewWaveToken = 0;
 let onAirReviewWaveRenderQueued = false;
@@ -661,12 +694,19 @@ let onAirReviewSelectionHandleOffset = 0;
 let onAirReviewSelectionPointerClientX = 0;
 let onAirReviewSelectionPointerId = null;
 let onAirReviewAutoPanFrameId = 0;
-let onAirReviewViewportFocusTime = 0;
+let onAirReviewViewportFocusTime = null;
+let onAirReviewFadeDragState = null;
 let onAirReviewTimelineSegments = [];
+let onAirReviewMarkers = [];
+let onAirReviewCleanupRanges = [];
 let onAirReviewGainAdjustments = [];
+let onAirReviewFadeRegions = [];
 let onAirReviewOverlapMode = "blend";
+let onAirReviewFadeCurveMode = "soft";
+let onAirReviewCleanupPreviewMode = "auto";
 let onAirReviewTimelineSourceToken = "";
 let onAirReviewEditedDuration = 0;
+let onAirReviewTimelineExplicitDuration = 0;
 let onAirReviewEditedTime = 0;
 let onAirReviewPlaybackFrameId = 0;
 let onAirReviewPlaybackAnchorAt = 0;
@@ -684,8 +724,16 @@ let onAirReviewUndoStack = [];
 let onAirReviewRedoStack = [];
 let onAirReviewHistorySuspendDepth = 0;
 let onAirReviewClipDragState = null;
+let onAirReviewSelectedClipIndex = -1;
 let onAirReviewDecodedAudioBuffer = null;
+let onAirReviewCleanedAudioBuffer = null;
+let onAirReviewCleanupBufferPromise = null;
 let onAirReviewScheduledClipNodes = [];
+let onAirReviewMarkerIdCounter = 1;
+let onAirReviewClipIdCounter = 1;
+let onAirReviewNoiseOverlayProfile = "off";
+const onAirReviewLibraryBufferCache = new Map();
+const onAirReviewLibraryWaveCache = new Map();
 let recordingAutoStopTimerId = null;
 let recordingAutoSplitTimerId = null;
 let recordingSplitInProgress = false;
@@ -3387,7 +3435,7 @@ function syncReviewPanelUI() {
     } else if (hasReviewAsset) {
       onAirReviewBadge.textContent = "Draft Ready";
     } else {
-      onAirReviewBadge.textContent = "No review yet";
+      onAirReviewBadge.textContent = "Editor Ready";
     }
   }
   if (onAirReviewStatus && hasReviewAsset && recordingWorkflowState !== "processing") {
@@ -3402,7 +3450,7 @@ function syncReviewPanelUI() {
       onAirReviewStatus.textContent = "Review assets ready. " + durationParts.join(" | ") + ".";
     }
   } else if (onAirReviewStatus && !hasReviewAsset) {
-    onAirReviewStatus.textContent = "Stop recording to generate the review cut.";
+    onAirReviewStatus.textContent = "Open Review Cut to load or edit a recording anytime.";
   }
   if (onAirReviewVideo) {
     syncReviewMediaElementSource(onAirReviewVideo, hasVideo ? recordingMediaUrl : "");
@@ -3412,13 +3460,13 @@ function syncReviewPanelUI() {
   }
   ensureOnAirReviewTimeline();
   if (onAirReviewLaunchBtn) {
-    onAirReviewLaunchBtn.disabled = !hasReviewAsset;
+    onAirReviewLaunchBtn.disabled = false;
   }
   if (onAirReviewPlayer) {
-    onAirReviewPlayer.classList.toggle("hidden", !hasReviewAsset);
+    onAirReviewPlayer.classList.remove("hidden");
   }
   if (onAirReviewPanel) {
-    onAirReviewPanel.classList.toggle("is-empty", !hasReviewAsset);
+    onAirReviewPanel.classList.remove("is-empty");
   }
   if (onAirExportPanel) {
     onAirExportPanel.classList.toggle("hidden", recordingWorkflowState !== "export");
@@ -3433,9 +3481,11 @@ function syncReviewPanelUI() {
     onAirReviewWaveToken = 0;
     onAirReviewWaveDuration = 0;
     onAirReviewWavePeaks = [];
+    onAirReviewNoiseFloorMap = [];
+    onAirReviewNoiseOverlayProfile = "off";
     setOnAirReviewModalOpen(false);
     if (onAirReviewWaveNote) {
-      onAirReviewWaveNote.textContent = "No review file loaded yet.";
+      onAirReviewWaveNote.textContent = "No review file loaded yet. Use Load Recording to import a saved audio or video file.";
     }
   }
   updateOnAirReviewTime();
@@ -3453,6 +3503,7 @@ function setOnAirReviewModalOpen(open) {
     pauseOnAirReviewMedia();
   }
   if (onAirReviewModalOpen) {
+    renderOnAirReviewLibraryList();
     refreshOnAirReviewWaveform().catch(() => {
       // Keep review playback usable even if waveform analysis fails.
     });
@@ -3529,7 +3580,14 @@ function getOnAirReviewAssetDuration() {
 }
 
 function getOnAirReviewTimelineDuration() {
-  return Math.max(0, Number(onAirReviewEditedDuration || 0) || getOnAirReviewAssetDuration());
+  if (!onAirReviewTimelineSegments.length) {
+    return Math.max(0, getOnAirReviewAssetDuration());
+  }
+  return Math.max(
+    0,
+    Number(onAirReviewEditedDuration || 0),
+    Number(onAirReviewTimelineExplicitDuration || 0)
+  );
 }
 
 function getOnAirReviewTimelineSourceToken() {
@@ -3552,15 +3610,26 @@ function recalculateOnAirReviewTimelineDuration() {
 function buildDefaultOnAirReviewTimeline(durationSeconds) {
   const duration = Math.max(0, Number(durationSeconds) || 0);
   onAirReviewTimelineSegments = duration > 0
-    ? [{ type: "media", sourceStart: 0, sourceEnd: duration, duration, timelineStart: 0 }]
+    ? [{ type: "media", clipId: onAirReviewClipIdCounter++, sourceStart: 0, sourceEnd: duration, duration, timelineStart: 0, lane: 0, sourceKind: "recording", sourceAssetId: "", sourceAssetLabel: getOnAirReviewRecordingDefaultLabel() }]
     : [];
   onAirReviewGainAdjustments = [];
+  onAirReviewFadeRegions = [];
+  onAirReviewMarkers = [];
+  onAirReviewCleanupRanges = [];
   onAirReviewOverlapMode = "blend";
   onAirReviewUndoStack = [];
   onAirReviewRedoStack = [];
+  onAirReviewSelectedClipIndex = -1;
+  onAirReviewSelectionStart = 0;
+  onAirReviewSelectionEnd = 0;
+  onAirReviewSelectionActive = false;
+  onAirReviewEditedTime = 0;
+  onAirReviewViewportFocusTime = null;
+  onAirReviewZoomLevel = 1;
+  onAirReviewTimelineExplicitDuration = duration;
   recalculateOnAirReviewTimelineDuration();
-  onAirReviewEditedTime = Math.max(0, Math.min(onAirReviewEditedTime, onAirReviewEditedDuration));
   updateOnAirReviewOverlapModeUi();
+  updateOnAirReviewZoomControls();
 }
 
 function getOnAirReviewNormalizedSourceBounds(clipLike) {
@@ -3576,6 +3645,109 @@ function getOnAirReviewNormalizedSourceBounds(clipLike) {
   };
 }
 
+function clampOnAirReviewFadeSeconds(seconds, clipDuration) {
+  const duration = Math.max(0, Number(clipDuration) || 0);
+  const maxFade = duration > 0 ? Math.min(6, Math.max(0, duration - 0.02)) : 0;
+  return Math.max(0, Math.min(maxFade, Number(seconds) || 0));
+}
+
+function normalizeOnAirReviewClipFadePair(fadeInSeconds, fadeOutSeconds, clipDuration) {
+  const duration = Math.max(0, Number(clipDuration) || 0);
+  let fadeIn = clampOnAirReviewFadeSeconds(fadeInSeconds, duration);
+  let fadeOut = clampOnAirReviewFadeSeconds(fadeOutSeconds, duration);
+  if (!(duration > 0.02)) {
+    return { fadeIn: 0, fadeOut: 0 };
+  }
+  const maxTotal = Math.max(0.02, duration - 0.03);
+  const total = fadeIn + fadeOut;
+  if (total > maxTotal && total > 0.0005) {
+    const scale = maxTotal / total;
+    fadeIn *= scale;
+    fadeOut *= scale;
+  }
+  return {
+    fadeIn: clampOnAirReviewFadeSeconds(fadeIn, duration),
+    fadeOut: clampOnAirReviewFadeSeconds(fadeOut, duration)
+  };
+}
+
+function getNextOnAirReviewClipId() {
+  const id = onAirReviewClipIdCounter;
+  onAirReviewClipIdCounter += 1;
+  return id;
+}
+
+const ON_AIR_REVIEW_MAX_TRACKS = 5;
+const ON_AIR_REVIEW_MAX_LANE_INDEX = ON_AIR_REVIEW_MAX_TRACKS - 1;
+const ON_AIR_REVIEW_SOURCE_PALETTES = [
+  { bodyTop: "rgba(88, 117, 148, 0.24)", bodyBottom: "rgba(30, 45, 60, 0.14)", accent: "rgba(177, 208, 238, 0.94)", stroke: "rgba(171, 197, 222, 0.34)", text: "rgba(231, 239, 247, 0.92)", wave: "rgba(219, 232, 245, 0.86)", waveBase: "rgba(214, 226, 238, 0.14)" },
+  { bodyTop: "rgba(88, 137, 118, 0.24)", bodyBottom: "rgba(28, 50, 42, 0.14)", accent: "rgba(165, 227, 191, 0.94)", stroke: "rgba(146, 204, 170, 0.34)", text: "rgba(230, 245, 236, 0.92)", wave: "rgba(222, 244, 231, 0.86)", waveBase: "rgba(207, 232, 217, 0.14)" },
+  { bodyTop: "rgba(151, 113, 77, 0.24)", bodyBottom: "rgba(58, 39, 27, 0.14)", accent: "rgba(244, 201, 136, 0.94)", stroke: "rgba(220, 181, 120, 0.34)", text: "rgba(248, 239, 223, 0.92)", wave: "rgba(249, 232, 197, 0.88)", waveBase: "rgba(237, 218, 178, 0.14)" },
+  { bodyTop: "rgba(123, 94, 146, 0.24)", bodyBottom: "rgba(42, 30, 57, 0.14)", accent: "rgba(213, 189, 244, 0.94)", stroke: "rgba(186, 164, 222, 0.34)", text: "rgba(241, 235, 248, 0.92)", wave: "rgba(235, 224, 249, 0.88)", waveBase: "rgba(220, 207, 237, 0.14)" },
+  { bodyTop: "rgba(142, 92, 101, 0.24)", bodyBottom: "rgba(56, 31, 39, 0.14)", accent: "rgba(236, 183, 197, 0.94)", stroke: "rgba(216, 163, 176, 0.34)", text: "rgba(248, 234, 239, 0.92)", wave: "rgba(248, 224, 232, 0.87)", waveBase: "rgba(234, 210, 219, 0.14)" }
+];
+
+function hashOnAirReviewString(value) {
+  const source = String(value || "");
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = ((hash << 5) - hash + source.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function getOnAirReviewRecordingDefaultLabel() {
+  const candidates = [
+    studioSettings && studioSettings.recordingDefaultName,
+    studioSettings && studioSettings.recordingNameDefault,
+    studioSettings && studioSettings.defaultRecordingName,
+    studioSettings && studioSettings.showTitle,
+    studioSettings && studioSettings.projectTitle,
+    recordingAudioBlob && recordingAudioBlob.name,
+    recordingMediaBlob && recordingMediaBlob.name
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+  return candidates[0] || "Show Recording";
+}
+
+function getOnAirReviewClipDisplayLabel(clip) {
+  if (!clip) {
+    return "";
+  }
+  if (String(clip.sourceKind || "recording") === "recording") {
+    return String(clip.sourceAssetLabel || getOnAirReviewRecordingDefaultLabel() || "Show Recording");
+  }
+  return String(clip.sourceAssetLabel || "Library Insert");
+}
+
+function getOnAirReviewClipPalette(clip, uniqueSourceCount) {
+  const label = getOnAirReviewClipDisplayLabel(clip);
+  const paletteIndex = hashOnAirReviewString(String(clip && clip.sourceKind || "") + "|" + String(clip && clip.sourceAssetId || "") + "|" + label) % ON_AIR_REVIEW_SOURCE_PALETTES.length;
+  if (String(clip && clip.sourceKind || "recording") === "recording" && uniqueSourceCount <= 1) {
+    return {
+      bodyTop: "rgba(82, 99, 118, 0.18)",
+      bodyBottom: "rgba(26, 37, 48, 0.10)",
+      accent: "rgba(194, 208, 224, 0.88)",
+      stroke: "rgba(154, 173, 194, 0.24)",
+      text: "rgba(226, 234, 242, 0.9)",
+      wave: "rgba(224, 232, 239, 0.84)",
+      waveBase: "rgba(210, 220, 229, 0.14)"
+    };
+  }
+  return ON_AIR_REVIEW_SOURCE_PALETTES[paletteIndex];
+}
+
+function getOnAirReviewTrackLabel(laneIndex, clips) {
+  const laneClips = Array.isArray(clips) ? clips.filter((clip) => clip && clip.laneIndex === laneIndex) : [];
+  if (!laneClips.length) {
+    return "Empty";
+  }
+  const labels = Array.from(new Set(laneClips.map((clip) => getOnAirReviewClipDisplayLabel(clip)).filter(Boolean)));
+  if (labels.length === 1) {
+    return labels[0];
+  }
+  return labels[0] + " +" + String(labels.length - 1);
+}
+
 function getOnAirReviewMediaClips() {
   return onAirReviewTimelineSegments
     .filter((segment) => segment && segment.type === "media" && Math.max(0, Number(segment.duration) || 0) > 0.0005)
@@ -3583,18 +3755,27 @@ function getOnAirReviewMediaClips() {
       const start = Math.max(0, Number(segment.timelineStart) || 0);
       const duration = Math.max(0, Number(segment.duration) || 0);
       const sourceBounds = getOnAirReviewNormalizedSourceBounds(segment);
+      const fadePair = normalizeOnAirReviewClipFadePair(segment && segment.fadeIn, segment && segment.fadeOut, duration);
       return {
         index,
+        clipId: Math.max(1, Number(segment && segment.clipId) || (index + 1)),
         type: "media",
         start,
         duration,
         end: start + duration,
         sourceStart: sourceBounds.sourceStart,
         sourceEnd: sourceBounds.sourceEnd,
+        clipGainDb: clampOnAirReviewGainDb(segment && segment.clipGainDb),
+        fadeIn: fadePair.fadeIn,
+        fadeOut: fadePair.fadeOut,
+        lane: Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(segment && segment.lane) || 0)),
+        sourceKind: String(segment && segment.sourceKind || "recording"),
+        sourceAssetId: String(segment && segment.sourceAssetId || ""),
+        sourceAssetLabel: String(segment && segment.sourceAssetLabel || ""),
         segment
       };
     })
-    .sort((left, right) => left.start - right.start || left.index - right.index);
+    .sort((left, right) => left.start - right.start || left.clipId - right.clipId);
 }
 
 function getOnAirReviewTimelineEntries() {
@@ -3636,7 +3817,15 @@ function getOnAirReviewTimelineEntries() {
 }
 
 function rebuildOnAirReviewTimelineFromMediaClips(clips, totalDuration) {
-  const safeTotalDuration = Math.max(0, Number(totalDuration) || 0);
+  const requestedDuration = Math.max(0, Number(totalDuration) || 0);
+  const clipExtentDuration = Array.isArray(clips)
+    ? clips.reduce((maxEnd, clip) => {
+      const start = Math.max(0, Number(clip && clip.start) || 0);
+      const duration = Math.max(0, Number(clip && clip.duration) || 0);
+      return Math.max(maxEnd, start + duration);
+    }, 0)
+    : 0;
+  const safeTotalDuration = Math.max(requestedDuration, clipExtentDuration);
   onAirReviewTimelineSegments = clips
     .map((clip) => {
       const start = Math.max(0, Math.min(safeTotalDuration, Number(clip && clip.start) || 0));
@@ -3650,27 +3839,45 @@ function rebuildOnAirReviewTimelineFromMediaClips(clips, totalDuration) {
         sourceEnd: clip && clip.sourceEnd,
         duration: end - start
       });
+      const fadePair = normalizeOnAirReviewClipFadePair(clip && clip.fadeIn, clip && clip.fadeOut, end - start);
       return {
         type: "media",
+        clipId: Math.max(1, Number(clip && clip.clipId) || getNextOnAirReviewClipId()),
         sourceStart: sourceBounds.sourceStart,
         sourceEnd: sourceBounds.sourceEnd,
+        clipGainDb: clampOnAirReviewGainDb(clip && clip.clipGainDb),
+        fadeIn: fadePair.fadeIn,
+        fadeOut: fadePair.fadeOut,
         duration: end - start,
-        timelineStart: start
+        timelineStart: start,
+        lane: Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(clip && clip.lane) || 0)),
+        sourceKind: String((clip && clip.sourceKind) || "recording"),
+        sourceAssetId: String((clip && clip.sourceAssetId) || ""),
+        sourceAssetLabel: String((clip && clip.sourceAssetLabel) || "")
       };
     })
     .filter(Boolean)
-    .sort((left, right) => (left.timelineStart - right.timelineStart) || (left.sourceStart - right.sourceStart));
+    .sort((left, right) => (left.timelineStart - right.timelineStart) || ((left.clipId || 0) - (right.clipId || 0)));
+  onAirReviewClipIdCounter = onAirReviewTimelineSegments.reduce((maxId, segment) => Math.max(maxId, Number(segment && segment.clipId) || 0), 0) + 1;
+  onAirReviewTimelineExplicitDuration = safeTotalDuration;
   recalculateOnAirReviewTimelineDuration();
 }
 
 function cloneOnAirReviewTimelineSegments(segments) {
   return Array.isArray(segments)
     ? segments.map((segment) => ({
+      ...normalizeOnAirReviewClipFadePair(segment && segment.fadeIn, segment && segment.fadeOut, segment && segment.duration),
       type: "media",
+      clipId: Math.max(1, Number(segment && segment.clipId) || getNextOnAirReviewClipId()),
       sourceStart: Math.max(0, Number(segment && segment.sourceStart) || 0),
       sourceEnd: Math.max(0, Number(segment && segment.sourceEnd) || 0),
+      clipGainDb: clampOnAirReviewGainDb(segment && segment.clipGainDb),
       duration: Math.max(0, Number(segment && segment.duration) || 0),
-      timelineStart: Math.max(0, Number(segment && segment.timelineStart) || 0)
+      timelineStart: Math.max(0, Number(segment && segment.timelineStart) || 0),
+      lane: Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(segment && segment.lane) || 0)),
+      sourceKind: String((segment && segment.sourceKind) || "recording"),
+      sourceAssetId: String((segment && segment.sourceAssetId) || ""),
+      sourceAssetLabel: String((segment && segment.sourceAssetLabel) || "")
     }))
     : [];
 }
@@ -3685,21 +3892,147 @@ function cloneOnAirReviewGainAdjustments(adjustments) {
     : [];
 }
 
+function normalizeOnAirReviewFadeRegions(regions) {
+  return Array.isArray(regions)
+    ? regions
+      .map((region) => {
+        const start = Math.max(0, Number(region && region.start) || 0);
+        const end = Math.max(start, Number(region && region.end) || start);
+        const clipId = Math.max(1, Number(region && region.clipId) || 0);
+        const fadePair = normalizeOnAirReviewClipFadePair(region && region.fadeIn, region && region.fadeOut, end - start);
+        return {
+          clipId,
+          start,
+          end,
+          fadeIn: fadePair.fadeIn,
+          fadeOut: fadePair.fadeOut
+        };
+      })
+      .filter((region) => region.clipId > 0 && region.end - region.start > 0.01)
+      .sort((left, right) => left.start - right.start || left.end - right.end || left.clipId - right.clipId)
+    : [];
+}
+
+function cloneOnAirReviewFadeRegions(regions) {
+  return normalizeOnAirReviewFadeRegions(regions);
+}
+
+function normalizeOnAirReviewMarkers(markers) {
+  const normalized = Array.isArray(markers)
+    ? markers.map((marker, index) => {
+      const type = marker && marker.type === "range" ? "range" : "point";
+      const start = Math.max(0, Number(marker && marker.start) || 0);
+      const end = type === "range"
+        ? Math.max(start, Number(marker && marker.end) || start)
+        : start;
+      const id = Math.max(1, Number(marker && marker.id) || (index + 1));
+      return {
+        id,
+        type,
+        start,
+        end,
+        label: type === "range" ? "R" + id : "M" + id
+      };
+    })
+    : [];
+  normalized.sort((left, right) => (left.start - right.start) || (left.end - right.end) || (left.id - right.id));
+  onAirReviewMarkerIdCounter = normalized.reduce((maxId, marker) => Math.max(maxId, marker.id), 0) + 1;
+  return normalized;
+}
+
+function cloneOnAirReviewMarkers(markers) {
+  return normalizeOnAirReviewMarkers(markers);
+}
+
+function normalizeOnAirReviewCleanupRanges(ranges) {
+  const normalized = Array.isArray(ranges)
+    ? ranges.map((range) => {
+      const start = Math.max(0, Number(range && range.start) || 0);
+      const end = Math.max(start, Number(range && range.end) || start);
+      return { start, end };
+    })
+    : [];
+  normalized.sort((left, right) => left.start - right.start || left.end - right.end);
+  const merged = [];
+  normalized.forEach((range) => {
+    if (range.end - range.start <= 0.01) {
+      return;
+    }
+    const previous = merged[merged.length - 1];
+    if (previous && range.start <= previous.end + 0.02) {
+      previous.end = Math.max(previous.end, range.end);
+      return;
+    }
+    merged.push({ start: range.start, end: range.end });
+  });
+  return merged;
+}
+
+function cloneOnAirReviewCleanupRanges(ranges) {
+  return normalizeOnAirReviewCleanupRanges(ranges);
+}
+
+function createOnAirReviewClipDescriptor(clipLike) {
+  const duration = Math.max(0, Number(clipLike && clipLike.duration) || 0);
+  const fadePair = normalizeOnAirReviewClipFadePair(clipLike && clipLike.fadeIn, clipLike && clipLike.fadeOut, duration);
+  return {
+    clipId: Math.max(1, Number(clipLike && clipLike.clipId) || getNextOnAirReviewClipId()),
+    start: Math.max(0, Number(clipLike && (clipLike.start ?? clipLike.timelineStart)) || 0),
+    duration,
+    sourceStart: Math.max(0, Number(clipLike && clipLike.sourceStart) || 0),
+    sourceEnd: Math.max(0, Number(clipLike && clipLike.sourceEnd) || 0),
+    clipGainDb: clampOnAirReviewGainDb(clipLike && clipLike.clipGainDb),
+    fadeIn: fadePair.fadeIn,
+    fadeOut: fadePair.fadeOut,
+    lane: Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(clipLike && clipLike.lane) || 0)),
+    sourceKind: String((clipLike && clipLike.sourceKind) || "recording"),
+    sourceAssetId: String((clipLike && clipLike.sourceAssetId) || ""),
+    sourceAssetLabel: String((clipLike && clipLike.sourceAssetLabel) || "")
+  };
+}
+
+function normalizeOnAirReviewCleanupPreviewMode(mode) {
+  const value = String(mode || "").toLowerCase();
+  if (value === "original" || value === "cleaned") {
+    return value;
+  }
+  return "auto";
+}
+
+function normalizeOnAirReviewFadeCurveMode(mode) {
+  return String(mode || "").toLowerCase() === "linear" ? "linear" : "soft";
+}
+
 function captureOnAirReviewHistorySnapshot(label) {
   return {
     label: String(label || ""),
     timelineSegments: cloneOnAirReviewTimelineSegments(onAirReviewTimelineSegments),
+    markers: cloneOnAirReviewMarkers(onAirReviewMarkers),
+    cleanupRanges: cloneOnAirReviewCleanupRanges(onAirReviewCleanupRanges),
     gainAdjustments: cloneOnAirReviewGainAdjustments(onAirReviewGainAdjustments),
+    fadeRegions: cloneOnAirReviewFadeRegions(onAirReviewFadeRegions),
+    cleanupPreviewMode: normalizeOnAirReviewCleanupPreviewMode(onAirReviewCleanupPreviewMode),
+    fadeCurveMode: normalizeOnAirReviewFadeCurveMode(onAirReviewFadeCurveMode),
     overlapMode: String(onAirReviewOverlapMode || "blend"),
     editedTime: Math.max(0, Number(onAirReviewEditedTime) || 0),
+    explicitDuration: Math.max(0, Number(onAirReviewTimelineExplicitDuration) || 0),
     selectionStart: Math.max(0, Number(onAirReviewSelectionStart) || 0),
     selectionEnd: Math.max(0, Number(onAirReviewSelectionEnd) || 0),
     selectionActive: !!onAirReviewSelectionActive,
     selectMode: !!onAirReviewSelectMode,
     zoomLevel: clampOnAirReviewZoomLevel(onAirReviewZoomLevel),
-    viewportFocusTime: Math.max(0, Number(onAirReviewViewportFocusTime) || 0),
+    viewportFocusTime: Number.isFinite(onAirReviewViewportFocusTime)
+      ? Math.max(0, Number(onAirReviewViewportFocusTime) || 0)
+      : null,
     muted: !!onAirReviewMuted
   };
+}
+
+function getOnAirReviewViewportAnchorTime(currentSeconds) {
+  if (Number.isFinite(onAirReviewViewportFocusTime)) {
+    return Math.max(0, Number(onAirReviewViewportFocusTime) || 0);
+  }
+  return Math.max(0, Number(currentSeconds) || 0);
 }
 
 function applyOnAirReviewHistorySnapshot(snapshot) {
@@ -3709,9 +4042,15 @@ function applyOnAirReviewHistorySnapshot(snapshot) {
   onAirReviewHistorySuspendDepth += 1;
   try {
     onAirReviewTimelineSegments = cloneOnAirReviewTimelineSegments(snapshot.timelineSegments);
+    onAirReviewMarkers = cloneOnAirReviewMarkers(snapshot.markers);
+    onAirReviewCleanupRanges = cloneOnAirReviewCleanupRanges(snapshot.cleanupRanges);
     onAirReviewGainAdjustments = cloneOnAirReviewGainAdjustments(snapshot.gainAdjustments);
+    onAirReviewFadeRegions = cloneOnAirReviewFadeRegions(snapshot.fadeRegions);
     normalizeOnAirReviewGainAdjustments();
+    onAirReviewTimelineExplicitDuration = Math.max(0, Number(snapshot.explicitDuration) || 0);
     recalculateOnAirReviewTimelineDuration();
+    onAirReviewCleanupPreviewMode = normalizeOnAirReviewCleanupPreviewMode(snapshot.cleanupPreviewMode);
+    onAirReviewFadeCurveMode = normalizeOnAirReviewFadeCurveMode(snapshot.fadeCurveMode);
     onAirReviewOverlapMode = normalizeOnAirReviewOverlapMode(snapshot.overlapMode);
     onAirReviewEditedTime = Math.max(0, Math.min(getOnAirReviewTimelineDuration(), Number(snapshot.editedTime) || 0));
     onAirReviewZoomLevel = clampOnAirReviewZoomLevel(snapshot.zoomLevel);
@@ -3724,9 +4063,15 @@ function applyOnAirReviewHistorySnapshot(snapshot) {
     } else {
       clearOnAirReviewSelection();
     }
-    setOnAirReviewViewportFocusTime(snapshot.viewportFocusTime || onAirReviewEditedTime);
+    setOnAirReviewViewportFocusTime(
+      Number.isFinite(snapshot.viewportFocusTime)
+        ? snapshot.viewportFocusTime
+        : onAirReviewEditedTime
+    );
     seekOnAirReviewEditedTime(onAirReviewEditedTime);
     updateOnAirReviewMuteState();
+    updateOnAirReviewCleanupPreviewModeUi();
+    updateOnAirReviewFadeCurveUi();
     updateOnAirReviewOverlapModeUi();
     updateOnAirReviewZoomControls();
     updateOnAirReviewSelectionControls();
@@ -3939,6 +4284,78 @@ function shiftOnAirReviewGainAdjustmentsForClipMove(sourceStart, sourceEnd, delt
   normalizeOnAirReviewGainAdjustments();
 }
 
+function shiftOnAirReviewCleanupRangesForClipMove(sourceStart, sourceEnd, deltaSeconds) {
+  const safeStart = Math.max(0, Number(sourceStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(sourceEnd) || safeStart);
+  const delta = Number(deltaSeconds) || 0;
+  if (Math.abs(delta) < 0.0005 || safeEnd - safeStart <= 0.0005) {
+    return;
+  }
+  const nextRanges = [];
+  onAirReviewCleanupRanges.forEach((range) => {
+    const start = Math.max(0, Number(range && range.start) || 0);
+    const end = Math.max(start, Number(range && range.end) || start);
+    if (end <= safeStart || start >= safeEnd) {
+      nextRanges.push({ start, end });
+      return;
+    }
+    if (start < safeStart) {
+      nextRanges.push({ start, end: safeStart });
+    }
+    nextRanges.push({
+      start: Math.max(safeStart, start) + delta,
+      end: Math.min(safeEnd, end) + delta
+    });
+    if (end > safeEnd) {
+      nextRanges.push({ start: safeEnd, end });
+    }
+  });
+  onAirReviewCleanupRanges = normalizeOnAirReviewCleanupRanges(nextRanges);
+}
+
+function shiftOnAirReviewFadeRegionsForClipMove(clipId, sourceStart, sourceEnd, deltaSeconds) {
+  const safeClipId = Math.max(1, Number(clipId) || 0);
+  const safeStart = Math.max(0, Number(sourceStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(sourceEnd) || safeStart);
+  const delta = Number(deltaSeconds) || 0;
+  if (!safeClipId || Math.abs(delta) < 0.0005 || !onAirReviewFadeRegions.length) {
+    return;
+  }
+  onAirReviewFadeRegions = normalizeOnAirReviewFadeRegions(
+    onAirReviewFadeRegions.map((region) => {
+      if (!region || region.clipId !== safeClipId) {
+        return region;
+      }
+      if (region.end <= safeStart || region.start >= safeEnd) {
+        return region;
+      }
+      return {
+        ...region,
+        start: region.start + delta,
+        end: region.end + delta
+      };
+    })
+  );
+}
+
+function updateOnAirReviewFadeRegionsAfterDelete(selectionStart, selectionEnd, clipId) {
+  const safeStart = Math.max(0, Number(selectionStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(selectionEnd) || safeStart);
+  const safeClipId = Math.max(1, Number(clipId) || 0);
+  if (!(safeEnd - safeStart > 0.01) || !safeClipId || !onAirReviewFadeRegions.length) {
+    return;
+  }
+  onAirReviewFadeRegions = normalizeOnAirReviewFadeRegions(
+    onAirReviewFadeRegions.filter((region) =>
+      !(
+        region &&
+        region.clipId === safeClipId &&
+        !(region.end <= safeStart || region.start >= safeEnd)
+      )
+    )
+  );
+}
+
 function applyOnAirReviewSelectionGain(deltaDb) {
   if (!hasOnAirReviewSelection()) {
     return false;
@@ -4099,13 +4516,22 @@ function ensureOnAirReviewTimeline() {
   if (!token || !(duration > 0)) {
     onAirReviewTimelineSourceToken = "";
     onAirReviewTimelineSegments = [];
+    onAirReviewMarkers = [];
+    onAirReviewCleanupRanges = [];
+    onAirReviewMarkerIdCounter = 1;
     onAirReviewEditedDuration = 0;
+    onAirReviewTimelineExplicitDuration = 0;
     onAirReviewEditedTime = 0;
+    updateOnAirReviewSelectionControls();
     return;
   }
   if (onAirReviewTimelineSourceToken !== token || !onAirReviewTimelineSegments.length) {
     onAirReviewTimelineSourceToken = token;
     buildDefaultOnAirReviewTimeline(duration);
+    onAirReviewMarkers = [];
+    onAirReviewCleanupRanges = [];
+    onAirReviewMarkerIdCounter = 1;
+    updateOnAirReviewSelectionControls();
   }
 }
 
@@ -4148,7 +4574,7 @@ function seekOnAirReviewEditedTime(seconds, options) {
   const config = options && typeof options === "object" ? options : {};
   const totalDuration = getOnAirReviewTimelineDuration();
   onAirReviewEditedTime = Math.max(0, Math.min(totalDuration, Number(seconds) || 0));
-  if (!onAirReviewWavePointerDown || !onAirReviewSelectMode) {
+  if (config.followViewport) {
     setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
   }
   const media = getActiveOnAirReviewMediaElement();
@@ -4195,8 +4621,7 @@ function seekOnAirReviewEditedTime(seconds, options) {
     onAirReviewPlaybackAnchorAt = performance.now();
     onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
   }
-  updateOnAirReviewTime();
-  queueOnAirReviewWaveRender();
+  updateOnAirReviewUi({ render: true, applyGain: true });
 }
 
 function isOnAirReviewPlaying() {
@@ -4237,13 +4662,9 @@ function tickOnAirReviewPlayback() {
       nextEditedTime = loopBounds.start;
       if (canUseOnAirReviewClipPlayback()) {
         onAirReviewEditedTime = loopBounds.start;
-        if (!onAirReviewWavePointerDown || !onAirReviewSelectMode) {
-          setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
-        }
         stopOnAirReviewClipPlayback();
         scheduleOnAirReviewClipPlayback(loopBounds.start, loopBounds.end);
-        updateOnAirReviewTime();
-        queueOnAirReviewWaveRender();
+        updateOnAirReviewUi({ render: true, applyGain: true });
       } else {
         seekOnAirReviewEditedTime(loopBounds.start, { play: true });
       }
@@ -4255,11 +4676,7 @@ function tickOnAirReviewPlayback() {
   }
   if (canUseOnAirReviewClipPlayback()) {
     onAirReviewEditedTime = nextEditedTime;
-    if (!onAirReviewWavePointerDown || !onAirReviewSelectMode) {
-      setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
-    }
-    updateOnAirReviewTime();
-    queueOnAirReviewWaveRender();
+    updateOnAirReviewUi({ render: true, applyGain: true });
   } else {
     seekOnAirReviewEditedTime(nextEditedTime, { play: true });
   }
@@ -4269,7 +4686,10 @@ function tickOnAirReviewPlayback() {
     if (media) {
       media.pause();
     }
+    onAirReviewEditedTime = 0;
+    setOnAirReviewViewportFocusTime(0);
     updateOnAirReviewPlayState();
+    updateOnAirReviewUi({ render: true, applyGain: true });
     return;
   }
   onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
@@ -4345,10 +4765,8 @@ function applyOnAirReviewDeleteToTimeline(mode) {
     const clipEnd = clip.end;
     if (selectionEnd <= clipStart || selectionStart >= clipEnd) {
       nextClips.push({
-        start: mode === "ripple" && clipStart >= selectionEnd ? clipStart - removedDuration : clipStart,
-        duration: clip.duration,
-        sourceStart: clip.sourceStart,
-        sourceEnd: clip.sourceEnd
+        ...createOnAirReviewClipDescriptor(clip),
+        start: mode === "ripple" && clipStart >= selectionEnd ? clipStart - removedDuration : clipStart
       });
       return;
     }
@@ -4358,6 +4776,7 @@ function applyOnAirReviewDeleteToTimeline(mode) {
     const trailing = clipEnd - overlapEnd;
     if (leading > 0) {
       nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
         start: clipStart,
         duration: leading,
         sourceStart: clip.sourceStart,
@@ -4367,6 +4786,7 @@ function applyOnAirReviewDeleteToTimeline(mode) {
     if (trailing > 0) {
       const nextStart = mode === "ripple" ? overlapStart : selectionEnd;
       nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
         start: nextStart,
         duration: trailing,
         sourceStart: clip.sourceEnd - trailing,
@@ -4377,13 +4797,23 @@ function applyOnAirReviewDeleteToTimeline(mode) {
   rebuildOnAirReviewTimelineFromMediaClips(nextClips, mode === "ripple"
     ? Math.max(0, getOnAirReviewTimelineDuration() - removedDuration)
     : getOnAirReviewTimelineDuration());
+  updateOnAirReviewMarkersAfterDelete(selectionStart, selectionEnd, mode);
+  updateOnAirReviewCleanupAfterDelete(selectionStart, selectionEnd, mode);
   if (mode === "ripple") {
     shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd);
   } else {
     removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd);
   }
+  onAirReviewFadeRegions = normalizeOnAirReviewFadeRegions(
+    onAirReviewFadeRegions.filter((region) => region && (region.end <= selectionStart || region.start >= selectionEnd))
+  );
   const resumeAt = Math.min(selectionStart, onAirReviewEditedDuration);
   clearOnAirReviewSelection();
+  const nextTargetClip = getOnAirReviewMediaClips().find((clip) => resumeAt >= clip.start && resumeAt <= clip.end)
+    || getOnAirReviewMediaClips().find((clip) => clip.start >= resumeAt)
+    || getOnAirReviewMediaClips()[getOnAirReviewMediaClips().length - 1]
+    || null;
+  setOnAirReviewSelectedClipIndex(nextTargetClip ? nextTargetClip.clipId : -1);
   seekOnAirReviewEditedTime(resumeAt);
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent = mode === "ripple"
@@ -4395,9 +4825,7 @@ function applyOnAirReviewDeleteToTimeline(mode) {
 
 function getOnAirReviewViewport(durationSeconds, currentSeconds) {
   const duration = Math.max(0, Number(durationSeconds) || 0);
-  const focusSeconds = Number.isFinite(onAirReviewViewportFocusTime) && onAirReviewViewportFocusTime > 0
-    ? onAirReviewViewportFocusTime
-    : currentSeconds;
+  const focusSeconds = getOnAirReviewViewportAnchorTime(currentSeconds);
   const current = Math.max(0, Number(focusSeconds) || 0);
   const currentProgress = duration > 0 ? Math.max(0, Math.min(1, current / duration)) : 0;
   const windowSize = duration > 0 ? Math.max(1 / clampOnAirReviewZoomLevel(onAirReviewZoomLevel), 0.08) : 1;
@@ -4413,11 +4841,45 @@ function getOnAirReviewViewport(durationSeconds, currentSeconds) {
   };
 }
 
+function updateOnAirReviewPanControl() {
+  if (!onAirReviewPan) {
+    return;
+  }
+  const duration = getOnAirReviewTimelineDuration();
+  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+  const zoomed = duration > 0 && viewport.windowSize < 0.999;
+  onAirReviewPan.disabled = !zoomed;
+  const maxStart = Math.max(0, 1 - viewport.windowSize);
+  const value = zoomed && maxStart > 0
+    ? Math.round((viewport.windowStart / maxStart) * 1000)
+    : 0;
+  onAirReviewPan.value = String(Math.max(0, Math.min(1000, value)));
+}
+
+function panOnAirReviewViewportBySlider(rawValue) {
+  const duration = getOnAirReviewTimelineDuration();
+  if (!(duration > 0)) {
+    return;
+  }
+  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+  const maxStart = Math.max(0, 1 - viewport.windowSize);
+  if (!(maxStart > 0)) {
+    setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
+    updateOnAirReviewPanControl();
+    return;
+  }
+  const sliderProgress = Math.max(0, Math.min(1, (Number(rawValue) || 0) / 1000));
+  const nextWindowStart = maxStart * sliderProgress;
+  const nextFocus = (nextWindowStart + viewport.windowSize / 2) * duration;
+  setOnAirReviewViewportFocusTime(nextFocus);
+  queueOnAirReviewWaveRender();
+  updateOnAirReviewPanControl();
+}
+
 function getOnAirReviewPeakAtEditedProgress(progress, totalDuration) {
-  const sourceDuration = getOnAirReviewAssetDuration();
   const clampedProgress = Math.max(0, Math.min(1, Number(progress) || 0));
   const editedDuration = Math.max(0, Number(totalDuration) || 0);
-  if (!onAirReviewWavePeaks.length || !(sourceDuration > 0) || !(editedDuration > 0)) {
+  if (!(editedDuration > 0)) {
     return 0;
   }
   const editedTime = editedDuration * clampedProgress;
@@ -4425,9 +4887,82 @@ function getOnAirReviewPeakAtEditedProgress(progress, totalDuration) {
   if (!position || !position.segment || position.segment.type !== "media") {
     return 0;
   }
-  const sourceProgress = Math.max(0, Math.min(1, Number(position.sourceTime || 0) / sourceDuration));
-  const peakIndex = Math.max(0, Math.min(onAirReviewWavePeaks.length - 1, Math.round(sourceProgress * (onAirReviewWavePeaks.length - 1))));
-  return Math.max(0, Math.min(1, Number(onAirReviewWavePeaks[peakIndex] || 0)));
+  const peaks = getOnAirReviewWavePeaksForClip(position.segment);
+  const sourceDuration = Math.max(0, Number(position.segment.sourceEnd || 0) - Number(position.segment.sourceStart || 0));
+  if (!peaks.length || !(sourceDuration > 0)) {
+    return 0;
+  }
+  const sourceRelativeTime = Math.max(0, Math.min(sourceDuration, Number(position.sourceTime || 0) - Number(position.segment.sourceStart || 0)));
+  const sourceProgress = Math.max(0, Math.min(1, sourceRelativeTime / sourceDuration));
+  const peakIndexFloat = Math.max(0, Math.min(peaks.length - 1, sourceProgress * Math.max(0, peaks.length - 1)));
+  const peakIndexLow = Math.floor(peakIndexFloat);
+  const peakIndexHigh = Math.min(peaks.length - 1, peakIndexLow + 1);
+  const peakMix = peakIndexFloat - peakIndexLow;
+  const peakLow = Math.max(0, Math.min(1, Number(peaks[peakIndexLow] || 0)));
+  const peakHigh = Math.max(0, Math.min(1, Number(peaks[peakIndexHigh] || 0)));
+  return Math.max(0, Math.min(1, peakLow + (peakHigh - peakLow) * peakMix));
+}
+
+function getOnAirReviewPeakForClipAtEditedTime(clip, editedTime) {
+  if (!clip) {
+    return 0;
+  }
+  const peaks = getOnAirReviewWavePeaksForClip(clip);
+  const sourceDuration = Math.max(0, Number(clip.sourceEnd || 0) - Number(clip.sourceStart || 0));
+  if (!peaks.length || !(sourceDuration > 0)) {
+    return 0;
+  }
+  const sourceTime = Math.max(0, Math.min(sourceDuration, (Number(editedTime) || 0) - clip.start)) + clip.sourceStart;
+  const sourceRelativeTime = Math.max(0, Math.min(sourceDuration, sourceTime - clip.sourceStart));
+  const sourceProgress = Math.max(0, Math.min(1, sourceRelativeTime / sourceDuration));
+  const peakIndexFloat = Math.max(0, Math.min(peaks.length - 1, sourceProgress * Math.max(0, peaks.length - 1)));
+  const peakIndexLow = Math.floor(peakIndexFloat);
+  const peakIndexHigh = Math.min(peaks.length - 1, peakIndexLow + 1);
+  const peakMix = peakIndexFloat - peakIndexLow;
+  const peakLow = Math.max(0, Math.min(1, Number(peaks[peakIndexLow] || 0)));
+  const peakHigh = Math.max(0, Math.min(1, Number(peaks[peakIndexHigh] || 0)));
+  return Math.max(0, Math.min(1, peakLow + (peakHigh - peakLow) * peakMix));
+}
+
+function getOnAirReviewRulerStepSeconds(visibleDurationSeconds, meterWidthPx) {
+  const visibleDuration = Math.max(0.01, Number(visibleDurationSeconds) || 0.01);
+  const meterWidth = Math.max(120, Number(meterWidthPx) || 120);
+  const targetTickCount = Math.max(3, Math.floor(meterWidth / 92));
+  const rawStep = visibleDuration / targetTickCount;
+  const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800];
+  return steps.find((step) => step >= rawStep) || steps[steps.length - 1];
+}
+
+function formatOnAirReviewRulerLabel(seconds, stepSeconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  if (stepSeconds < 1) {
+    return safeSeconds.toFixed(stepSeconds < 0.5 ? 1 : 0);
+  }
+  if (safeSeconds < 60) {
+    return String(Math.round(safeSeconds));
+  }
+  return formatPreviewClock(safeSeconds);
+}
+
+function getOnAirReviewNoiseAtEditedProgress(progress, totalDuration) {
+  const clampedProgress = Math.max(0, Math.min(1, Number(progress) || 0));
+  const editedDuration = Math.max(0, Number(totalDuration) || 0);
+  if (!(editedDuration > 0) || !onAirReviewNoiseFloorMap.length) {
+    return 0;
+  }
+  const editedTime = editedDuration * clampedProgress;
+  const position = getOnAirReviewTimelinePosition(editedTime);
+  if (!position || !position.segment || position.segment.type !== "media" || String(position.segment.sourceKind || "recording") !== "recording") {
+    return 0;
+  }
+  const sourceDuration = Math.max(0, Number(position.segment.sourceEnd || 0) - Number(position.segment.sourceStart || 0));
+  if (!(sourceDuration > 0)) {
+    return 0;
+  }
+  const sourceRelativeTime = Math.max(0, Math.min(sourceDuration, Number(position.sourceTime || 0) - Number(position.segment.sourceStart || 0)));
+  const sourceProgress = Math.max(0, Math.min(1, sourceRelativeTime / sourceDuration));
+  const noiseIndex = Math.max(0, Math.min(onAirReviewNoiseFloorMap.length - 1, Math.round(sourceProgress * (onAirReviewNoiseFloorMap.length - 1))));
+  return Math.max(0, Math.min(1, Number(onAirReviewNoiseFloorMap[noiseIndex] || 0)));
 }
 
 function hasOnAirReviewSelection() {
@@ -4457,11 +4992,46 @@ function setOnAirReviewSelection(startSeconds, endSeconds) {
 
 function setOnAirReviewViewportFocusTime(seconds) {
   const duration = getOnAirReviewTimelineDuration();
+  if (!Number.isFinite(seconds)) {
+    onAirReviewViewportFocusTime = null;
+    return;
+  }
   onAirReviewViewportFocusTime = duration > 0 ? Math.max(0, Math.min(duration, Number(seconds) || 0)) : 0;
 }
 
+function setOnAirReviewSelectedClipIndex(entryIndex) {
+  onAirReviewSelectedClipIndex = Number.isFinite(Number(entryIndex)) ? Number(entryIndex) : -1;
+  updateOnAirReviewSelectionControls();
+  queueOnAirReviewWaveRender();
+}
+
+function getOnAirReviewSelectedClip() {
+  return getOnAirReviewMediaClips().find((clip) => clip.clipId === onAirReviewSelectedClipIndex) || null;
+}
+
+function getOnAirReviewSelectionTargetClip() {
+  if (!hasOnAirReviewSelection()) {
+    return null;
+  }
+  const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const overlappingClips = getOnAirReviewMediaClips().filter((clip) => selectionEnd > clip.start + 0.005 && selectionStart < clip.end - 0.005);
+  if (!overlappingClips.length) {
+    return null;
+  }
+  const selectedClip = getOnAirReviewSelectedClip();
+  if (selectedClip && overlappingClips.some((clip) => clip.clipId === selectedClip.clipId)) {
+    return selectedClip;
+  }
+  if (overlappingClips.length === 1) {
+    return overlappingClips[0];
+  }
+  const containingClip = overlappingClips.find((clip) => selectionStart >= clip.start && selectionEnd <= clip.end);
+  return containingClip || null;
+}
+
 function resetOnAirReviewViewportFocusTime() {
-  onAirReviewViewportFocusTime = Math.max(0, Number(onAirReviewEditedTime) || 0);
+  setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
 }
 
 function getOnAirReviewSelectionHandleHit(seconds) {
@@ -4481,16 +5051,80 @@ function getOnAirReviewSelectionHandleHit(seconds) {
   return "";
 }
 
+function getOnAirReviewSelectionHandleHitAtClient(clientX) {
+  if (!hasOnAirReviewSelection()) {
+    return "";
+  }
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
+    return "";
+  }
+  const duration = getOnAirReviewTimelineDuration();
+  if (!(duration > 0)) {
+    return "";
+  }
+  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+  const selectionStartProgress = Math.max(0, Math.min(1, onAirReviewSelectionStart / duration));
+  const selectionEndProgress = Math.max(0, Math.min(1, onAirReviewSelectionEnd / duration));
+  const visibleSelectionStart = viewport.windowSize < 1
+    ? (selectionStartProgress - viewport.windowStart) / Math.max(viewport.windowSize, 1e-6)
+    : selectionStartProgress;
+  const visibleSelectionEnd = viewport.windowSize < 1
+    ? (selectionEndProgress - viewport.windowStart) / Math.max(viewport.windowSize, 1e-6)
+    : selectionEndProgress;
+  const startX = layout.timelineX + layout.timelineWidth * Math.max(0, Math.min(1, visibleSelectionStart));
+  const endX = layout.timelineX + layout.timelineWidth * Math.max(0, Math.min(1, visibleSelectionEnd));
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
+  const tolerance = Math.max(10, Math.min(22, layout.timelineWidth * 0.014));
+  if (Math.abs(localX - startX) <= tolerance) {
+    return "start";
+  }
+  if (Math.abs(localX - endX) <= tolerance) {
+    return "end";
+  }
+  return "";
+}
+
+function getOnAirReviewSelectionClipBounds() {
+  const selectedClip = getOnAirReviewSelectedClip();
+  if (selectedClip) {
+    return {
+      start: selectedClip.start,
+      end: selectedClip.end,
+      clipId: selectedClip.clipId
+    };
+  }
+  const targetClip = getOnAirReviewSelectionTargetClip();
+  if (targetClip) {
+    return {
+      start: targetClip.start,
+      end: targetClip.end,
+      clipId: targetClip.clipId
+    };
+  }
+  return null;
+}
+
+function clampOnAirReviewSelectionSecondsToClip(seconds) {
+  const clipBounds = getOnAirReviewSelectionClipBounds();
+  const rawSeconds = Number(seconds) || 0;
+  if (!clipBounds) {
+    return rawSeconds;
+  }
+  return Math.max(clipBounds.start, Math.min(clipBounds.end, rawSeconds));
+}
+
 function updateOnAirReviewSelectionFromDrag(seconds) {
+  const clampedSeconds = clampOnAirReviewSelectionSecondsToClip(seconds);
   if (onAirReviewSelectionDragMode === "start") {
-    setOnAirReviewSelection(seconds - onAirReviewSelectionHandleOffset, onAirReviewSelectionEnd);
+    setOnAirReviewSelection(clampOnAirReviewSelectionSecondsToClip(clampedSeconds - onAirReviewSelectionHandleOffset), onAirReviewSelectionEnd);
     return;
   }
   if (onAirReviewSelectionDragMode === "end") {
-    setOnAirReviewSelection(onAirReviewSelectionStart, seconds - onAirReviewSelectionHandleOffset);
+    setOnAirReviewSelection(onAirReviewSelectionStart, clampOnAirReviewSelectionSecondsToClip(clampedSeconds - onAirReviewSelectionHandleOffset));
     return;
   }
-  setOnAirReviewSelection(onAirReviewSelectionAnchor, seconds);
+  setOnAirReviewSelection(clampOnAirReviewSelectionSecondsToClip(onAirReviewSelectionAnchor), clampedSeconds);
 }
 
 function stopOnAirReviewSelectionAutoPan() {
@@ -4524,8 +5158,9 @@ function tickOnAirReviewSelectionAutoPan() {
   if (!direction) {
     return;
   }
-  const nextFocus = Math.max(0, Math.min(duration, onAirReviewViewportFocusTime + direction * Math.max(0.03, visibleDuration * 0.014)));
-  if (Math.abs(nextFocus - onAirReviewViewportFocusTime) > 0.001) {
+  const currentFocus = getOnAirReviewViewportAnchorTime(onAirReviewEditedTime);
+  const nextFocus = Math.max(0, Math.min(duration, currentFocus + direction * Math.max(0.03, visibleDuration * 0.014)));
+  if (Math.abs(nextFocus - currentFocus) > 0.001) {
     setOnAirReviewViewportFocusTime(nextFocus);
     const seconds = getOnAirReviewSecondsFromClientX(onAirReviewSelectionPointerClientX);
     updateOnAirReviewSelectionFromDrag(seconds);
@@ -4646,16 +5281,588 @@ function hasOnAirReviewSelectableAsset() {
   );
 }
 
+function getOnAirReviewMarkerCount() {
+  return Array.isArray(onAirReviewMarkers) ? onAirReviewMarkers.length : 0;
+}
+
+function getOnAirReviewCleanupCount() {
+  return Array.isArray(onAirReviewCleanupRanges) ? onAirReviewCleanupRanges.length : 0;
+}
+
+function updateOnAirReviewMarkerReadout() {
+  if (!onAirReviewMarkerReadout) {
+    return;
+  }
+  const count = getOnAirReviewMarkerCount();
+  onAirReviewMarkerReadout.textContent = count + (count === 1 ? " Mk" : " Mk");
+}
+
+function updateOnAirReviewCleanupReadout() {
+  if (!onAirReviewCleanupReadout) {
+    return;
+  }
+  const count = getOnAirReviewCleanupCount();
+  onAirReviewCleanupReadout.textContent = count ? count + " Cln" : "Clean Off";
+}
+
+function updateOnAirReviewCleanupPreviewModeUi() {
+  const mode = normalizeOnAirReviewCleanupPreviewMode(onAirReviewCleanupPreviewMode);
+  [
+    [onAirReviewPreviewAutoBtn, "auto"],
+    [onAirReviewPreviewOriginalBtn, "original"],
+    [onAirReviewPreviewCleanedBtn, "cleaned"]
+  ].forEach(([button, value]) => {
+    if (!button) {
+      return;
+    }
+    const active = mode === value;
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    button.classList.toggle("active", active);
+  });
+}
+
+function updateOnAirReviewFadeCurveUi() {
+  const mode = normalizeOnAirReviewFadeCurveMode(onAirReviewFadeCurveMode);
+  [
+    [onAirReviewFadeCurveLinearBtn, "linear"],
+    [onAirReviewFadeCurveSoftBtn, "soft"]
+  ].forEach(([button, value]) => {
+    if (!button) {
+      return;
+    }
+    const active = mode === value;
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    button.classList.toggle("active", active);
+  });
+}
+
+function setOnAirReviewFadeCurveMode(mode) {
+  const nextMode = normalizeOnAirReviewFadeCurveMode(mode);
+  if (nextMode === onAirReviewFadeCurveMode) {
+    updateOnAirReviewFadeCurveUi();
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("fade-curve-mode");
+  onAirReviewFadeCurveMode = nextMode;
+  updateOnAirReviewFadeCurveUi();
+  scheduleOnAirReviewPlaybackRefresh();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Fade curve set to " + (nextMode === "linear" ? "Linear" : "Soft") + ".";
+  }
+  return true;
+}
+
+function shouldUseOnAirReviewCleanedBufferAt(seconds) {
+  const mode = normalizeOnAirReviewCleanupPreviewMode(onAirReviewCleanupPreviewMode);
+  if (mode === "original") {
+    return false;
+  }
+  if (mode === "cleaned") {
+    return !!onAirReviewCleanedAudioBuffer;
+  }
+  return hasOnAirReviewCleanupAt(seconds) && !!onAirReviewCleanedAudioBuffer;
+}
+
+function setOnAirReviewCleanupPreviewMode(mode) {
+  const nextMode = normalizeOnAirReviewCleanupPreviewMode(mode);
+  if (nextMode === onAirReviewCleanupPreviewMode) {
+    updateOnAirReviewCleanupPreviewModeUi();
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("cleanup-preview-mode");
+  onAirReviewCleanupPreviewMode = nextMode;
+  updateOnAirReviewCleanupPreviewModeUi();
+  scheduleOnAirReviewPlaybackRefresh();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent =
+      nextMode === "original"
+        ? "Cleanup preview set to Original. Review playback is using the untouched source."
+        : nextMode === "cleaned"
+          ? "Cleanup preview set to Cleaned. Review playback is forcing the denoised buffer."
+          : "Cleanup preview set to Auto. Cleaned audio plays only inside cleanup ranges.";
+  }
+  return true;
+}
+
+function hasOnAirReviewCleanupAt(seconds) {
+  const target = Math.max(0, Number(seconds) || 0);
+  return onAirReviewCleanupRanges.some((range) => target >= range.start && target <= range.end);
+}
+
+function getOnAirReviewCleanupBoundariesForClip(clip, fromEditedTime) {
+  const clipStart = Math.max(0, Number(clip && clip.start) || 0);
+  const clipEnd = Math.max(clipStart, Number(clip && clip.end) || clipStart);
+  const rangeStart = Math.max(clipStart, Number(fromEditedTime) || 0);
+  const boundaries = [rangeStart, clipEnd];
+  onAirReviewCleanupRanges.forEach((range) => {
+    const start = Math.max(clipStart, Number(range && range.start) || 0);
+    const end = Math.min(clipEnd, Math.max(start, Number(range && range.end) || start));
+    if (end <= rangeStart || start >= clipEnd) {
+      return;
+    }
+    boundaries.push(Math.max(rangeStart, start));
+    boundaries.push(end);
+  });
+  return boundaries
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right)
+    .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.0005);
+}
+
+async function buildOnAirReviewCleanupBuffer() {
+  if (onAirReviewCleanedAudioBuffer || onAirReviewCleanupBufferPromise) {
+    return onAirReviewCleanupBufferPromise || Promise.resolve(onAirReviewCleanedAudioBuffer);
+  }
+  const sourceBuffer = onAirReviewDecodedAudioBuffer;
+  if (!sourceBuffer || !sourceBuffer.length || !(sourceBuffer.sampleRate > 0)) {
+    return null;
+  }
+  onAirReviewCleanupBufferPromise = (async () => {
+    const offline = new AudioBuffer({
+      length: sourceBuffer.length,
+      numberOfChannels: sourceBuffer.numberOfChannels,
+      sampleRate: sourceBuffer.sampleRate
+    });
+    const averageNoise = onAirReviewNoiseFloorMap.reduce((total, value) => total + value, 0) / Math.max(1, onAirReviewNoiseFloorMap.length);
+    const threshold = 0.006 + averageNoise * 0.045;
+    const floorGain = averageNoise > 0.62 ? 0.035 : averageNoise > 0.36 ? 0.065 : 0.095;
+    const attack = 0.34;
+    const release = 0.976;
+    const highPassAlpha = averageNoise > 0.5 ? 0.991 : 0.993;
+    const makeupGain = averageNoise > 0.62 ? 1.18 : averageNoise > 0.36 ? 1.12 : 1.08;
+    for (let channel = 0; channel < sourceBuffer.numberOfChannels; channel += 1) {
+      const input = sourceBuffer.getChannelData(channel);
+      const output = offline.getChannelData(channel);
+      let envelope = 0;
+      let smoothGain = 1;
+      let previousInput = 0;
+      let previousHighPass = 0;
+      for (let index = 0; index < input.length; index += 1) {
+        const sample = Number(input[index] || 0);
+        const magnitude = Math.abs(sample);
+        envelope = Math.max(magnitude, envelope * release);
+        const normalized = Math.max(0, Math.min(1, envelope / Math.max(threshold, 0.0005)));
+        const softKnee = Math.max(0, Math.min(1, (normalized - 0.14) / 0.86));
+        const targetGain = magnitude < threshold * 1.55
+          ? floorGain + Math.pow(softKnee, 2.1) * (1 - floorGain)
+          : 1;
+        smoothGain += (targetGain - smoothGain) * attack;
+        const reduced = sample * smoothGain;
+        const highPassed = reduced - previousInput + highPassAlpha * previousHighPass;
+        previousInput = reduced;
+        previousHighPass = highPassed;
+        output[index] = Math.max(-1, Math.min(1, highPassed * makeupGain));
+        if (index > 0 && index % 65536 === 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+        }
+      }
+    }
+    onAirReviewCleanedAudioBuffer = offline;
+    return offline;
+  })();
+  try {
+    return await onAirReviewCleanupBufferPromise;
+  } finally {
+    onAirReviewCleanupBufferPromise = null;
+  }
+}
+
+function scheduleOnAirReviewPlaybackRefresh() {
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+}
+
+async function applyOnAirReviewCleanupRange(startSeconds, endSeconds) {
+  const start = Math.max(0, Number(startSeconds) || 0);
+  const end = Math.max(start, Number(endSeconds) || start);
+  if (end - start <= 0.01 || !onAirReviewDecodedAudioBuffer) {
+    return false;
+  }
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Preparing cleanup preview for the selected range...";
+  }
+  const cleanedBuffer = await buildOnAirReviewCleanupBuffer();
+  if (!cleanedBuffer) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("cleanup");
+  onAirReviewCleanupRanges = normalizeOnAirReviewCleanupRanges([
+    ...onAirReviewCleanupRanges,
+    { start, end }
+  ]);
+  if (!onAirReviewCleanedAudioBuffer) {
+    onAirReviewCleanupPreviewMode = "auto";
+  }
+  updateOnAirReviewSelectionControls();
+  scheduleOnAirReviewPlaybackRefresh();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent =
+      "Auto cleanup applied from " + formatPreviewClock(start) + " to " + formatPreviewClock(end) + ".";
+  }
+  return true;
+}
+
+async function applyOnAirReviewCleanupToSelection() {
+  if (!hasOnAirReviewSelection()) {
+    return false;
+  }
+  return applyOnAirReviewCleanupRange(
+    Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd),
+    Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd)
+  );
+}
+
+async function applyOnAirReviewCleanupToAll() {
+  ensureOnAirReviewTimeline();
+  const duration = getOnAirReviewTimelineDuration();
+  if (!(duration > 0)) {
+    return false;
+  }
+  return applyOnAirReviewCleanupRange(0, duration);
+}
+
+async function insertOnAirReviewLibraryAssetAtPlayhead(asset) {
+  ensureOnAirReviewTimeline();
+  const decoded = await ensureOnAirReviewLibraryAssetDecoded(asset);
+  if (!decoded || !decoded.buffer || !(decoded.buffer.duration > 0)) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("library-insert");
+  const insertAt = Math.max(0, Math.min(getOnAirReviewTimelineDuration(), Number(onAirReviewEditedTime) || 0));
+  const targetLane = getOnAirReviewSmartInsertLane(insertAt);
+  const nextClips = getOnAirReviewMediaClips().map((clip) => createOnAirReviewClipDescriptor(clip));
+  nextClips.push({
+    start: insertAt,
+    duration: decoded.buffer.duration,
+    sourceStart: 0,
+    sourceEnd: decoded.buffer.duration,
+    lane: targetLane,
+    sourceKind: "library",
+    sourceAssetId: decoded.assetId,
+    sourceAssetLabel: decoded.assetLabel
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(getOnAirReviewTimelineDuration(), insertAt + decoded.buffer.duration));
+  const insertedClip = getOnAirReviewMediaClips().find((clip) =>
+    clip.sourceKind === "library" &&
+    clip.sourceAssetId === decoded.assetId &&
+    clip.lane === targetLane &&
+    Math.abs(clip.start - insertAt) < 0.01
+  );
+  setOnAirReviewSelectedClipIndex(insertedClip ? insertedClip.clipId : -1);
+  seekOnAirReviewEditedTime(insertAt);
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = decoded.assetLabel + " inserted at " + formatPreviewClock(insertAt) + ".";
+  }
+  return true;
+}
+
+function getOnAirReviewReplaceSelectionState() {
+  if (!hasOnAirReviewSelection()) {
+    return { allowed: false, reason: "Select a range first.", clip: null, start: 0, end: 0 };
+  }
+  ensureOnAirReviewTimeline();
+  const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (selectionEnd - selectionStart <= 0.01) {
+    return { allowed: false, reason: "Select a usable range first.", clip: null, start: selectionStart, end: selectionEnd };
+  }
+  const matchingClips = getOnAirReviewMediaClips().filter((clip) => selectionStart >= clip.start && selectionEnd <= clip.end);
+  if (matchingClips.length !== 1) {
+    return {
+      allowed: false,
+      reason: "Replace requires a selection fully inside one clip on one track.",
+      clip: null,
+      start: selectionStart,
+      end: selectionEnd
+    };
+  }
+  return {
+    allowed: true,
+    reason: "",
+    clip: matchingClips[0],
+    start: selectionStart,
+    end: selectionEnd
+  };
+}
+
+async function replaceOnAirReviewSelectionWithLibraryAsset(asset) {
+  const replaceState = getOnAirReviewReplaceSelectionState();
+  if (!replaceState.allowed) {
+    return false;
+  }
+  ensureOnAirReviewTimeline();
+  const decoded = await ensureOnAirReviewLibraryAssetDecoded(asset);
+  if (!decoded || !decoded.buffer || !(decoded.buffer.duration > 0)) {
+    return false;
+  }
+  const selectionStart = replaceState.start;
+  const selectionEnd = replaceState.end;
+  pushOnAirReviewHistorySnapshot("library-replace");
+  const matchedClip = replaceState.clip;
+  const targetLane = matchedClip ? matchedClip.lane : getOnAirReviewSmartInsertLane(selectionStart);
+  const nextClips = [];
+  getOnAirReviewMediaClips().forEach((clip) => {
+    if (clip.clipId !== matchedClip.clipId) {
+      nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
+        start: clip.start
+      });
+      return;
+    }
+    const clipStart = clip.start;
+    const clipEnd = clip.end;
+    const overlapStart = Math.max(selectionStart, clipStart);
+    const overlapEnd = Math.min(selectionEnd, clipEnd);
+    const leading = overlapStart - clipStart;
+    const trailing = clipEnd - overlapEnd;
+    if (leading > 0) {
+      nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
+        start: clipStart,
+        duration: leading,
+        sourceStart: clip.sourceStart,
+        sourceEnd: clip.sourceStart + leading
+      });
+    }
+    if (trailing > 0) {
+      nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
+        start: selectionEnd,
+        duration: trailing,
+        sourceStart: clip.sourceEnd - trailing,
+        sourceEnd: clip.sourceEnd
+      });
+    }
+  });
+  nextClips.push({
+    start: selectionStart,
+    duration: decoded.buffer.duration,
+    sourceStart: 0,
+    sourceEnd: decoded.buffer.duration,
+    lane: targetLane,
+    sourceKind: "library",
+    sourceAssetId: decoded.assetId,
+    sourceAssetLabel: decoded.assetLabel
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(
+    nextClips,
+    Math.max(getOnAirReviewTimelineDuration(), selectionEnd, selectionStart + decoded.buffer.duration)
+  );
+  updateOnAirReviewMarkersAfterDelete(selectionStart, selectionEnd, "delete");
+  updateOnAirReviewCleanupAfterDelete(selectionStart, selectionEnd, "delete");
+  removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd);
+  clearOnAirReviewSelection();
+  const insertedClip = getOnAirReviewMediaClips().find((clip) =>
+    clip.sourceKind === "library" &&
+    clip.sourceAssetId === decoded.assetId &&
+    clip.lane === targetLane &&
+    Math.abs(clip.start - selectionStart) < 0.01
+  );
+  setOnAirReviewSelectedClipIndex(insertedClip ? insertedClip.clipId : -1);
+  seekOnAirReviewEditedTime(selectionStart);
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent =
+      decoded.assetLabel + " replaced the selected range at " + formatPreviewClock(selectionStart) + ".";
+  }
+  return true;
+}
+
+function clearOnAirReviewCleanupRanges() {
+  if (!getOnAirReviewCleanupCount()) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("cleanup-clear");
+  onAirReviewCleanupRanges = [];
+  onAirReviewCleanupPreviewMode = "auto";
+  updateOnAirReviewSelectionControls();
+  scheduleOnAirReviewPlaybackRefresh();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Auto cleanup regions cleared. Original review audio is active again.";
+  }
+  return true;
+}
+
+function addOnAirReviewPointMarker() {
+  const duration = getOnAirReviewTimelineDuration();
+  if (!(duration > 0)) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("add-marker");
+  const start = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
+  onAirReviewMarkers = normalizeOnAirReviewMarkers([
+    ...onAirReviewMarkers,
+    { id: onAirReviewMarkerIdCounter, type: "point", start, end: start }
+  ]);
+  updateOnAirReviewSelectionControls();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Point marker added at " + formatPreviewClock(start) + ".";
+  }
+  return true;
+}
+
+function addOnAirReviewRangeMarkerFromSelection() {
+  if (!hasOnAirReviewSelection()) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("add-range-marker");
+  const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  onAirReviewMarkers = normalizeOnAirReviewMarkers([
+    ...onAirReviewMarkers,
+    { id: onAirReviewMarkerIdCounter, type: "range", start, end }
+  ]);
+  updateOnAirReviewSelectionControls();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Range marker added from " + formatPreviewClock(start) + " to " + formatPreviewClock(end) + ".";
+  }
+  return true;
+}
+
+function clearOnAirReviewMarkers() {
+  if (!getOnAirReviewMarkerCount()) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("clear-markers");
+  onAirReviewMarkers = [];
+  onAirReviewMarkerIdCounter = 1;
+  updateOnAirReviewSelectionControls();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "All review markers were cleared.";
+  }
+  return true;
+}
+
+function updateOnAirReviewMarkersAfterDelete(selectionStart, selectionEnd, mode) {
+  const safeStart = Math.max(0, Number(selectionStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(selectionEnd) || safeStart);
+  const removedDuration = Math.max(0, safeEnd - safeStart);
+  if (!(removedDuration > 0) || !onAirReviewMarkers.length) {
+    return;
+  }
+  const nextMarkers = [];
+  onAirReviewMarkers.forEach((marker) => {
+    if (!marker) {
+      return;
+    }
+    if (marker.type === "range") {
+      let start = Math.max(0, Number(marker.start) || 0);
+      let end = Math.max(start, Number(marker.end) || start);
+      if (mode === "ripple") {
+        if (end <= safeStart) {
+          nextMarkers.push({ ...marker, start, end });
+          return;
+        }
+        if (start >= safeEnd) {
+          nextMarkers.push({ ...marker, start: start - removedDuration, end: end - removedDuration });
+          return;
+        }
+        if (start < safeStart) {
+          end = Math.max(start, Math.min(safeStart, end));
+          nextMarkers.push({ ...marker, start, end });
+        }
+        if (end > safeEnd) {
+          const trailingStart = Math.max(0, safeStart);
+          const trailingEnd = Math.max(trailingStart, trailingStart + (end - safeEnd));
+          nextMarkers.push({ ...marker, start: trailingStart, end: trailingEnd });
+        }
+        return;
+      }
+      if (end <= safeStart || start >= safeEnd) {
+        nextMarkers.push({ ...marker, start, end });
+        return;
+      }
+      if (start < safeStart) {
+        nextMarkers.push({ ...marker, start, end: safeStart });
+      }
+      if (end > safeEnd) {
+        nextMarkers.push({ ...marker, start: safeEnd, end });
+      }
+      return;
+    }
+    const point = Math.max(0, Number(marker.start) || 0);
+    if (mode === "ripple") {
+      if (point >= safeEnd) {
+        nextMarkers.push({ ...marker, start: point - removedDuration, end: point - removedDuration });
+      } else if (point <= safeStart) {
+        nextMarkers.push({ ...marker, start: point, end: point });
+      }
+      return;
+    }
+    nextMarkers.push({ ...marker, start: point, end: point });
+  });
+  onAirReviewMarkers = normalizeOnAirReviewMarkers(nextMarkers);
+}
+
+function updateOnAirReviewCleanupAfterDelete(selectionStart, selectionEnd, mode) {
+  const safeStart = Math.max(0, Number(selectionStart) || 0);
+  const safeEnd = Math.max(safeStart, Number(selectionEnd) || safeStart);
+  const removedDuration = Math.max(0, safeEnd - safeStart);
+  if (!(removedDuration > 0) || !onAirReviewCleanupRanges.length) {
+    return;
+  }
+  const nextRanges = [];
+  onAirReviewCleanupRanges.forEach((range) => {
+    let start = Math.max(0, Number(range && range.start) || 0);
+    let end = Math.max(start, Number(range && range.end) || start);
+    if (mode === "ripple") {
+      if (end <= safeStart) {
+        nextRanges.push({ start, end });
+        return;
+      }
+      if (start >= safeEnd) {
+        nextRanges.push({ start: start - removedDuration, end: end - removedDuration });
+        return;
+      }
+      if (start < safeStart) {
+        nextRanges.push({ start, end: safeStart });
+      }
+      if (end > safeEnd) {
+        nextRanges.push({
+          start: safeStart,
+          end: safeStart + (end - safeEnd)
+        });
+      }
+      return;
+    }
+    if (end <= safeStart || start >= safeEnd) {
+      nextRanges.push({ start, end });
+      return;
+    }
+    if (start < safeStart) {
+      nextRanges.push({ start, end: safeStart });
+    }
+    if (end > safeEnd) {
+      nextRanges.push({ start: safeEnd, end });
+    }
+  });
+  onAirReviewCleanupRanges = normalizeOnAirReviewCleanupRanges(nextRanges);
+}
+
 function updateOnAirReviewSelectionControls() {
   const hasAsset = hasOnAirReviewSelectableAsset();
   const hasSelection = hasOnAirReviewSelection();
   updateOnAirReviewHistoryControls();
+  updateOnAirReviewMarkerReadout();
+  updateOnAirReviewCleanupReadout();
   if (onAirReviewSelectAllBtn) {
     onAirReviewSelectAllBtn.disabled = !hasAsset;
   }
   if (onAirReviewClearSelectionBtn) {
     onAirReviewClearSelectionBtn.disabled = !hasSelection;
   }
+  const trackCandidate = getOnAirReviewTrackCandidateClip();
   if (onAirReviewDeleteBtn) {
     onAirReviewDeleteBtn.disabled = !hasSelection;
   }
@@ -4668,6 +5875,47 @@ function updateOnAirReviewSelectionControls() {
   if (onAirReviewSplitSelectionBtn) {
     onAirReviewSplitSelectionBtn.disabled = !canSplitOnAirReviewSelectionEdges();
   }
+  const removeClipCandidate = getOnAirReviewClipRemoveCandidate();
+  if (onAirReviewRemoveClipBtn) {
+    onAirReviewRemoveClipBtn.disabled = !removeClipCandidate;
+  }
+  if (onAirReviewTrackUpBtn) {
+    onAirReviewTrackUpBtn.disabled = !trackCandidate || trackCandidate.lane <= 0;
+  }
+  if (onAirReviewTrackDownBtn) {
+    onAirReviewTrackDownBtn.disabled = !trackCandidate || trackCandidate.lane >= ON_AIR_REVIEW_MAX_LANE_INDEX;
+  }
+  if (onAirReviewTrackReadout) {
+    onAirReviewTrackReadout.textContent = trackCandidate ? "T" + String(trackCandidate.lane + 1) : "T-";
+  }
+  if (onAirReviewAddMarkerBtn) {
+    onAirReviewAddMarkerBtn.disabled = !hasAsset;
+  }
+  if (onAirReviewAddRangeMarkerBtn) {
+    onAirReviewAddRangeMarkerBtn.disabled = !hasSelection;
+  }
+  if (onAirReviewClearMarkersBtn) {
+    onAirReviewClearMarkersBtn.disabled = !getOnAirReviewMarkerCount();
+  }
+  if (onAirReviewCleanSelectionBtn) {
+    onAirReviewCleanSelectionBtn.disabled = !hasSelection || !onAirReviewDecodedAudioBuffer;
+  }
+  if (onAirReviewCleanAllBtn) {
+    onAirReviewCleanAllBtn.disabled = !hasAsset || !onAirReviewDecodedAudioBuffer;
+  }
+  if (onAirReviewClearCleanupBtn) {
+    onAirReviewClearCleanupBtn.disabled = !getOnAirReviewCleanupCount();
+  }
+  if (onAirReviewPreviewAutoBtn) {
+    onAirReviewPreviewAutoBtn.disabled = !onAirReviewDecodedAudioBuffer;
+  }
+  if (onAirReviewPreviewOriginalBtn) {
+    onAirReviewPreviewOriginalBtn.disabled = !onAirReviewDecodedAudioBuffer;
+  }
+  if (onAirReviewPreviewCleanedBtn) {
+    onAirReviewPreviewCleanedBtn.disabled = !onAirReviewCleanedAudioBuffer;
+  }
+  updateOnAirReviewCleanupPreviewModeUi();
   if (onAirReviewGainDownBtn) {
     onAirReviewGainDownBtn.disabled = !hasSelection;
   }
@@ -4683,9 +5931,396 @@ function updateOnAirReviewSelectionControls() {
   if (onAirReviewGainReadout) {
     onAirReviewGainReadout.textContent = formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb());
   }
+  const insertGainCandidate = getOnAirReviewInsertGainCandidateClip();
+  if (onAirReviewInsertGainDownBtn) {
+    onAirReviewInsertGainDownBtn.disabled = !insertGainCandidate;
+  }
+  if (onAirReviewInsertGainUpBtn) {
+    onAirReviewInsertGainUpBtn.disabled = !insertGainCandidate;
+  }
+  if (onAirReviewInsertGainResetBtn) {
+    onAirReviewInsertGainResetBtn.disabled = !insertGainCandidate || Math.abs(Number(insertGainCandidate.clipGainDb || 0)) < 0.05;
+  }
+  if (onAirReviewInsertGainReadout) {
+    onAirReviewInsertGainReadout.textContent = insertGainCandidate
+      ? formatOnAirReviewGainDb(insertGainCandidate.clipGainDb)
+      : "0 dB";
+  }
+  const fadeTarget = getOnAirReviewFadeEditTarget();
+  const fadeCandidate = fadeTarget ? fadeTarget.clip : null;
+  const fadeDisplayPair = fadeTarget
+    ? normalizeOnAirReviewClipFadePair(fadeTarget.fadeIn, fadeTarget.fadeOut, fadeTarget.end - fadeTarget.start)
+    : { fadeIn: 0, fadeOut: 0 };
+  if (onAirReviewFadeInDownBtn) {
+    onAirReviewFadeInDownBtn.disabled = !fadeCandidate || !(fadeDisplayPair.fadeIn > 0.001);
+  }
+  if (onAirReviewFadeInUpBtn) {
+    onAirReviewFadeInUpBtn.disabled = !fadeCandidate;
+  }
+  if (onAirReviewFadeOutDownBtn) {
+    onAirReviewFadeOutDownBtn.disabled = !fadeCandidate || !(fadeDisplayPair.fadeOut > 0.001);
+  }
+  if (onAirReviewFadeOutUpBtn) {
+    onAirReviewFadeOutUpBtn.disabled = !fadeCandidate;
+  }
+  if (onAirReviewFadeResetBtn) {
+    onAirReviewFadeResetBtn.disabled = !fadeCandidate || (!(fadeDisplayPair.fadeIn > 0.001) && !(fadeDisplayPair.fadeOut > 0.001));
+  }
+  if (onAirReviewFadeReadout) {
+    if (!fadeCandidate) {
+      onAirReviewFadeReadout.textContent = "In 0.0s / Out 0.0s";
+    } else {
+      const fadeScopeLabel = fadeTarget && fadeTarget.type === "selection" ? "Sel" : "Clip";
+      onAirReviewFadeReadout.textContent =
+        fadeScopeLabel + " In " + Number(fadeDisplayPair.fadeIn || 0).toFixed(1) + "s / Out " + Number(fadeDisplayPair.fadeOut || 0).toFixed(1) + "s";
+    }
+  }
   if (onAirReviewLoopReadout) {
     onAirReviewLoopReadout.textContent = hasSelection ? "Loop On" : "Loop Off";
   }
+  updateOnAirReviewLibraryActionStates();
+  updateOnAirReviewPanControl();
+}
+
+function applyOnAirReviewClipFadeDelta(kind, deltaSeconds) {
+  const target = getOnAirReviewFadeEditTarget();
+  if (!target || !target.clip) {
+    return false;
+  }
+  const nextFadeIn = kind === "in" ? target.fadeIn + (Number(deltaSeconds) || 0) : target.fadeIn;
+  const nextFadeOut = kind === "out" ? target.fadeOut + (Number(deltaSeconds) || 0) : target.fadeOut;
+  if (!updateOnAirReviewFadeTargetPair(target, nextFadeIn, nextFadeOut)) {
+    return false;
+  }
+  updateOnAirReviewSelectionControls();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    const fadeScopeLabel = target.type === "selection" ? "selected region" : "clip";
+    onAirReviewWaveNote.textContent =
+      (kind === "out" ? "Fade out" : "Fade in") +
+      " updated to " +
+      Number((kind === "out" ? nextFadeOut : nextFadeIn) || 0).toFixed(1) +
+      "s on the " +
+      fadeScopeLabel +
+      ".";
+  }
+  return true;
+}
+
+function resetOnAirReviewClipFades() {
+  const target = getOnAirReviewFadeEditTarget();
+  if (!target || !target.clip) {
+    return false;
+  }
+  if (!(target.fadeIn > 0.001) && !(target.fadeOut > 0.001)) {
+    return false;
+  }
+  if (!updateOnAirReviewFadeTargetPair(target, 0, 0)) {
+    return false;
+  }
+  updateOnAirReviewSelectionControls();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = target.type === "selection"
+      ? "Fades cleared from the selected region."
+      : "Clip fades cleared.";
+  }
+  return true;
+}
+
+function getOnAirReviewFadeSelectionState(clip) {
+  if (!clip || !hasOnAirReviewSelection()) {
+    return { mode: "clip", selectionStart: 0, selectionEnd: 0 };
+  }
+  const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (selectionEnd - selectionStart <= 0.02) {
+    return { mode: "clip", selectionStart, selectionEnd };
+  }
+  const clippedStart = Math.max(clip.start, selectionStart);
+  const clippedEnd = Math.min(clip.end, selectionEnd);
+  if (clippedEnd - clippedStart <= 0.02) {
+    return { mode: "clip", selectionStart, selectionEnd };
+  }
+  if (clippedStart <= clip.start + 0.02 && clippedEnd >= clip.end - 0.02) {
+    return { mode: "clip", selectionStart: clippedStart, selectionEnd: clippedEnd };
+  }
+  return { mode: "selection", selectionStart: clippedStart, selectionEnd: clippedEnd };
+}
+
+function getOnAirReviewFadeRegionForSelection(clip, fadeSelectionState) {
+  if (!clip) {
+    return null;
+  }
+  const selectionState = fadeSelectionState || getOnAirReviewFadeSelectionState(clip);
+  if (selectionState.mode !== "selection") {
+    return null;
+  }
+  return onAirReviewFadeRegions.find((region) =>
+    region &&
+    region.clipId === clip.clipId &&
+    Math.abs(Number(region.start || 0) - selectionState.selectionStart) <= 0.02 &&
+    Math.abs(Number(region.end || 0) - selectionState.selectionEnd) <= 0.02
+  ) || null;
+}
+
+function getOnAirReviewFadeEditTarget() {
+  const clip = getOnAirReviewTrackCandidateClip();
+  if (!clip) {
+    return null;
+  }
+  const selectionState = getOnAirReviewFadeSelectionState(clip);
+  if (selectionState.mode === "selection") {
+    const region = getOnAirReviewFadeRegionForSelection(clip, selectionState);
+    const regionPair = normalizeOnAirReviewClipFadePair(
+      region && region.fadeIn,
+      region && region.fadeOut,
+      selectionState.selectionEnd - selectionState.selectionStart
+    );
+    return {
+      type: "selection",
+      clip,
+      start: selectionState.selectionStart,
+      end: selectionState.selectionEnd,
+      fadeIn: regionPair.fadeIn,
+      fadeOut: regionPair.fadeOut
+    };
+  }
+  const clipPair = normalizeOnAirReviewClipFadePair(clip.fadeIn, clip.fadeOut, clip.duration);
+  return {
+    type: "clip",
+    clip,
+    start: clip.start,
+    end: clip.end,
+    fadeIn: clipPair.fadeIn,
+    fadeOut: clipPair.fadeOut
+  };
+}
+
+function updateOnAirReviewFadeTargetPair(target, nextFadeIn, nextFadeOut) {
+  if (!target || !target.clip) {
+    return false;
+  }
+  if (target.type === "selection") {
+    const duration = Math.max(0, target.end - target.start);
+    const nextPair = normalizeOnAirReviewClipFadePair(nextFadeIn, nextFadeOut, duration);
+    const currentPair = normalizeOnAirReviewClipFadePair(target.fadeIn, target.fadeOut, duration);
+    if (Math.abs(nextPair.fadeIn - currentPair.fadeIn) < 0.001 && Math.abs(nextPair.fadeOut - currentPair.fadeOut) < 0.001) {
+      return false;
+    }
+    pushOnAirReviewHistorySnapshot("fade-region");
+    const nextRegions = onAirReviewFadeRegions.filter((region) =>
+      !(
+        region &&
+        region.clipId === target.clip.clipId &&
+        Math.abs(Number(region.start || 0) - target.start) <= 0.02 &&
+        Math.abs(Number(region.end || 0) - target.end) <= 0.02
+      )
+    );
+    if (nextPair.fadeIn > 0.001 || nextPair.fadeOut > 0.001) {
+      nextRegions.push({
+        clipId: target.clip.clipId,
+        start: target.start,
+        end: target.end,
+        fadeIn: nextPair.fadeIn,
+        fadeOut: nextPair.fadeOut
+      });
+    }
+    onAirReviewFadeRegions = normalizeOnAirReviewFadeRegions(nextRegions);
+    return true;
+  }
+  const nextClips = getOnAirReviewMediaClips().map((entry) => {
+    const descriptor = { ...createOnAirReviewClipDescriptor(entry), start: entry.start };
+    if (entry.clipId !== target.clip.clipId) {
+      return descriptor;
+    }
+    const nextPair = normalizeOnAirReviewClipFadePair(nextFadeIn, nextFadeOut, entry.duration);
+    descriptor.fadeIn = nextPair.fadeIn;
+    descriptor.fadeOut = nextPair.fadeOut;
+    return descriptor;
+  });
+  const currentPair = normalizeOnAirReviewClipFadePair(target.fadeIn, target.fadeOut, target.end - target.start);
+  const updated = nextClips.find((entry) => entry.clipId === target.clip.clipId);
+  if (!updated || (Math.abs(updated.fadeIn - currentPair.fadeIn) < 0.001 && Math.abs(updated.fadeOut - currentPair.fadeOut) < 0.001)) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("clip-fade");
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  return true;
+}
+
+function applyOnAirReviewFadeHandleDrag(kind, target, pointerSeconds) {
+  if (!target || !target.clip) {
+    return false;
+  }
+  const safePointer = Math.max(target.start, Math.min(target.end, Number(pointerSeconds) || 0));
+  const duration = Math.max(0.02, target.end - target.start);
+  const nextFadeIn = kind === "in" ? safePointer - target.start : target.fadeIn;
+  const nextFadeOut = kind === "out" ? target.end - safePointer : target.fadeOut;
+  const changed = updateOnAirReviewFadeTargetPair(target, nextFadeIn, nextFadeOut);
+  if (changed) {
+    updateOnAirReviewSelectionControls();
+    scheduleOnAirReviewPlaybackRefresh();
+    queueOnAirReviewWaveRender();
+  }
+  return changed;
+}
+
+function isolateOnAirReviewSelectionForClipFade(clip, fadeSelectionState) {
+  if (!clip) {
+    return clip;
+  }
+  const selectionState = fadeSelectionState || getOnAirReviewFadeSelectionState(clip);
+  if (selectionState.mode !== "selection") {
+    return clip;
+  }
+  const selectionStart = selectionState.selectionStart;
+  const selectionEnd = selectionState.selectionEnd;
+  const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+  const middleSourceStart = Math.max(
+    sourceBounds.sourceStart,
+    Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + (selectionStart - clip.start))
+  );
+  const middleSourceEnd = Math.max(
+    middleSourceStart,
+    Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + (selectionEnd - clip.start))
+  );
+  const nextClips = [];
+  getOnAirReviewMediaClips().forEach((entry) => {
+    if (entry.clipId !== clip.clipId) {
+      nextClips.push({ ...createOnAirReviewClipDescriptor(entry), start: entry.start });
+      return;
+    }
+    if (selectionStart > clip.start + 0.02) {
+      nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
+        start: clip.start,
+        duration: selectionStart - clip.start,
+        sourceStart: clip.sourceStart,
+        sourceEnd: middleSourceStart,
+        fadeIn: clip.fadeIn,
+        fadeOut: 0
+      });
+    }
+    nextClips.push({
+      ...createOnAirReviewClipDescriptor(clip),
+      clipId: clip.clipId,
+      start: selectionStart,
+      duration: selectionEnd - selectionStart,
+      sourceStart: middleSourceStart,
+      sourceEnd: middleSourceEnd,
+      fadeIn: 0,
+      fadeOut: 0
+    });
+    if (selectionEnd < clip.end - 0.02) {
+      nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
+        start: selectionEnd,
+        duration: clip.end - selectionEnd,
+        sourceStart: middleSourceEnd,
+        sourceEnd: clip.sourceEnd,
+        fadeIn: 0,
+        fadeOut: clip.fadeOut
+      });
+    }
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  setOnAirReviewSelectedClipIndex(clip.clipId);
+  setOnAirReviewSelection(selectionStart, selectionEnd);
+  seekOnAirReviewEditedTime(selectionStart);
+  return getOnAirReviewMediaClips().find((entry) => entry.clipId === clip.clipId) || clip;
+}
+
+function updateOnAirReviewLibraryActionStates() {
+  if (!onAirReviewLibraryList) {
+    return;
+  }
+  const replaceState = getOnAirReviewReplaceSelectionState();
+  if (onAirReviewLibraryNote && onAirMusicLibrary.length) {
+    onAirReviewLibraryNote.textContent = replaceState.allowed
+      ? "Preview a library sound, insert it on the selected or next open track, or replace the selected clip range."
+      : "Preview a library sound, insert it on the selected or next open track, or select within one clip to enable Replace.";
+  }
+  onAirReviewLibraryList.querySelectorAll("[data-review-library-replace]").forEach((button) => {
+    button.disabled = !replaceState.allowed;
+    button.title = replaceState.allowed ? "Replace the selected range inside this clip." : replaceState.reason;
+  });
+}
+
+function applyOnAirReviewInsertClipGainDelta(deltaDb) {
+  const clip = getOnAirReviewInsertGainCandidateClip();
+  if (!clip) {
+    return false;
+  }
+  const nextClips = getOnAirReviewMediaClips().map((entry) => {
+    const descriptor = {
+      ...createOnAirReviewClipDescriptor(entry),
+      start: entry.start
+    };
+    if (entry.clipId !== clip.clipId) {
+      return descriptor;
+    }
+    descriptor.clipGainDb = clampOnAirReviewGainDb((entry.clipGainDb || 0) + (Number(deltaDb) || 0));
+    return descriptor;
+  });
+  const updatedClip = nextClips.find((entry) => entry.clipId === clip.clipId);
+  if (!updatedClip || Math.abs(Number(updatedClip.clipGainDb || 0) - Number(clip.clipGainDb || 0)) < 0.001) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("insert-gain");
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  updateOnAirReviewSelectionControls();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Inserted clip level updated to " + formatOnAirReviewGainDb(updatedClip.clipGainDb) + ".";
+  }
+  return true;
+}
+
+function resetOnAirReviewInsertClipGain() {
+  const clip = getOnAirReviewInsertGainCandidateClip();
+  if (!clip || Math.abs(Number(clip.clipGainDb || 0)) < 0.05) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("insert-gain-reset");
+  const nextClips = getOnAirReviewMediaClips().map((entry) => ({
+    ...createOnAirReviewClipDescriptor(entry),
+    start: entry.start,
+    clipGainDb: entry.clipId === clip.clipId ? 0 : entry.clipGainDb
+  }));
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  updateOnAirReviewSelectionControls();
+  if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
+    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
+    onAirReviewPlaybackAnchorAt = performance.now();
+    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+  }
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Inserted clip level reset to 0 dB.";
+  }
+  return true;
 }
 
 function getOnAirReviewClipHit(seconds) {
@@ -4702,15 +6337,27 @@ function getOnAirReviewClipHit(seconds) {
   return null;
 }
 
-function beginOnAirReviewClipDrag(entry, pointerSeconds) {
+function beginOnAirReviewClipDrag(entry, pointerSeconds, pointerClientX) {
+  const timelineDuration = getOnAirReviewTimelineDuration();
+  const viewport = getOnAirReviewViewport(timelineDuration, onAirReviewEditedTime);
+  const layout = getOnAirReviewWaveLayout();
   if (!entry || entry.type !== "media") {
     return false;
   }
   pushOnAirReviewHistorySnapshot("move");
+  setOnAirReviewSelectedClipIndex(entry.clipId);
+  const timelineWidthPx = Math.max(1, Number(layout && layout.timelineWidth) || 1);
+  const visibleDuration = Math.max(0.25, timelineDuration * Math.max(0.08, Math.min(1, Number(viewport && viewport.windowSize) || 1)));
   onAirReviewClipDragState = {
-    entryIndex: entry.index,
+    entryIndex: entry.clipId,
     originalStart: entry.start,
     duration: entry.duration,
+    renderDuration: Math.max(timelineDuration, entry.end),
+    pendingDuration: Math.max(timelineDuration, entry.end),
+    viewportWindowSize: Math.max(0.08, Math.min(1, Number(viewport && viewport.windowSize) || 1)),
+    viewportVisibleDuration: visibleDuration,
+    pointerStartClientX: Number(pointerClientX) || 0,
+    secondsPerPixel: visibleDuration / timelineWidthPx,
     pointerOffset: Math.max(0, Math.min(entry.duration, Number(pointerSeconds) - entry.start)),
     moved: false
   };
@@ -4721,13 +6368,24 @@ function beginOnAirReviewClipDrag(entry, pointerSeconds) {
   return true;
 }
 
-function updateOnAirReviewClipDrag(pointerSeconds) {
+function updateOnAirReviewClipDrag(pointerSeconds, pointerClientX) {
   if (!onAirReviewClipDragState) {
     return;
   }
-  const desiredStart = Number(pointerSeconds) - Number(onAirReviewClipDragState.pointerOffset || 0);
+  const usingClientDelta = Number.isFinite(pointerClientX) && Number.isFinite(onAirReviewClipDragState.pointerStartClientX);
+  const desiredStart = usingClientDelta
+    ? Number(onAirReviewClipDragState.originalStart || 0)
+      + ((Number(pointerClientX) || 0) - Number(onAirReviewClipDragState.pointerStartClientX || 0))
+        * Math.max(0.0001, Number(onAirReviewClipDragState.secondsPerPixel) || 0.0001)
+    : Number(pointerSeconds) - Number(onAirReviewClipDragState.pointerOffset || 0);
   if (moveOnAirReviewClip(onAirReviewClipDragState.entryIndex, desiredStart)) {
     onAirReviewClipDragState.moved = true;
+    const totalDuration = getOnAirReviewTimelineDuration();
+    const preferredVisibleDuration = Math.max(0.25, Number(onAirReviewClipDragState.viewportVisibleDuration) || totalDuration);
+    if (totalDuration > preferredVisibleDuration + 0.001) {
+      onAirReviewZoomLevel = clampOnAirReviewZoomLevel(totalDuration / preferredVisibleDuration);
+      updateOnAirReviewZoomControls();
+    }
   }
 }
 
@@ -4735,6 +6393,18 @@ function endOnAirReviewClipDrag() {
   if (!onAirReviewClipDragState) {
     return;
   }
+  const clips = getOnAirReviewMediaClips().map((entry) => ({
+    ...createOnAirReviewClipDescriptor(entry),
+    start: entry.start
+  }));
+  const clipExtentDuration = clips.reduce((maxEnd, clip) => {
+    const start = Math.max(0, Number(clip && clip.start) || 0);
+    const duration = Math.max(0, Number(clip && clip.duration) || 0);
+    return Math.max(maxEnd, start + duration);
+  }, 0);
+  const finalDuration = clipExtentDuration;
+  rebuildOnAirReviewTimelineFromMediaClips(clips, finalDuration);
+  seekOnAirReviewEditedTime(Math.max(0, Math.min(finalDuration, onAirReviewEditedTime)));
   if (!onAirReviewClipDragState.moved && onAirReviewUndoStack.length) {
     const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
     if (lastSnapshot && lastSnapshot.label === "move") {
@@ -4752,36 +6422,46 @@ function endOnAirReviewClipDrag() {
 function moveOnAirReviewClip(entryIndex, targetStart) {
   const totalDuration = getOnAirReviewTimelineDuration();
   const mediaEntries = getOnAirReviewMediaClips();
-  const clipIndex = mediaEntries.findIndex((entry) => entry.index === entryIndex);
+  const clipIndex = mediaEntries.findIndex((entry) => entry.clipId === entryIndex);
   if (clipIndex === -1) {
     return false;
   }
   const clip = mediaEntries[clipIndex];
-  const previous = mediaEntries[clipIndex - 1] || null;
-  const next = mediaEntries[clipIndex + 1] || null;
+  const laneEntries = mediaEntries.filter((entry) => entry.lane === clip.lane);
+  const laneIndex = laneEntries.findIndex((entry) => entry.clipId === entryIndex);
+  const previous = laneEntries[laneIndex - 1] || null;
+  const next = laneEntries[laneIndex + 1] || null;
   const overlapLimit = Math.min(4.5, clip.duration * 0.72);
   const minStart = Math.max(0, previous ? previous.start - overlapLimit : 0);
   const maxStart = Math.max(0, next ? next.end - Math.max(0.12, clip.duration * 0.28) : totalDuration);
   let nextStart = Math.max(minStart, Math.min(maxStart, Number(targetStart) || 0));
-  const snapTolerance = Math.max(0.08, clip.duration * 0.04);
-  if (previous && Math.abs(nextStart - previous.end) <= snapTolerance) {
+  const dragActive = !!(onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === entryIndex);
+  const snapTolerance = dragActive ? 0.012 : Math.max(0.08, clip.duration * 0.04);
+  if (previous && snapTolerance > 0 && Math.abs(nextStart - previous.end) <= snapTolerance) {
     nextStart = previous.end;
   }
-  if (next && Math.abs(nextStart - Math.max(0, next.start - clip.duration)) <= snapTolerance) {
+  if (next && snapTolerance > 0 && Math.abs(nextStart - Math.max(0, next.start - clip.duration)) <= snapTolerance) {
     nextStart = Math.max(0, next.start - clip.duration);
   }
   if (Math.abs(nextStart - clip.start) < 0.0005) {
     return false;
   }
   const nextClips = mediaEntries.map((entry) => ({
-    start: entry.start,
-    duration: entry.duration,
-    sourceStart: Math.max(0, Number(entry.segment && entry.segment.sourceStart) || 0),
-    sourceEnd: Math.max(0, Number(entry.segment && entry.segment.sourceEnd) || 0)
+    ...createOnAirReviewClipDescriptor(entry),
+    start: entry.start
   }));
   nextClips[clipIndex].start = nextStart;
-  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(totalDuration, nextStart + clip.duration));
+  const lockedDuration = onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === entryIndex
+    ? Math.max(Number(onAirReviewClipDragState.renderDuration || 0), totalDuration)
+    : totalDuration;
+  const requiredDuration = Math.max(totalDuration, nextStart + clip.duration);
+  if (onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === entryIndex) {
+    onAirReviewClipDragState.pendingDuration = requiredDuration;
+  }
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(lockedDuration, requiredDuration));
   shiftOnAirReviewGainAdjustmentsForClipMove(clip.start, clip.end, nextStart - clip.start);
+  shiftOnAirReviewCleanupRangesForClipMove(clip.start, clip.end, nextStart - clip.start);
+  shiftOnAirReviewFadeRegionsForClipMove(clip.clipId, clip.start, clip.end, nextStart - clip.start);
   if (hasOnAirReviewSelection()) {
     const delta = nextStart - clip.start;
     const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
@@ -4790,8 +6470,148 @@ function moveOnAirReviewClip(entryIndex, targetStart) {
       setOnAirReviewSelection(selectionStart + delta, selectionEnd + delta);
     }
   }
-  setOnAirReviewViewportFocusTime(nextStart + clip.duration / 2);
+  if (onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === entryIndex) {
+    const nextClip = getOnAirReviewMediaClips().find((entry) => entry.clipId === entryIndex);
+    if (nextClip && requiredDuration > lockedDuration + 0.001) {
+      const visibleDuration = Math.max(0.25, Number(onAirReviewClipDragState.viewportVisibleDuration) || totalDuration);
+      const nextFocus = Math.max(0, nextClip.start + Math.min(nextClip.duration / 2, Math.max(0.15, visibleDuration * 0.18)));
+      setOnAirReviewViewportFocusTime(nextFocus);
+    }
+  }
   seekOnAirReviewEditedTime(Math.max(0, Math.min(getOnAirReviewTimelineDuration(), onAirReviewEditedTime)));
+  return true;
+}
+
+function getOnAirReviewTrackCandidateClip() {
+  const selectionClip = getOnAirReviewSelectionTargetClip();
+  if (selectionClip) {
+    return selectionClip;
+  }
+  const selectedClip = getOnAirReviewSelectedClip();
+  if (selectedClip) {
+    return selectedClip;
+  }
+  if (hasOnAirReviewSelection()) {
+    const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    const matched = getOnAirReviewMediaClips().find((clip) => selectionStart >= clip.start && selectionEnd <= clip.end);
+    if (matched) {
+      return matched;
+    }
+  }
+  return getOnAirReviewClipHit(onAirReviewEditedTime);
+}
+
+function getOnAirReviewSelectAllTargetClip() {
+  const selectedClip = getOnAirReviewSelectedClip();
+  if (selectedClip) {
+    return selectedClip;
+  }
+  const trackCandidate = getOnAirReviewTrackCandidateClip();
+  if (trackCandidate) {
+    return trackCandidate;
+  }
+  return null;
+}
+
+function getOnAirReviewInsertGainCandidateClip() {
+  const clip = getOnAirReviewTrackCandidateClip();
+  return clip && String(clip.sourceKind || "recording") === "library" ? clip : null;
+}
+
+function getOnAirReviewClipRemoveCandidate() {
+  return getOnAirReviewSelectedClip() || null;
+}
+
+function getOnAirReviewSmartInsertLane(insertAt) {
+  const targetTime = Math.max(0, Number(insertAt) || 0);
+  const selectedClip = getOnAirReviewSelectedClip();
+  if (selectedClip && String(selectedClip.sourceKind || "recording") === "library") {
+    return Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(selectedClip.lane) || 0));
+  }
+  const clips = getOnAirReviewMediaClips();
+  const insertPreferredLanes = [];
+  for (let lane = 1; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
+    insertPreferredLanes.push(lane);
+  }
+  if (selectedClip) {
+    const selectedLane = Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(selectedClip.lane) || 0));
+    if (!insertPreferredLanes.includes(selectedLane)) {
+      insertPreferredLanes.unshift(selectedLane);
+    }
+  }
+  insertPreferredLanes.push(0);
+  for (const lane of insertPreferredLanes) {
+    const occupied = clips.some((clip) => clip.lane === lane && targetTime >= clip.start - 0.005 && targetTime <= clip.end + 0.005);
+    if (!occupied) {
+      return lane;
+    }
+  }
+  return 1 <= ON_AIR_REVIEW_MAX_LANE_INDEX ? 1 : 0;
+}
+
+function removeOnAirReviewClip(clipId) {
+  const clips = getOnAirReviewMediaClips();
+  const targetClip = clips.find((clip) => clip.clipId === clipId);
+  if (!targetClip) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("clip-remove");
+  const nextClips = clips
+    .filter((clip) => clip.clipId !== clipId)
+    .map((clip) => ({
+      ...createOnAirReviewClipDescriptor(clip),
+      start: clip.start
+    }));
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  updateOnAirReviewMarkersAfterDelete(targetClip.start, targetClip.end, "delete");
+  updateOnAirReviewCleanupAfterDelete(targetClip.start, targetClip.end, "delete");
+  removeOnAirReviewGainAdjustmentsInRange(targetClip.start, targetClip.end);
+  updateOnAirReviewFadeRegionsAfterDelete(targetClip.start, targetClip.end, targetClip.clipId);
+  if (hasOnAirReviewSelection()) {
+    const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+    if (selectionStart >= targetClip.start && selectionEnd <= targetClip.end) {
+      clearOnAirReviewSelection();
+    }
+  }
+  setOnAirReviewSelectedClipIndex(-1);
+  seekOnAirReviewEditedTime(Math.max(0, Math.min(getOnAirReviewTimelineDuration(), targetClip.start)));
+  scheduleOnAirReviewPlaybackRefresh();
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    const clipLabel = String(
+      targetClip.sourceKind === "library"
+        ? (targetClip.sourceAssetLabel || "Inserted clip")
+        : (targetClip.sourceAssetLabel || "Clip")
+    );
+    onAirReviewWaveNote.textContent = clipLabel + " removed from the review cut.";
+  }
+  return true;
+}
+
+function moveOnAirReviewClipToLane(entryIndex, nextLane) {
+  const clips = getOnAirReviewMediaClips();
+  const clipIndex = clips.findIndex((clip) => clip.clipId === entryIndex);
+  if (clipIndex === -1) {
+    return false;
+  }
+  const targetLane = Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(nextLane) || 0));
+  const clip = clips[clipIndex];
+  if (targetLane === clip.lane) {
+    return false;
+  }
+  pushOnAirReviewHistorySnapshot("track-lane");
+  const nextClips = clips.map((entry) => ({
+    ...createOnAirReviewClipDescriptor(entry),
+    start: entry.start,
+    lane: entry.clipId === entryIndex ? targetLane : entry.lane
+  }));
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  seekOnAirReviewEditedTime(onAirReviewEditedTime);
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = "Clip moved to Track " + String(targetLane + 1) + ".";
+  }
   return true;
 }
 
@@ -4822,22 +6642,19 @@ function applyOnAirReviewSplitAtPlayhead() {
     Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + leadingDuration)
   );
   const nextClips = getOnAirReviewMediaClips().flatMap((entry) => {
-    if (entry.index !== clip.index) {
-      return [{
-        start: entry.start,
-        duration: entry.duration,
-        sourceStart: entry.sourceStart,
-        sourceEnd: entry.sourceEnd
-      }];
+    if (entry.clipId !== clip.clipId) {
+      return [{ ...createOnAirReviewClipDescriptor(entry), start: entry.start }];
     }
     return [
       {
+        ...createOnAirReviewClipDescriptor(clip),
         start: clip.start,
         duration: leadingDuration,
         sourceStart: clip.sourceStart,
         sourceEnd: sourceSplitTime
       },
       {
+        ...createOnAirReviewClipDescriptor(clip),
         start: splitTime,
         duration: trailingDuration,
         sourceStart: sourceSplitTime,
@@ -4882,12 +6699,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
   const nextClips = [];
   getOnAirReviewMediaClips().forEach((clip) => {
     if (selectionEnd <= clip.start || selectionStart >= clip.end) {
-      nextClips.push({
-        start: clip.start,
-        duration: clip.duration,
-        sourceStart: clip.sourceStart,
-        sourceEnd: clip.sourceEnd
-      });
+      nextClips.push({ ...createOnAirReviewClipDescriptor(clip), start: clip.start });
       return;
     }
     const overlapStart = Math.max(selectionStart, clip.start);
@@ -4903,6 +6715,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
     );
     if (overlapStart > clip.start + 0.02) {
       nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
         start: clip.start,
         duration: overlapStart - clip.start,
         sourceStart: clip.sourceStart,
@@ -4910,6 +6723,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
       });
     }
     nextClips.push({
+      ...createOnAirReviewClipDescriptor(clip),
       start: overlapStart,
       duration: overlapEnd - overlapStart,
       sourceStart: overlapSourceStart,
@@ -4917,6 +6731,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
     });
     if (overlapEnd < clip.end - 0.02) {
       nextClips.push({
+        ...createOnAirReviewClipDescriptor(clip),
         start: overlapEnd,
         duration: clip.end - overlapEnd,
         sourceStart: overlapSourceEnd,
@@ -4938,11 +6753,12 @@ function updateOnAirReviewZoomControls() {
     onAirReviewZoomOutBtn.disabled = onAirReviewZoomLevel <= 1;
   }
   if (onAirReviewZoomFitBtn) {
-    onAirReviewZoomFitBtn.disabled = onAirReviewZoomLevel <= 1;
+    onAirReviewZoomFitBtn.disabled = false;
   }
   if (onAirReviewZoomInBtn) {
     onAirReviewZoomInBtn.disabled = onAirReviewZoomLevel >= 12;
   }
+  updateOnAirReviewPanControl();
 }
 
 function setOnAirReviewZoomLevel(nextLevel) {
@@ -4951,9 +6767,25 @@ function setOnAirReviewZoomLevel(nextLevel) {
   queueOnAirReviewWaveRender();
 }
 
+function resetOnAirReviewZoomToFit(focusSeconds) {
+  onAirReviewZoomLevel = 1;
+  const duration = getOnAirReviewTimelineDuration();
+  const safeFocus = Number.isFinite(focusSeconds)
+    ? Math.max(0, Math.min(duration || 0, Number(focusSeconds) || 0))
+    : Math.max(0, (duration || 0) / 2);
+  setOnAirReviewViewportFocusTime(safeFocus);
+  updateOnAirReviewZoomControls();
+  queueOnAirReviewWaveRender();
+}
+
 function resizeOnAirReviewWaveCanvas() {
   if (!onAirReviewWaveCanvas) {
     return;
+  }
+  const laneCount = ON_AIR_REVIEW_MAX_TRACKS;
+  const targetCssHeight = Math.max(400, 250 + laneCount * 74);
+  if (onAirReviewWaveCanvas.style.height !== targetCssHeight + "px") {
+    onAirReviewWaveCanvas.style.height = targetCssHeight + "px";
   }
   const dpr = window.devicePixelRatio || 1;
   const rect = onAirReviewWaveCanvas.getBoundingClientRect();
@@ -5005,6 +6837,415 @@ function sampleWaveformPeaksFromAudioBuffer(buffer, bucketCount) {
   return buckets;
 }
 
+function sampleNoiseFloorMapFromAudioBuffer(buffer, bucketCount) {
+  const channelData = [];
+  for (let channel = 0; channel < Math.max(1, buffer.numberOfChannels); channel += 1) {
+    channelData.push(buffer.getChannelData(channel));
+  }
+  const totalSamples = buffer.length || 0;
+  const buckets = new Array(Math.max(60, bucketCount || 180)).fill(0);
+  if (!totalSamples) {
+    return buckets;
+  }
+  const samplesPerBucket = Math.max(128, Math.floor(totalSamples / buckets.length));
+  for (let bucketIndex = 0; bucketIndex < buckets.length; bucketIndex += 1) {
+    const start = bucketIndex * samplesPerBucket;
+    const end = Math.min(totalSamples, start + samplesPerBucket);
+    let sumSquares = 0;
+    let zeroCrossings = 0;
+    let sampleCount = 0;
+    let lastMixedSample = 0;
+    let initialized = false;
+    for (let sampleIndex = start; sampleIndex < end; sampleIndex += 1) {
+      let mixedSample = 0;
+      for (let channel = 0; channel < channelData.length; channel += 1) {
+        mixedSample += Number(channelData[channel][sampleIndex] || 0);
+      }
+      mixedSample /= Math.max(1, channelData.length);
+      sumSquares += mixedSample * mixedSample;
+      if (initialized) {
+        const changedSign = (mixedSample >= 0 && lastMixedSample < 0) || (mixedSample < 0 && lastMixedSample >= 0);
+        if (changedSign) {
+          zeroCrossings += 1;
+        }
+      } else {
+        initialized = true;
+      }
+      lastMixedSample = mixedSample;
+      sampleCount += 1;
+    }
+    if (!sampleCount) {
+      buckets[bucketIndex] = 0;
+      continue;
+    }
+    const rms = Math.sqrt(sumSquares / sampleCount);
+    const zeroCrossRate = zeroCrossings / Math.max(1, sampleCount - 1);
+    const hissWeight = Math.max(0, Math.min(1, (zeroCrossRate - 0.03) / 0.18));
+    const floorWeight = Math.max(0, Math.min(1, (rms - 0.003) / 0.055));
+    buckets[bucketIndex] = Math.max(0, Math.min(1, floorWeight * 0.58 + hissWeight * 0.42));
+  }
+  return buckets;
+}
+
+function getOnAirReviewNoiseProfileLabel() {
+  if (onAirReviewNoiseOverlayProfile === "high") {
+    return "High";
+  }
+  if (onAirReviewNoiseOverlayProfile === "medium") {
+    return "Medium";
+  }
+  if (onAirReviewNoiseOverlayProfile === "low") {
+    return "Low";
+  }
+  return "Off";
+}
+
+async function ensureOnAirReviewLibraryAssetDecoded(asset) {
+  if (!asset || typeof asset !== "object") {
+    return null;
+  }
+  const playableTrack = await resolveMusicTrackForPlayback(asset);
+  if (!playableTrack) {
+    return null;
+  }
+  const assetId = String((playableTrack && playableTrack.id) || asset.id || "").trim();
+  if (!assetId) {
+    return null;
+  }
+  if (onAirReviewLibraryBufferCache.has(assetId)) {
+    return {
+      assetId,
+      assetLabel: String(asset.title || asset.name || playableTrack.name || "Library Insert"),
+      buffer: onAirReviewLibraryBufferCache.get(assetId),
+      peaks: onAirReviewLibraryWaveCache.get(assetId) || []
+    };
+  }
+  let audioData = null;
+  if (playableTrack.file && typeof playableTrack.file.arrayBuffer === "function") {
+    audioData = await playableTrack.file.arrayBuffer();
+  } else {
+    audioData = await fetchSharedMediaArrayBuffer(assetId);
+  }
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) {
+    return null;
+  }
+  const decodeContext = new AudioContextCtor();
+  try {
+    const decoded = await decodeContext.decodeAudioData(audioData.slice(0));
+    onAirReviewLibraryBufferCache.set(assetId, decoded);
+    onAirReviewLibraryWaveCache.set(assetId, sampleWaveformPeaksFromAudioBuffer(decoded, 900));
+    return {
+      assetId,
+      assetLabel: String(asset.title || asset.name || playableTrack.name || "Library Insert"),
+      buffer: decoded,
+      peaks: onAirReviewLibraryWaveCache.get(assetId) || []
+    };
+  } finally {
+    decodeContext.close().catch(() => {});
+  }
+}
+
+function getOnAirReviewBufferForClip(clip) {
+  if (String(clip && clip.sourceKind || "recording") === "library") {
+    return onAirReviewLibraryBufferCache.get(String((clip && clip.sourceAssetId) || "").trim()) || null;
+  }
+  return onAirReviewDecodedAudioBuffer;
+}
+
+function getOnAirReviewExportAffectsAudio() {
+  const clips = getOnAirReviewMediaClips();
+  const timelineDuration = getOnAirReviewTimelineDuration();
+  if (clips.length !== 1) {
+    return clips.length > 0;
+  }
+  const onlyClip = clips[0];
+  if (!onlyClip || String(onlyClip.sourceKind || "recording") !== "recording" || onlyClip.lane !== 0) {
+    return true;
+  }
+  if (Math.abs(onlyClip.start) > 0.01 || Math.abs(onlyClip.duration - timelineDuration) > 0.02) {
+    return true;
+  }
+  if (Math.abs((onlyClip.sourceStart || 0)) > 0.01 || Math.abs((onlyClip.sourceEnd || 0) - onlyClip.duration) > 0.02) {
+    return true;
+  }
+  if (Math.abs(Number(onlyClip.clipGainDb) || 0) > 0.05 || (Number(onlyClip.fadeIn) || 0) > 0.01 || (Number(onlyClip.fadeOut) || 0) > 0.01) {
+    return true;
+  }
+  return onAirReviewGainAdjustments.length > 0 || onAirReviewCleanupRanges.length > 0 || onAirReviewFadeRegions.length > 0;
+}
+
+async function ensureOnAirReviewExportDependencies() {
+  if (!onAirReviewDecodedAudioBuffer && ((recordingAudioBlob && recordingAudioUrl) || (recordingMediaBlob && recordingMediaUrl))) {
+    await refreshOnAirReviewWaveform();
+  }
+  const clips = getOnAirReviewMediaClips();
+  const pendingLibraryIds = Array.from(new Set(
+    clips
+      .filter((clip) => String(clip && clip.sourceKind || "recording") === "library")
+      .map((clip) => String(clip && clip.sourceAssetId || "").trim())
+      .filter(Boolean)
+  ));
+  for (const assetId of pendingLibraryIds) {
+    if (onAirReviewLibraryBufferCache.has(assetId)) {
+      continue;
+    }
+    const asset = onAirMusicLibrary.find((entry) => String(entry && entry.id || "").trim() === assetId);
+    if (!asset) {
+      throw new Error("Library clip " + assetId + " is missing from the current Music Library.");
+    }
+    const decoded = await ensureOnAirReviewLibraryAssetDecoded(asset);
+    if (!decoded || !decoded.buffer) {
+      throw new Error("Library clip " + assetId + " could not be decoded for export.");
+    }
+  }
+  const shouldBuildCleanup =
+    !!onAirReviewDecodedAudioBuffer &&
+    normalizeOnAirReviewCleanupPreviewMode(onAirReviewCleanupPreviewMode) !== "original" &&
+    (normalizeOnAirReviewCleanupPreviewMode(onAirReviewCleanupPreviewMode) === "cleaned" || onAirReviewCleanupRanges.length > 0);
+  if (shouldBuildCleanup && !onAirReviewCleanedAudioBuffer) {
+    await buildOnAirReviewCleanupBuffer();
+  }
+}
+
+function getOnAirReviewExportSampleRate() {
+  const sampleRates = [];
+  if (onAirReviewDecodedAudioBuffer && onAirReviewDecodedAudioBuffer.sampleRate > 0) {
+    sampleRates.push(onAirReviewDecodedAudioBuffer.sampleRate);
+  }
+  if (onAirReviewCleanedAudioBuffer && onAirReviewCleanedAudioBuffer.sampleRate > 0) {
+    sampleRates.push(onAirReviewCleanedAudioBuffer.sampleRate);
+  }
+  getOnAirReviewMediaClips().forEach((clip) => {
+    const clipBuffer = getOnAirReviewBufferForClip(clip);
+    if (clipBuffer && clipBuffer.sampleRate > 0) {
+      sampleRates.push(clipBuffer.sampleRate);
+    }
+  });
+  return Math.max(44100, ...sampleRates.map((value) => Math.round(Number(value) || 0)).filter((value) => value > 0));
+}
+
+function getOnAirReviewExportChannelCount() {
+  const channelCounts = [];
+  if (onAirReviewDecodedAudioBuffer && onAirReviewDecodedAudioBuffer.numberOfChannels > 0) {
+    channelCounts.push(onAirReviewDecodedAudioBuffer.numberOfChannels);
+  }
+  if (onAirReviewCleanedAudioBuffer && onAirReviewCleanedAudioBuffer.numberOfChannels > 0) {
+    channelCounts.push(onAirReviewCleanedAudioBuffer.numberOfChannels);
+  }
+  getOnAirReviewMediaClips().forEach((clip) => {
+    const clipBuffer = getOnAirReviewBufferForClip(clip);
+    if (clipBuffer && clipBuffer.numberOfChannels > 0) {
+      channelCounts.push(clipBuffer.numberOfChannels);
+    }
+  });
+  return Math.max(1, Math.min(2, ...channelCounts.map((value) => Math.round(Number(value) || 0)).filter((value) => value > 0)));
+}
+
+async function renderOnAirReviewEditedAudioBuffer() {
+  ensureOnAirReviewTimeline();
+  await ensureOnAirReviewExportDependencies();
+  const OfflineAudioContextCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineAudioContextCtor) {
+    throw new Error("Offline audio rendering is not supported in this browser.");
+  }
+  const clips = getOnAirReviewMediaClips();
+  const duration = getOnAirReviewTimelineDuration();
+  if (!clips.length || !(duration > 0)) {
+    throw new Error("Review Cut has no timeline audio to export.");
+  }
+  const sampleRate = getOnAirReviewExportSampleRate();
+  const channelCount = getOnAirReviewExportChannelCount();
+  const frameCount = Math.max(1, Math.ceil(duration * sampleRate));
+  const offline = new OfflineAudioContextCtor(channelCount, frameCount, sampleRate);
+  const destinationGain = offline.createGain();
+  destinationGain.gain.value = 1;
+  destinationGain.connect(offline.destination);
+
+  clips.forEach((clip) => {
+    if (!clip || !(clip.duration > 0.01)) {
+      return;
+    }
+    const clipEnd = Math.max(clip.start, clip.end);
+    const boundaries = getOnAirReviewPlaybackBoundariesForClip(clip, 0)
+      .map((value) => Math.max(0, Math.min(duration, value)));
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const chunkStart = Math.max(0, boundaries[index]);
+      const chunkEnd = Math.min(duration, Math.max(chunkStart, boundaries[index + 1]));
+      const chunkDuration = chunkEnd - chunkStart;
+      if (chunkDuration <= 0.01 || chunkStart >= clipEnd) {
+        continue;
+      }
+      const midpoint = chunkStart + Math.max(0.005, chunkDuration / 2);
+      const clipBuffer = String(clip.sourceKind || "recording") === "recording"
+        ? (shouldUseOnAirReviewCleanedBufferAt(midpoint) ? onAirReviewCleanedAudioBuffer : onAirReviewDecodedAudioBuffer)
+        : getOnAirReviewBufferForClip(clip);
+      if (!clipBuffer) {
+        continue;
+      }
+      const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+      const sourceOffset = Math.max(0, clip.sourceStart + (chunkStart - clip.start));
+      if (sourceOffset >= clipBuffer.duration) {
+        continue;
+      }
+      const clipSourceEnd = Math.min(clipBuffer.duration, sourceBounds.sourceEnd);
+      const availableClipDuration = Math.max(0, clipSourceEnd - sourceOffset);
+      const safeDuration = Math.min(
+        chunkDuration,
+        Math.max(0.01, clipBuffer.duration - sourceOffset),
+        availableClipDuration
+      );
+      if (safeDuration <= 0.01) {
+        continue;
+      }
+      const source = offline.createBufferSource();
+      const gainNode = offline.createGain();
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint) + (Number(clip.clipGainDb) || 0));
+      const overlapGain = getOnAirReviewOverlapMixMultiplier(clip, chunkStart, safeDuration, clips);
+      const clipFadeEnvelope = getOnAirReviewFadeEnvelopeForClipChunk(clip, chunkStart, safeDuration);
+      const regionFadeEnvelope = getOnAirReviewFadeRegionEnvelopeForClipChunk(clip, chunkStart, safeDuration);
+      const startGain = normalizeOnAirReviewScheduledGain(clipGain * overlapGain * clipFadeEnvelope.start * regionFadeEnvelope.start);
+      const endGain = normalizeOnAirReviewScheduledGain(clipGain * overlapGain * clipFadeEnvelope.end * regionFadeEnvelope.end);
+      gainNode.gain.setValueAtTime(startGain, chunkStart);
+      if (Math.abs(endGain - startGain) > 0.0005) {
+        gainNode.gain.linearRampToValueAtTime(endGain, chunkStart + safeDuration);
+      } else {
+        gainNode.gain.setValueAtTime(endGain, chunkStart + safeDuration);
+      }
+      source.buffer = clipBuffer;
+      source.connect(gainNode);
+      gainNode.connect(destinationGain);
+      source.start(chunkStart, sourceOffset, safeDuration);
+    }
+  });
+
+  return await offline.startRendering();
+}
+
+async function renderOnAirReviewEditedAudioBlob() {
+  const renderedBuffer = await renderOnAirReviewEditedAudioBuffer();
+  return encodeAudioBufferToWavBlob(renderedBuffer);
+}
+
+function getOnAirReviewWavePeaksForClip(clip) {
+  if (String(clip && clip.sourceKind || "recording") === "library") {
+    return onAirReviewLibraryWaveCache.get(String((clip && clip.sourceAssetId) || "").trim()) || [];
+  }
+  return onAirReviewWavePeaks;
+}
+
+function getOnAirReviewBarPeakForClipRange(clip, editedStart, editedEnd) {
+  if (!clip) {
+    return 0;
+  }
+  const clipBuffer = getOnAirReviewBufferForClip(clip);
+  if (!clipBuffer || !(clipBuffer.length > 0) || !(clipBuffer.sampleRate > 0)) {
+    const fallbackEditedTime = (Math.max(0, Number(editedStart) || 0) + Math.max(0, Number(editedEnd) || 0)) / 2;
+    return getOnAirReviewPeakForClipAtEditedTime(clip, fallbackEditedTime);
+  }
+  const rangeStart = Math.max(Number(clip.start) || 0, Math.min(Number(editedStart) || 0, Number(editedEnd) || 0));
+  const rangeEnd = Math.min(Number(clip.end) || rangeStart, Math.max(Number(editedStart) || 0, Number(editedEnd) || 0));
+  if (rangeEnd - rangeStart <= 0.0005) {
+    return 0;
+  }
+  const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
+  const sourceWindowStart = Math.max(sourceBounds.sourceStart, sourceBounds.sourceStart + (rangeStart - clip.start));
+  const sourceWindowEnd = Math.min(sourceBounds.sourceEnd, sourceBounds.sourceStart + (rangeEnd - clip.start));
+  if (sourceWindowEnd - sourceWindowStart <= 0.0005) {
+    return 0;
+  }
+  const startSample = Math.max(0, Math.min(clipBuffer.length - 1, Math.floor(sourceWindowStart * clipBuffer.sampleRate)));
+  const endSample = Math.max(startSample + 1, Math.min(clipBuffer.length, Math.ceil(sourceWindowEnd * clipBuffer.sampleRate)));
+  const sampleSpan = Math.max(1, endSample - startSample);
+  const stride = Math.max(1, Math.floor(sampleSpan / 220));
+  let peak = 0;
+  for (let channel = 0; channel < Math.max(1, clipBuffer.numberOfChannels); channel += 1) {
+    const data = clipBuffer.getChannelData(channel);
+    for (let sampleIndex = startSample; sampleIndex < endSample; sampleIndex += stride) {
+      peak = Math.max(peak, Math.abs(data[sampleIndex] || 0));
+    }
+    if (endSample - 1 >= startSample) {
+      peak = Math.max(peak, Math.abs(data[endSample - 1] || 0));
+    }
+  }
+  return Math.max(0, Math.min(1, peak));
+}
+
+function drawOnAirReviewClipWaveform(ctx, clip, options) {
+  if (!ctx || !clip || !options) {
+    return;
+  }
+  const {
+    duration,
+    clipX,
+    clipY,
+    clipWidth,
+    clipHeight,
+    labelVisible,
+    palette,
+    zoomLevel,
+    visibleEditedStart,
+    visibleEditedEnd
+  } = options;
+  const peaks = getOnAirReviewWavePeaksForClip(clip);
+  const sourceDuration = Math.max(0, Number(clip.sourceEnd || 0) - Number(clip.sourceStart || 0));
+  if (!(duration > 0) || !peaks.length || !(sourceDuration > 0) || !(clipWidth > 6) || !(clipHeight > 8)) {
+    return;
+  }
+  const waveTop = clipY + 4;
+  const waveBottom = clipY + clipHeight - 4;
+  const centerY = clipY + clipHeight / 2;
+  const usableHalfHeight = Math.max(4, Math.min(centerY - waveTop, waveBottom - centerY));
+  const normalizedZoom = Math.max(1, Number(zoomLevel) || 1);
+  const detailMultiplier = Math.max(1, Math.min(2.2, 0.95 + normalizedZoom * 0.18));
+  const baseBarCount = Math.pow(Math.max(24, clipWidth), 0.86);
+  const barCount = Math.max(18, Math.min(240, Math.floor(baseBarCount * detailMultiplier * 0.92)));
+  const barStep = clipWidth / barCount;
+  const lineWidth = Math.max(1, Math.min(2.4, barStep * (normalizedZoom > 4 ? 0.88 : normalizedZoom > 2 ? 0.8 : 0.72)));
+  const waveColor = String(palette && palette.wave || "rgba(214, 228, 240, 0.88)");
+  const baselineColor = String(palette && palette.waveBase || "rgba(203, 218, 232, 0.16)");
+  const clipStart = Number(clip.start) || 0;
+  const clipDuration = Math.max(0.01, Number(clip.duration) || 0.01);
+  const visibleStartTime = Math.max(clipStart, Math.min(clip.end, Number.isFinite(visibleEditedStart) ? Number(visibleEditedStart) : clipStart));
+  const visibleEndTime = Math.max(visibleStartTime, Math.min(clip.end, Number.isFinite(visibleEditedEnd) ? Number(visibleEditedEnd) : clip.end));
+  const visibleClipDuration = Math.max(0.01, visibleEndTime - visibleStartTime);
+  ctx.strokeStyle = baselineColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(clipX + 4, centerY);
+  ctx.lineTo(clipX + clipWidth - 4, centerY);
+  ctx.stroke();
+  for (let index = 0; index < barCount; index += 1) {
+    const barEditedStart = visibleStartTime + visibleClipDuration * (index / barCount);
+    const barEditedEnd = visibleStartTime + visibleClipDuration * ((index + 1) / barCount);
+    const editedTime = (barEditedStart + barEditedEnd) / 2;
+    const peak = Math.max(0, Math.min(1, getOnAirReviewBarPeakForClipRange(clip, barEditedStart, barEditedEnd)));
+    if (peak <= 0.002) {
+      continue;
+    }
+    const gainDb = getOnAirReviewGainDbAt(editedTime) + (Number(clip.clipGainDb) || 0);
+    const adjustedPeak = Math.max(0.02, Math.min(1, peak * Math.max(0.25, Math.min(2.4, dbToGainMultiplier(gainDb)))));
+    const x = clipX + index * barStep + barStep / 2;
+    const halfHeight = Math.max(1.2, adjustedPeak * usableHalfHeight * Math.min(1, 0.84 + normalizedZoom * 0.048));
+    let stroke = waveColor;
+    if (adjustedPeak >= 0.88) {
+      stroke = "rgba(255, 111, 95, 0.98)";
+    } else if (adjustedPeak >= 0.68) {
+      stroke = "rgba(255, 168, 79, 0.97)";
+    } else if (adjustedPeak >= 0.28) {
+      stroke = "rgba(246, 214, 99, 0.96)";
+    } else {
+      stroke = "rgba(77, 205, 139, 0.94)";
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(x, Math.max(waveTop + 1, centerY - halfHeight));
+    ctx.lineTo(x, Math.min(waveBottom - 1, centerY + halfHeight));
+    ctx.stroke();
+  }
+}
+
 async function refreshOnAirReviewWaveform() {
   const hasReviewAsset = !!((recordingAudioBlob && recordingAudioUrl) || (recordingMediaBlob && recordingMediaUrl));
   const sourceBlob = recordingAudioBlob || recordingMediaBlob || null;
@@ -5015,7 +7256,11 @@ async function refreshOnAirReviewWaveform() {
     onAirReviewWaveToken = 0;
     onAirReviewWaveDuration = 0;
     onAirReviewWavePeaks = [];
+    onAirReviewNoiseFloorMap = [];
+    onAirReviewNoiseOverlayProfile = "off";
     onAirReviewDecodedAudioBuffer = null;
+    onAirReviewCleanedAudioBuffer = null;
+    onAirReviewCleanupBufferPromise = null;
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "No review file loaded yet.";
     }
@@ -5036,18 +7281,30 @@ async function refreshOnAirReviewWaveform() {
     const decodeContext = new (window.AudioContext || window.webkitAudioContext)();
     try {
       const decoded = await decodeContext.decodeAudioData(arrayBuffer.slice(0));
-      onAirReviewWavePeaks = sampleWaveformPeaksFromAudioBuffer(decoded, 220);
+      onAirReviewWavePeaks = sampleWaveformPeaksFromAudioBuffer(decoded, 1200);
+      onAirReviewNoiseFloorMap = sampleNoiseFloorMapFromAudioBuffer(decoded, 360);
       onAirReviewWaveDuration = Math.max(duration, Number(decoded.duration || 0));
       onAirReviewDecodedAudioBuffer = decoded;
+      onAirReviewCleanedAudioBuffer = null;
+      onAirReviewCleanupBufferPromise = null;
     } finally {
       decodeContext.close().catch(() => {});
     }
+    const averageNoise = onAirReviewNoiseFloorMap.reduce((total, value) => total + value, 0) / Math.max(1, onAirReviewNoiseFloorMap.length);
+    onAirReviewNoiseOverlayProfile = averageNoise > 0.62 ? "high" : averageNoise > 0.36 ? "medium" : "low";
     if (onAirReviewWaveNote) {
-      onAirReviewWaveNote.textContent = "Click anywhere in the strip to scrub the show. Orange line marks the current playhead.";
+      onAirReviewWaveNote.textContent =
+        "Click anywhere in the timeline to scrub the show. Recording clips carry their own noise-floor tint (" +
+        getOnAirReviewNoiseProfileLabel() +
+        ").";
     }
   } catch (error) {
     onAirReviewWavePeaks = buildFallbackReviewWaveformPeaks(duration);
+    onAirReviewNoiseFloorMap = [];
+    onAirReviewNoiseOverlayProfile = "off";
     onAirReviewDecodedAudioBuffer = null;
+    onAirReviewCleanedAudioBuffer = null;
+    onAirReviewCleanupBufferPromise = null;
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "Waveform preview is approximate on this browser, but scrubbing and playback are still available.";
     }
@@ -5091,13 +7348,9 @@ function renderOnAirReviewWaveform() {
   const meterY = shellY + meterInsetY;
   const meterWidth = Math.max(24, shellWidth - meterInsetX * 2);
   const meterHeight = Math.max(16, shellHeight - meterInsetY * 2);
-  const laneGap = Math.max(8, Math.floor(height * 0.07));
-  const laneHeight = Math.max(10, Math.floor((meterHeight - laneGap) / 2));
-  const dividerHeight = Math.max(2, Math.floor(height * 0.03));
-  const topLaneY = meterY;
-  const bottomLaneY = meterY + laneHeight + laneGap;
-  const topLaneBaseY = topLaneY + laneHeight - 2;
-  const bottomLaneBaseY = bottomLaneY + 2;
+  const trackHeaderWidth = Math.max(92, Math.min(148, Math.floor(meterWidth * 0.11)));
+  const timelineX = meterX + trackHeaderWidth + 10;
+  const timelineWidth = Math.max(24, meterWidth - trackHeaderWidth - 10);
   const duration = getOnAirReviewTimelineDuration();
   const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
   const viewport = getOnAirReviewViewport(duration, current);
@@ -5105,39 +7358,30 @@ function renderOnAirReviewWaveform() {
   const windowSize = viewport.windowSize;
   const windowStart = viewport.windowStart;
   const mediaClips = duration > 0 ? getOnAirReviewMediaClips() : [];
-  const visibleMediaClips = [];
+  const laneCount = ON_AIR_REVIEW_MAX_TRACKS;
+  const laneGap = Math.max(6, Math.floor(height * 0.03));
+  const laneHeight = Math.max(18, Math.floor((meterHeight - laneGap * Math.max(0, laneCount - 1)) / laneCount));
+  const getLaneY = (laneIndex) => meterY + laneIndex * (laneHeight + laneGap);
+  const visibleMediaClips = mediaClips.map((clip) => ({ ...clip, laneIndex: Math.max(0, Number(clip.lane) || 0) }));
+  const uniqueSourceCount = new Set(visibleMediaClips.map((clip) => String(clip.sourceKind || "recording") + "|" + String(clip.sourceAssetId || "") + "|" + getOnAirReviewClipDisplayLabel(clip))).size;
   const overlapRanges = [];
   const overlapClipIndices = new Set();
   if (duration > 0 && mediaClips.length) {
-    const activeLanes = [];
-    mediaClips
-      .slice()
-      .sort((left, right) => {
-        if (Math.abs(left.start - right.start) > 0.0005) {
-          return left.start - right.start;
-        }
-        return left.index - right.index;
-      })
-      .forEach((clip) => {
-        let laneIndex = 0;
-        while (laneIndex < activeLanes.length && activeLanes[laneIndex] > clip.start + 0.001) {
-          laneIndex += 1;
-        }
-        activeLanes[laneIndex] = clip.end;
-        visibleMediaClips.push({ ...clip, laneIndex });
-      });
     for (let index = 0; index < visibleMediaClips.length; index += 1) {
       for (let inner = index + 1; inner < visibleMediaClips.length; inner += 1) {
         const leftClip = visibleMediaClips[index];
         const rightClip = visibleMediaClips[inner];
+        if (leftClip.laneIndex !== rightClip.laneIndex) {
+          continue;
+        }
         if (rightClip.start >= leftClip.end) {
           break;
         }
         const overlapStart = Math.max(leftClip.start, rightClip.start);
         const overlapEnd = Math.min(leftClip.end, rightClip.end);
         if (overlapEnd - overlapStart > 0.01) {
-          overlapClipIndices.add(leftClip.index);
-          overlapClipIndices.add(rightClip.index);
+          overlapClipIndices.add(leftClip.clipId);
+          overlapClipIndices.add(rightClip.clipId);
           overlapRanges.push({
             start: overlapStart,
             end: overlapEnd,
@@ -5152,19 +7396,94 @@ function renderOnAirReviewWaveform() {
   ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
   ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
   const laneGradient = ctx.createLinearGradient(0, meterY, 0, meterY + meterHeight);
-  laneGradient.addColorStop(0, "rgba(6, 11, 16, 0.95)");
-  laneGradient.addColorStop(1, "rgba(3, 7, 11, 0.98)");
-  ctx.fillStyle = laneGradient;
-  ctx.fillRect(meterX, topLaneY, meterWidth, laneHeight);
-  ctx.fillRect(meterX, bottomLaneY, meterWidth, laneHeight);
-  ctx.fillStyle = "rgba(214, 225, 236, 0.18)";
-  ctx.fillRect(meterX, Math.round(height / 2) - Math.floor(dividerHeight / 2), meterWidth, dividerHeight);
+  laneGradient.addColorStop(0, "rgba(7, 12, 17, 0.92)");
+  laneGradient.addColorStop(1, "rgba(4, 8, 11, 0.97)");
+  const headerGradient = ctx.createLinearGradient(0, meterY, 0, meterY + meterHeight);
+  headerGradient.addColorStop(0, "rgba(11, 17, 23, 0.98)");
+  headerGradient.addColorStop(1, "rgba(7, 11, 16, 0.98)");
+  for (let laneIndex = 0; laneIndex < laneCount; laneIndex += 1) {
+    const laneY = getLaneY(laneIndex);
+    ctx.fillStyle = headerGradient;
+    fillRoundedRect(ctx, meterX, laneY, trackHeaderWidth, laneHeight, 8);
+    ctx.fillStyle = laneGradient;
+    fillRoundedRect(ctx, timelineX, laneY, timelineWidth, laneHeight, 8);
+    ctx.strokeStyle = laneIndex % 2 === 0 ? "rgba(198, 214, 230, 0.09)" : "rgba(198, 214, 230, 0.07)";
+    ctx.lineWidth = 1;
+    strokeRoundedRect(ctx, meterX + 0.5, laneY + 0.5, trackHeaderWidth - 1, laneHeight - 1, 8);
+    strokeRoundedRect(ctx, timelineX + 0.5, laneY + 0.5, timelineWidth - 1, laneHeight - 1, 8);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+    ctx.beginPath();
+    ctx.moveTo(timelineX + 0.5, laneY + laneHeight / 2 + 0.5);
+    ctx.lineTo(timelineX + timelineWidth - 0.5, laneY + laneHeight / 2 + 0.5);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(214, 226, 238, 0.86)";
+    ctx.font = "800 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("T" + String(laneIndex + 1), meterX + 10, laneY + laneHeight / 2 - 6);
+    ctx.fillStyle = "rgba(156, 173, 191, 0.68)";
+    ctx.font = "600 9px ui-sans-serif, system-ui, sans-serif";
+    ctx.fillText(getOnAirReviewTrackLabel(laneIndex, visibleMediaClips), meterX + 10, laneY + laneHeight / 2 + 7);
+  }
+
+  if (duration > 0) {
+    const visibleDuration = duration * windowSize;
+    const rulerStep = getOnAirReviewRulerStepSeconds(visibleDuration, meterWidth);
+    const visibleStartSeconds = duration * windowStart;
+    const visibleEndSeconds = duration * Math.min(1, windowStart + windowSize);
+    const firstTick = Math.ceil(visibleStartSeconds / rulerStep) * rulerStep;
+    const rulerY = meterY - Math.max(12, Math.floor(height * 0.05));
+    ctx.strokeStyle = "rgba(160, 181, 201, 0.28)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(timelineX, rulerY + 10.5);
+    ctx.lineTo(timelineX + timelineWidth, rulerY + 10.5);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(187, 203, 219, 0.86)";
+    ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    for (let tickSeconds = firstTick; tickSeconds <= visibleEndSeconds + rulerStep * 0.25; tickSeconds += rulerStep) {
+      const progress = duration > 0 ? tickSeconds / duration : 0;
+      const visibleTick = windowSize < 1
+        ? (progress - windowStart) / Math.max(windowSize, 1e-6)
+        : progress;
+      const x = timelineX + timelineWidth * Math.max(0, Math.min(1, visibleTick));
+      ctx.strokeStyle = "rgba(160, 181, 201, 0.32)";
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, rulerY + 10.5);
+      ctx.lineTo(x + 0.5, rulerY + 16.5);
+      ctx.stroke();
+      ctx.fillText(formatOnAirReviewRulerLabel(tickSeconds, rulerStep), x, rulerY + 8);
+    }
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(214, 226, 238, 0.86)";
+    ctx.font = "700 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.fillText(formatPreviewClock(visibleStartSeconds), timelineX, rulerY - 13);
+    ctx.textAlign = "right";
+    ctx.fillText(formatPreviewClock(visibleEndSeconds), timelineX + timelineWidth, rulerY - 13);
+    const zoomBadge = "Zoom " + Number(onAirReviewZoomLevel).toFixed(onAirReviewZoomLevel >= 10 ? 0 : 1).replace(/\.0$/, "") + "x";
+    const zoomBadgeWidth = Math.max(
+      74,
+      Math.ceil(ctx.measureText(zoomBadge).width + 18)
+    );
+    const zoomBadgeX = timelineX + timelineWidth - zoomBadgeWidth;
+    const zoomBadgeY = rulerY - 30;
+    ctx.fillStyle = "rgba(10, 16, 22, 0.88)";
+    fillRoundedRect(ctx, zoomBadgeX, zoomBadgeY, zoomBadgeWidth, 16, 8);
+    ctx.strokeStyle = "rgba(156, 177, 198, 0.26)";
+    ctx.lineWidth = 1;
+    strokeRoundedRect(ctx, zoomBadgeX + 0.5, zoomBadgeY + 0.5, zoomBadgeWidth - 1, 15, 8);
+    ctx.fillStyle = "rgba(221, 232, 242, 0.9)";
+    ctx.font = "600 9px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(zoomBadge, zoomBadgeX + zoomBadgeWidth / 2, zoomBadgeY + 8.5);
+  }
 
   if (duration > 0 && visibleMediaClips.length) {
     visibleMediaClips.forEach((clip, clipIndex) => {
-      if (!overlapClipIndices.has(clip.index)) {
-        return;
-      }
       const startProgress = Math.max(0, Math.min(1, clip.start / duration));
       const endProgress = Math.max(startProgress, Math.min(1, clip.end / duration));
       const visibleStart = windowSize < 1
@@ -5173,34 +7492,216 @@ function renderOnAirReviewWaveform() {
       const visibleEnd = windowSize < 1
         ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
         : endProgress;
-      const clipX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
-      const clipWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+      const clipX = timelineX + timelineWidth * Math.max(0, Math.min(1, visibleStart));
+      const clipWidth = timelineWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
       if (clipWidth <= 0.75) {
         return;
       }
-      const laneOffset = Math.min(11, clip.laneIndex * Math.max(4, Math.floor(laneHeight * 0.11)));
-      const clipY = meterY + 7 + laneOffset;
-      const clipHeight = Math.max(14, meterHeight - 14 - laneOffset * 0.2);
+      const clipY = getLaneY(clip.laneIndex) + 3;
+      const clipHeight = Math.max(12, laneHeight - 6);
       const radius = Math.max(5, Math.floor(clipHeight * 0.14));
+      const palette = getOnAirReviewClipPalette(clip, uniqueSourceCount);
+      const clipLabel = getOnAirReviewClipDisplayLabel(clip);
+      const labelVisible = clipWidth > 48 && !!clipLabel;
       const fill = ctx.createLinearGradient(0, clipY, 0, clipY + clipHeight);
-      if (clip.laneIndex % 2 === 0) {
-        fill.addColorStop(0, "rgba(48, 67, 88, 0.16)");
-        fill.addColorStop(1, "rgba(17, 27, 37, 0.09)");
-      } else {
-        fill.addColorStop(0, "rgba(62, 83, 108, 0.14)");
-        fill.addColorStop(1, "rgba(21, 34, 47, 0.08)");
-      }
+      fill.addColorStop(0, palette.bodyTop);
+      fill.addColorStop(1, palette.bodyBottom);
       ctx.fillStyle = fill;
       fillRoundedRect(ctx, clipX, clipY, clipWidth, clipHeight, radius);
-      ctx.strokeStyle = onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === clip.index
+      const sheenGradient = ctx.createLinearGradient(clipX, clipY, clipX, clipY + clipHeight);
+      sheenGradient.addColorStop(0, "rgba(255, 255, 255, 0.04)");
+      sheenGradient.addColorStop(0.22, "rgba(255, 255, 255, 0.015)");
+      sheenGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = sheenGradient;
+      fillRoundedRect(ctx, clipX + 1, clipY + 1, Math.max(0, clipWidth - 2), Math.max(0, clipHeight * 0.46), Math.max(4, radius - 1));
+      const isSelectedClip = clip.clipId === onAirReviewSelectedClipIndex;
+      if (isSelectedClip) {
+        ctx.shadowColor = "rgba(120, 187, 255, 0.22)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      ctx.strokeStyle = onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === clip.clipId
         ? "rgba(255, 177, 102, 0.92)"
-        : clip.laneIndex % 2 === 0
-          ? "rgba(143, 168, 194, 0.2)"
-          : "rgba(125, 154, 182, 0.18)";
-      ctx.lineWidth = 1;
+        : isSelectedClip
+          ? "rgba(132, 193, 255, 0.84)"
+          : palette.stroke;
+      ctx.lineWidth = isSelectedClip ? 1.6 : 1;
       strokeRoundedRect(ctx, clipX + 0.5, clipY + 0.5, Math.max(0, clipWidth - 1), Math.max(0, clipHeight - 1), radius);
-      ctx.fillStyle = clip.laneIndex % 2 === 0 ? "rgba(193, 214, 235, 0.22)" : "rgba(176, 198, 220, 0.2)";
-      ctx.fillRect(clipX + 6, clipY + 5, Math.max(10, Math.min(clipWidth - 12, 20 + (clipIndex % 2) * 8)), 2);
+      ctx.shadowColor = "rgba(0,0,0,0)";
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = isSelectedClip ? "rgba(170, 215, 255, 0.34)" : palette.accent;
+      ctx.fillRect(clipX + 7, clipY + 5, Math.max(12, Math.min(clipWidth - 14, 18 + (clipIndex % 2) * 8)), 2);
+      if (String(clip.sourceKind || "recording") === "recording" && onAirReviewNoiseFloorMap.length) {
+        const clipNoiseBuckets = Math.max(12, Math.min(60, Math.floor(clipWidth / 8)));
+        for (let bucketIndex = 0; bucketIndex < clipNoiseBuckets; bucketIndex += 1) {
+          const bucketStartTime = clip.start + (clip.duration * bucketIndex / clipNoiseBuckets);
+          const bucketMidTime = clip.start + (clip.duration * (bucketIndex + 0.5) / clipNoiseBuckets);
+          const bucketEndTime = clip.start + (clip.duration * (bucketIndex + 1) / clipNoiseBuckets);
+          const noiseValue = Math.max(
+            getOnAirReviewNoiseAtEditedProgress(bucketStartTime / duration, duration),
+            getOnAirReviewNoiseAtEditedProgress(bucketMidTime / duration, duration),
+            getOnAirReviewNoiseAtEditedProgress(bucketEndTime / duration, duration)
+          );
+          if (noiseValue <= 0.08) {
+            continue;
+          }
+          const noiseX = clipX + (clipWidth * bucketIndex / clipNoiseBuckets);
+          const noiseWidth = Math.max(1, clipWidth / clipNoiseBuckets);
+          const overlayAlpha = 0.04 + noiseValue * 0.12;
+          const color = noiseValue > 0.68
+            ? "rgba(255, 126, 92, " + overlayAlpha.toFixed(3) + ")"
+            : noiseValue > 0.42
+              ? "rgba(236, 178, 98, " + overlayAlpha.toFixed(3) + ")"
+              : "rgba(172, 182, 196, " + Math.max(0.03, overlayAlpha * 0.6).toFixed(3) + ")";
+          ctx.fillStyle = color;
+          ctx.fillRect(noiseX, clipY + 1, noiseWidth, clipHeight - 2);
+        }
+      }
+      drawOnAirReviewClipWaveform(ctx, clip, {
+        duration,
+        clipX,
+        clipY,
+        clipWidth,
+        clipHeight,
+        labelVisible,
+        palette,
+        zoomLevel: onAirReviewZoomLevel,
+        visibleEditedStart: Math.max(clip.start, duration * Math.max(0, Math.min(1, windowStart))),
+        visibleEditedEnd: Math.min(clip.end, duration * Math.max(0, Math.min(1, windowStart + windowSize)))
+      });
+      if (labelVisible) {
+        const tagPaddingX = 7;
+        const tagHeight = 15;
+        ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+        let renderedLabel = clipLabel;
+        const maxTextWidth = Math.max(34, clipWidth - 20);
+        while (ctx.measureText(renderedLabel).width > maxTextWidth && renderedLabel.length > 5) {
+          renderedLabel = renderedLabel.slice(0, -2).trimEnd() + "…";
+        }
+        const tagWidth = Math.min(clipWidth - 8, Math.ceil(ctx.measureText(renderedLabel).width + tagPaddingX * 2));
+        const tagX = clipX + clipWidth - tagWidth - 5;
+        const tagY = clipY + 4;
+        ctx.fillStyle = "rgba(8, 13, 18, 0.78)";
+        fillRoundedRect(ctx, tagX, tagY, tagWidth, tagHeight, 7);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.11)";
+        ctx.lineWidth = 1;
+        strokeRoundedRect(ctx, tagX + 0.5, tagY + 0.5, tagWidth - 1, tagHeight - 1, 7);
+        ctx.fillStyle = palette.text;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(renderedLabel, tagX + tagPaddingX, tagY + tagHeight / 2 + 0.5);
+      }
+      const fadeInWidth = clip.duration > 0
+        ? Math.max(0, Math.min(clipWidth, clipWidth * Math.max(0, Math.min(1, Number(clip.fadeIn || 0) / clip.duration))))
+        : 0;
+      const fadeOutWidth = clip.duration > 0
+        ? Math.max(0, Math.min(clipWidth, clipWidth * Math.max(0, Math.min(1, Number(clip.fadeOut || 0) / clip.duration))))
+        : 0;
+      if (fadeInWidth > 2) {
+        const fadeInGradient = ctx.createLinearGradient(clipX, clipY, clipX + fadeInWidth, clipY);
+        fadeInGradient.addColorStop(0, "rgba(244, 248, 252, 0.22)");
+        fadeInGradient.addColorStop(0.7, "rgba(244, 248, 252, 0.08)");
+        fadeInGradient.addColorStop(1, "rgba(244, 248, 252, 0.02)");
+        ctx.fillStyle = fadeInGradient;
+        ctx.beginPath();
+        ctx.moveTo(clipX, clipY + clipHeight);
+        ctx.lineTo(clipX + fadeInWidth, clipY);
+        ctx.lineTo(clipX + fadeInWidth, clipY + clipHeight);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(232, 241, 249, 0.66)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(clipX + 0.5, clipY + clipHeight - 0.5);
+        ctx.lineTo(clipX + fadeInWidth - 0.5, clipY + 0.5);
+        ctx.stroke();
+      }
+      if (fadeOutWidth > 2) {
+        const fadeOutGradient = ctx.createLinearGradient(clipX + clipWidth - fadeOutWidth, clipY, clipX + clipWidth, clipY);
+        fadeOutGradient.addColorStop(0, "rgba(244, 248, 252, 0.02)");
+        fadeOutGradient.addColorStop(0.3, "rgba(244, 248, 252, 0.08)");
+        fadeOutGradient.addColorStop(1, "rgba(244, 248, 252, 0.22)");
+        ctx.fillStyle = fadeOutGradient;
+        ctx.beginPath();
+        ctx.moveTo(clipX + clipWidth - fadeOutWidth, clipY);
+        ctx.lineTo(clipX + clipWidth, clipY + clipHeight);
+        ctx.lineTo(clipX + clipWidth - fadeOutWidth, clipY + clipHeight);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(232, 241, 249, 0.66)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(clipX + clipWidth - fadeOutWidth + 0.5, clipY + 0.5);
+        ctx.lineTo(clipX + clipWidth - 0.5, clipY + clipHeight - 0.5);
+        ctx.stroke();
+      }
+      onAirReviewFadeRegions
+        .filter((region) => region && region.clipId === clip.clipId)
+        .forEach((region) => {
+          const regionStart = Math.max(clip.start, Number(region.start) || 0);
+          const regionEnd = Math.min(clip.end, Math.max(regionStart, Number(region.end) || regionStart));
+          if (regionEnd - regionStart <= 0.01) {
+            return;
+          }
+          const regionStartProgress = Math.max(0, Math.min(1, regionStart / duration));
+          const regionEndProgress = Math.max(regionStartProgress, Math.min(1, regionEnd / duration));
+          const regionVisibleStart = windowSize < 1
+            ? (regionStartProgress - windowStart) / Math.max(windowSize, 1e-6)
+            : regionStartProgress;
+          const regionVisibleEnd = windowSize < 1
+            ? (regionEndProgress - windowStart) / Math.max(windowSize, 1e-6)
+            : regionEndProgress;
+          const regionX = timelineX + timelineWidth * Math.max(0, Math.min(1, regionVisibleStart));
+          const regionWidth = timelineWidth * Math.max(0, Math.min(1, regionVisibleEnd) - Math.max(0, Math.min(1, regionVisibleStart)));
+          if (regionWidth <= 3) {
+            return;
+          }
+          const regionHeight = Math.max(8, clipHeight - 4);
+          const regionY = clipY + 2;
+          const regionDuration = regionEnd - regionStart;
+          const regionFadePair = normalizeOnAirReviewClipFadePair(region.fadeIn, region.fadeOut, regionDuration);
+          const regionFadeInWidth = regionDuration > 0
+            ? Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, Number(regionFadePair.fadeIn || 0) / regionDuration))))
+            : 0;
+          const regionFadeOutWidth = regionDuration > 0
+            ? Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, Number(regionFadePair.fadeOut || 0) / regionDuration))))
+            : 0;
+          ctx.fillStyle = "rgba(255, 193, 97, 0.028)";
+          ctx.fillRect(regionX, regionY, regionWidth, regionHeight);
+          ctx.strokeStyle = "rgba(255, 193, 97, 0.18)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(regionX + 0.5, regionY + 0.5, Math.max(1, regionWidth - 1), Math.max(1, regionHeight - 1));
+          if (regionFadeInWidth > 2) {
+            ctx.fillStyle = "rgba(255, 217, 140, 0.13)";
+            ctx.beginPath();
+            ctx.moveTo(regionX, regionY + regionHeight);
+            ctx.lineTo(regionX + regionFadeInWidth, regionY);
+            ctx.lineTo(regionX + regionFadeInWidth, regionY + regionHeight);
+            ctx.closePath();
+            ctx.fill();
+          }
+          if (regionFadeOutWidth > 2) {
+            ctx.fillStyle = "rgba(255, 217, 140, 0.13)";
+            ctx.beginPath();
+            ctx.moveTo(regionX + regionWidth - regionFadeOutWidth, regionY);
+            ctx.lineTo(regionX + regionWidth, regionY + regionHeight);
+            ctx.lineTo(regionX + regionWidth - regionFadeOutWidth, regionY + regionHeight);
+            ctx.closePath();
+            ctx.fill();
+          }
+          const handleRadius = Math.max(3, Math.min(6, clipHeight * 0.18));
+          const handleInset = 1.5;
+          const fadeInHandleX = regionX + Math.max(0, Math.min(regionWidth, regionFadeInWidth));
+          const fadeOutHandleX = regionX + regionWidth - Math.max(0, Math.min(regionWidth, regionFadeOutWidth));
+          ctx.fillStyle = "rgba(255, 215, 132, 0.92)";
+          ctx.beginPath();
+          ctx.arc(fadeInHandleX, regionY + handleInset + handleRadius, handleRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(fadeOutHandleX, regionY + regionHeight - handleInset - handleRadius, handleRadius, 0, Math.PI * 2);
+          ctx.fill();
+        });
     });
     if (overlapRanges.length) {
       const animationClock = performance.now();
@@ -5214,40 +7715,38 @@ function renderOnAirReviewWaveform() {
         const visibleEnd = windowSize < 1
           ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
           : endProgress;
-        const overlapX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
-        const overlapWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+        const overlapX = timelineX + timelineWidth * Math.max(0, Math.min(1, visibleStart));
+        const overlapWidth = timelineWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
         if (overlapWidth <= 1) {
           return;
         }
-        const overlapTopOffset = Math.min(range.backLane, range.frontLane) * Math.max(5, Math.floor(laneHeight * 0.16));
-        const overlapBottomOffset = Math.max(range.backLane, range.frontLane) * Math.max(5, Math.floor(laneHeight * 0.16));
-        const overlapY = meterY + 5 + overlapTopOffset;
-        const overlapHeight = Math.max(16, meterHeight - 10 - overlapBottomOffset * 0.35);
+        const overlapY = getLaneY(range.backLane) + 2;
+        const overlapHeight = Math.max(12, laneHeight - 4);
         const overlapRadius = Math.max(4, Math.floor(overlapHeight * 0.12));
         const overlapCenterY = overlapY + overlapHeight / 2;
         const overlapGradient = ctx.createLinearGradient(0, overlapY, 0, overlapY + overlapHeight);
-        overlapGradient.addColorStop(0, "rgba(255, 180, 108, 0.08)");
-        overlapGradient.addColorStop(0.22, "rgba(255, 164, 92, 0.16)");
-        overlapGradient.addColorStop(0.5, "rgba(255, 142, 74, 0.24)");
-        overlapGradient.addColorStop(0.78, "rgba(255, 160, 98, 0.16)");
-        overlapGradient.addColorStop(1, "rgba(255, 189, 125, 0.08)");
+        overlapGradient.addColorStop(0, "rgba(255, 180, 108, 0.05)");
+        overlapGradient.addColorStop(0.22, "rgba(255, 164, 92, 0.11)");
+        overlapGradient.addColorStop(0.5, "rgba(255, 142, 74, 0.18)");
+        overlapGradient.addColorStop(0.78, "rgba(255, 160, 98, 0.11)");
+        overlapGradient.addColorStop(1, "rgba(255, 189, 125, 0.05)");
         ctx.fillStyle = overlapGradient;
         fillRoundedRect(ctx, overlapX, overlapY, overlapWidth, overlapHeight, overlapRadius);
         const coreBandHeight = Math.max(6, Math.min(12, overlapHeight * 0.28));
         const coreBandY = overlapCenterY - coreBandHeight / 2;
         const coreBand = ctx.createLinearGradient(0, coreBandY, 0, coreBandY + coreBandHeight);
-        coreBand.addColorStop(0, "rgba(255, 227, 188, 0.18)");
-        coreBand.addColorStop(0.5, "rgba(255, 181, 112, 0.34)");
-        coreBand.addColorStop(1, "rgba(255, 225, 183, 0.18)");
+        coreBand.addColorStop(0, "rgba(255, 227, 188, 0.12)");
+        coreBand.addColorStop(0.5, "rgba(255, 181, 112, 0.24)");
+        coreBand.addColorStop(1, "rgba(255, 225, 183, 0.12)");
         ctx.fillStyle = coreBand;
         fillRoundedRect(ctx, overlapX, coreBandY, overlapWidth, coreBandHeight, Math.max(3, Math.floor(coreBandHeight / 2)));
-        ctx.strokeStyle = "rgba(255, 176, 97, 0.44)";
+        ctx.strokeStyle = "rgba(255, 176, 97, 0.3)";
         ctx.lineWidth = 1;
         strokeRoundedRect(ctx, overlapX + 0.5, overlapY + 0.5, Math.max(0, overlapWidth - 1), Math.max(0, overlapHeight - 1), overlapRadius);
         const seamX = overlapX + overlapWidth / 2;
         const seamGradient = ctx.createLinearGradient(seamX, overlapY, seamX, overlapY + overlapHeight);
         seamGradient.addColorStop(0, "rgba(255, 236, 207, 0)");
-        seamGradient.addColorStop(0.5, "rgba(255, 218, 169, 0.34)");
+        seamGradient.addColorStop(0.5, "rgba(255, 218, 169, 0.22)");
         seamGradient.addColorStop(1, "rgba(255, 236, 207, 0)");
         ctx.fillStyle = seamGradient;
         ctx.fillRect(seamX - 1, overlapY + 2, 2, Math.max(6, overlapHeight - 4));
@@ -5258,9 +7757,9 @@ function renderOnAirReviewWaveform() {
         const sheenX = overlapX + sheenOffset;
         const sheen = ctx.createLinearGradient(sheenX, 0, sheenX + sheenWidth, 0);
         sheen.addColorStop(0, "rgba(255, 255, 255, 0)");
-        sheen.addColorStop(0.35, "rgba(255, 244, 224, " + (pulse * 0.55).toFixed(3) + ")");
-        sheen.addColorStop(0.5, "rgba(255, 232, 196, " + pulse.toFixed(3) + ")");
-        sheen.addColorStop(0.65, "rgba(255, 244, 224, " + (pulse * 0.55).toFixed(3) + ")");
+        sheen.addColorStop(0.35, "rgba(255, 244, 224, " + (pulse * 0.34).toFixed(3) + ")");
+        sheen.addColorStop(0.5, "rgba(255, 232, 196, " + (pulse * 0.62).toFixed(3) + ")");
+        sheen.addColorStop(0.65, "rgba(255, 244, 224, " + (pulse * 0.34).toFixed(3) + ")");
         sheen.addColorStop(1, "rgba(255, 255, 255, 0)");
         ctx.fillStyle = sheen;
         ctx.fillRect(overlapX, overlapY + 2, overlapWidth, Math.max(8, overlapHeight - 4));
@@ -5277,110 +7776,104 @@ function renderOnAirReviewWaveform() {
     const visibleSelectionEnd = windowSize < 1
       ? (selectionEndProgress - windowStart) / Math.max(windowSize, 1e-6)
       : selectionEndProgress;
-    const selectionX = meterX + meterWidth * Math.max(0, Math.min(1, visibleSelectionStart));
-    const selectionWidth = meterWidth * Math.max(0, Math.min(1, visibleSelectionEnd) - Math.max(0, Math.min(1, visibleSelectionStart)));
+    const selectionX = timelineX + timelineWidth * Math.max(0, Math.min(1, visibleSelectionStart));
+    const selectionWidth = timelineWidth * Math.max(0, Math.min(1, visibleSelectionEnd) - Math.max(0, Math.min(1, visibleSelectionStart)));
     if (selectionWidth > 0) {
-      ctx.fillStyle = "rgba(95, 162, 236, 0.18)";
-      ctx.fillRect(selectionX, meterY, selectionWidth, meterHeight);
-      ctx.strokeStyle = "rgba(129, 186, 244, 0.72)";
-      ctx.lineWidth = Math.max(1, Math.floor((window.devicePixelRatio || 1) * 1.1));
-      ctx.strokeRect(selectionX, meterY + 0.5, selectionWidth, meterHeight - 1);
-      const handleWidth = Math.max(2, Math.floor((window.devicePixelRatio || 1) * 2));
-      ctx.fillStyle = "rgba(176, 214, 255, 0.9)";
-      ctx.fillRect(selectionX - handleWidth / 2, meterY + 3, handleWidth, meterHeight - 6);
-      ctx.fillRect(selectionX + selectionWidth - handleWidth / 2, meterY + 3, handleWidth, meterHeight - 6);
+      const selectionTargetClip = getOnAirReviewSelectionTargetClip();
+      const selectionClipY = selectionTargetClip ? getLaneY(Math.max(0, Number(selectionTargetClip.lane) || 0)) + 3 : meterY;
+      const selectionClipHeight = selectionTargetClip ? Math.max(12, laneHeight - 6) : meterHeight;
+      const selectionClipStartProgress = selectionTargetClip
+        ? Math.max(0, Math.min(1, selectionTargetClip.start / duration))
+        : 0;
+      const selectionClipEndProgress = selectionTargetClip
+        ? Math.max(selectionClipStartProgress, Math.min(1, selectionTargetClip.end / duration))
+        : 1;
+      const selectionClipVisibleStart = selectionTargetClip && windowSize < 1
+        ? (selectionClipStartProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : selectionClipStartProgress;
+      const selectionClipVisibleEnd = selectionTargetClip && windowSize < 1
+        ? (selectionClipEndProgress - windowStart) / Math.max(windowSize, 1e-6)
+        : selectionClipEndProgress;
+      const selectionClipX = selectionTargetClip
+        ? timelineX + timelineWidth * Math.max(0, Math.min(1, selectionClipVisibleStart))
+        : timelineX;
+      const selectionClipWidth = selectionTargetClip
+        ? timelineWidth * Math.max(0, Math.min(1, selectionClipVisibleEnd) - Math.max(0, Math.min(1, selectionClipVisibleStart)))
+        : timelineWidth;
+      const boundedSelectionX = selectionTargetClip
+        ? Math.max(selectionClipX, selectionX)
+        : selectionX;
+      const boundedSelectionWidth = selectionTargetClip
+        ? Math.max(0, Math.min(selectionClipX + selectionClipWidth, selectionX + selectionWidth) - boundedSelectionX)
+        : selectionWidth;
+      if (boundedSelectionWidth > 0) {
+        ctx.fillStyle = "rgba(95, 162, 236, 0.18)";
+        ctx.fillRect(boundedSelectionX, selectionClipY, boundedSelectionWidth, selectionClipHeight);
+        ctx.strokeStyle = "rgba(129, 186, 244, 0.72)";
+        ctx.lineWidth = Math.max(1, Math.floor((window.devicePixelRatio || 1) * 1.1));
+        ctx.strokeRect(boundedSelectionX, selectionClipY + 0.5, boundedSelectionWidth, selectionClipHeight - 1);
+        const handleWidth = Math.max(2, Math.floor((window.devicePixelRatio || 1) * 2));
+        ctx.fillStyle = "rgba(176, 214, 255, 0.9)";
+        ctx.fillRect(boundedSelectionX - handleWidth / 2, selectionClipY + 3, handleWidth, selectionClipHeight - 6);
+        ctx.fillRect(boundedSelectionX + boundedSelectionWidth - handleWidth / 2, selectionClipY + 3, handleWidth, selectionClipHeight - 6);
+      }
     }
   }
 
-  if (duration > 0 && onAirReviewGainAdjustments.length) {
-    onAirReviewGainAdjustments.forEach((adjustment) => {
-      const startProgress = Math.max(0, Math.min(1, Number(adjustment.start || 0) / duration));
-      const endProgress = Math.max(startProgress, Math.min(1, Number(adjustment.end || 0) / duration));
+  if (duration > 0 && onAirReviewMarkers.length) {
+    const markerTop = meterY + 2;
+    const markerBottom = meterY + meterHeight - 2;
+    onAirReviewMarkers.forEach((marker) => {
+      const startProgress = Math.max(0, Math.min(1, marker.start / duration));
+      const endProgress = Math.max(startProgress, Math.min(1, (marker.type === "range" ? marker.end : marker.start) / duration));
       const visibleStart = windowSize < 1
         ? (startProgress - windowStart) / Math.max(windowSize, 1e-6)
         : startProgress;
       const visibleEnd = windowSize < 1
         ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
         : endProgress;
-      const overlayX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
-      const overlayWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
-      if (overlayWidth <= 0.5) {
-        return;
-      }
-      const db = clampOnAirReviewGainDb(adjustment.db);
-      ctx.fillStyle = db >= 0
-        ? "rgba(70, 166, 112, 0.12)"
-        : "rgba(199, 146, 71, 0.12)";
-      ctx.fillRect(overlayX, meterY, overlayWidth, meterHeight);
-    });
-  }
-
-  if (duration > 0) {
-    getOnAirReviewTimelineEntries().forEach((entry) => {
-      const startProgress = Math.max(0, Math.min(1, entry.start / duration));
-      const endProgress = Math.max(startProgress, Math.min(1, entry.end / duration));
-      const visibleStart = windowSize < 1
-        ? (startProgress - windowStart) / Math.max(windowSize, 1e-6)
-        : startProgress;
-      const visibleEnd = windowSize < 1
-        ? (endProgress - windowStart) / Math.max(windowSize, 1e-6)
-        : endProgress;
-      const clipX = meterX + meterWidth * Math.max(0, Math.min(1, visibleStart));
-      const clipWidth = meterWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
-      if (clipWidth <= 0.5) {
-        return;
-      }
-      if (entry.type === "gap") {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
-        ctx.fillRect(clipX, meterY, clipWidth, meterHeight);
-        return;
+      const markerX = timelineX + timelineWidth * Math.max(0, Math.min(1, visibleStart));
+      if (marker.type === "range") {
+        const rangeWidth = timelineWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+        if (rangeWidth > 1) {
+          ctx.fillStyle = "rgba(120, 96, 214, 0.16)";
+          fillRoundedRect(ctx, markerX, meterY + 8, rangeWidth, Math.max(16, meterHeight - 16), 8);
+          ctx.strokeStyle = "rgba(171, 154, 255, 0.56)";
+          ctx.lineWidth = 1;
+          strokeRoundedRect(ctx, markerX + 0.5, meterY + 8.5, Math.max(0, rangeWidth - 1), Math.max(0, meterHeight - 17), 8);
+          ctx.fillStyle = "rgba(219, 210, 255, 0.92)";
+          ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(marker.label, markerX + 6, meterY + 18);
+        }
+      } else {
+        ctx.strokeStyle = "rgba(255, 205, 126, 0.82)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(markerX + 0.5, markerTop + 14);
+        ctx.lineTo(markerX + 0.5, markerBottom);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255, 190, 103, 0.96)";
+        fillRoundedRect(ctx, markerX - 12, markerTop, 24, 12, 5);
+        ctx.fillStyle = "#1a1110";
+        ctx.font = "700 9px ui-sans-serif, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(marker.label, markerX, markerTop + 6.5);
       }
     });
   }
 
-  const tickStep = Math.max(12, Math.floor(meterWidth / 42));
+  const tickStep = Math.max(12, Math.floor(timelineWidth / 42));
   ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
   ctx.lineWidth = 1;
-  for (let x = meterX + tickStep; x < meterX + meterWidth; x += tickStep) {
-    ctx.beginPath();
-    ctx.moveTo(x + 0.5, topLaneY + 1);
-    ctx.lineTo(x + 0.5, topLaneY + laneHeight - 1);
-    ctx.moveTo(x + 0.5, bottomLaneY + 1);
-    ctx.lineTo(x + 0.5, bottomLaneY + laneHeight - 1);
-    ctx.stroke();
-  }
-
-  const visibleBarCount = Math.max(72, Math.floor(meterWidth / Math.max(5, (window.devicePixelRatio || 1) * 5)));
-  if (duration > 0 && visibleBarCount > 0) {
-    const step = meterWidth / visibleBarCount;
-    const lineWidth = Math.max(1, step * 0.36);
-    for (let index = 0; index < visibleBarCount; index += 1) {
-      const x = meterX + index * step + step / 2;
-      const progress = windowSize < 1
-        ? windowStart + windowSize * ((index + 0.5) / visibleBarCount)
-        : (index + 0.5) / visibleBarCount;
-      const peak = Math.max(0, Math.min(1, getOnAirReviewPeakAtEditedProgress(progress, duration)));
-      if (peak <= 0.003) {
-        continue;
-      }
-      const gainDb = getOnAirReviewGainDbAt(duration * progress);
-      const adjustedPeak = Math.max(0.02, Math.min(1, peak * Math.max(0.25, Math.min(2.4, dbToGainMultiplier(gainDb)))));
-      let stroke = "rgba(77, 205, 139, 0.94)";
-      if (adjustedPeak >= 0.88) {
-        stroke = "rgba(255, 111, 95, 0.98)";
-      } else if (adjustedPeak >= 0.68) {
-        stroke = "rgba(255, 168, 79, 0.97)";
-      } else if (adjustedPeak >= 0.28) {
-        stroke = "rgba(246, 214, 99, 0.96)";
-      }
-      const amp = adjustedPeak * (laneHeight - 4);
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = lineWidth;
+  for (let x = timelineX + tickStep; x < timelineX + timelineWidth; x += tickStep) {
+    for (let laneIndex = 0; laneIndex < laneCount; laneIndex += 1) {
+      const laneY = getLaneY(laneIndex);
       ctx.beginPath();
-      ctx.moveTo(x, topLaneBaseY);
-      ctx.lineTo(x, Math.max(topLaneY + 2, topLaneBaseY - amp));
-      ctx.moveTo(x, bottomLaneBaseY);
-      ctx.lineTo(x, Math.min(bottomLaneY + laneHeight - 2, bottomLaneBaseY + amp));
+      ctx.moveTo(x + 0.5, laneY + 1);
+      ctx.lineTo(x + 0.5, laneY + laneHeight - 1);
       ctx.stroke();
     }
   }
@@ -5388,7 +7881,7 @@ function renderOnAirReviewWaveform() {
   const playheadWindowProgress = windowSize < 1
     ? Math.max(0, Math.min(1, (currentProgress - windowStart) / Math.max(windowSize, 1e-6)))
     : currentProgress;
-  const playheadX = meterX + meterWidth * playheadWindowProgress;
+  const playheadX = timelineX + timelineWidth * playheadWindowProgress;
   ctx.strokeStyle = "rgba(255, 156, 76, 0.98)";
   ctx.lineWidth = Math.max(2, Math.floor((window.devicePixelRatio || 1) * 1.6));
   ctx.beginPath();
@@ -5416,15 +7909,16 @@ function queueOnAirReviewWaveRender() {
 }
 
 function seekOnAirReviewFromClientX(clientX) {
-  if (!onAirReviewWaveCanvas) {
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
     return;
   }
   const duration = getOnAirReviewTimelineDuration();
   if (!(duration > 0)) {
     return;
   }
-  const rect = onAirReviewWaveCanvas.getBoundingClientRect();
-  const localPercent = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
+  const localPercent = Math.max(0, Math.min(1, (localX - layout.timelineX) / Math.max(1, layout.timelineWidth)));
   const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
   const windowSize = viewport.windowSize;
   const windowStart = viewport.windowStart;
@@ -5434,21 +7928,128 @@ function seekOnAirReviewFromClientX(clientX) {
   seekOnAirReviewEditedTime(duration * absolutePercent);
 }
 
-function getOnAirReviewSecondsFromClientX(clientX) {
+function getOnAirReviewWaveLayout() {
   if (!onAirReviewWaveCanvas) {
+    return null;
+  }
+  const rect = onAirReviewWaveCanvas.getBoundingClientRect();
+  const width = onAirReviewWaveCanvas.width;
+  const height = onAirReviewWaveCanvas.height;
+  const shellInset = Math.max(4, Math.floor(height * 0.04));
+  const shellWidth = Math.max(12, width - shellInset * 2);
+  const shellHeight = Math.max(12, height - shellInset * 2);
+  const meterInsetX = Math.max(16, Math.floor(width * 0.02));
+  const meterInsetY = Math.max(18, Math.floor(height * 0.18));
+  const meterX = shellInset + meterInsetX;
+  const meterY = shellInset + meterInsetY;
+  const meterWidth = Math.max(24, shellWidth - meterInsetX * 2);
+  const meterHeight = Math.max(16, shellHeight - meterInsetY * 2);
+  const trackHeaderWidth = Math.max(92, Math.min(148, Math.floor(meterWidth * 0.11)));
+  const timelineX = meterX + trackHeaderWidth + 10;
+  const timelineWidth = Math.max(24, meterWidth - trackHeaderWidth - 10);
+  const mediaClips = getOnAirReviewMediaClips();
+  const laneCount = ON_AIR_REVIEW_MAX_TRACKS;
+  const laneGap = Math.max(6, Math.floor(height * 0.03));
+  const laneHeight = Math.max(18, Math.floor((meterHeight - laneGap * Math.max(0, laneCount - 1)) / laneCount));
+  return { rect, width, height, meterX, meterY, meterWidth, meterHeight, trackHeaderWidth, timelineX, timelineWidth, laneCount, laneGap, laneHeight };
+}
+
+function isOnAirReviewTimelineHitAtClient(clientX) {
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
+    return false;
+  }
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
+  return localX >= layout.timelineX && localX <= layout.timelineX + layout.timelineWidth;
+}
+
+function getOnAirReviewSecondsFromClientX(clientX) {
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
     return 0;
   }
   const duration = getOnAirReviewTimelineDuration();
   if (!(duration > 0)) {
     return 0;
   }
-  const rect = onAirReviewWaveCanvas.getBoundingClientRect();
-  const localPercent = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
+  const localPercent = Math.max(0, Math.min(1, (localX - layout.timelineX) / Math.max(1, layout.timelineWidth)));
   const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
   const absolutePercent = viewport.windowSize < 1
     ? Math.max(0, Math.min(1, viewport.windowStart + viewport.windowSize * localPercent))
     : localPercent;
   return duration * absolutePercent;
+}
+
+function getOnAirReviewClipHitAtClient(clientX, clientY) {
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
+    return null;
+  }
+  const localY = ((clientY - layout.rect.top) / Math.max(1, layout.rect.height)) * layout.height;
+  const laneSpan = layout.laneHeight + layout.laneGap;
+  const laneIndex = Math.max(0, Math.min(layout.laneCount - 1, Math.floor((localY - layout.meterY) / Math.max(1, laneSpan))));
+  const seconds = getOnAirReviewSecondsFromClientX(clientX);
+  const laneClips = getOnAirReviewMediaClips().filter((clip) => clip.lane === laneIndex && seconds >= clip.start && seconds <= clip.end);
+  if (!laneClips.length) {
+    return null;
+  }
+  if (Number.isFinite(onAirReviewSelectedClipIndex) && onAirReviewSelectedClipIndex >= 0) {
+    const selectedMatch = laneClips.find((clip) => clip.clipId === onAirReviewSelectedClipIndex);
+    if (selectedMatch) {
+      return selectedMatch;
+    }
+  }
+  return laneClips[laneClips.length - 1] || null;
+}
+
+function getOnAirReviewFadeHandleHitAtClient(clientX, clientY) {
+  const layout = getOnAirReviewWaveLayout();
+  if (!layout) {
+    return null;
+  }
+  const duration = getOnAirReviewTimelineDuration();
+  const target = getOnAirReviewFadeEditTarget();
+  if (!(duration > 0) || !target || !target.clip) {
+    return null;
+  }
+  const localY = ((clientY - layout.rect.top) / Math.max(1, layout.rect.height)) * layout.height;
+  const laneSpan = layout.laneHeight + layout.laneGap;
+  const laneIndex = Math.max(0, Math.min(layout.laneCount - 1, Math.floor((localY - layout.meterY) / Math.max(1, laneSpan))));
+  if (laneIndex !== target.clip.lane) {
+    return null;
+  }
+  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+  const clipY = layout.meterY + laneIndex * laneSpan + 3;
+  const clipHeight = Math.max(12, layout.laneHeight - 6);
+  if (localY < clipY || localY > clipY + clipHeight) {
+    return null;
+  }
+  const targetStartProgress = Math.max(0, Math.min(1, target.start / duration));
+  const targetEndProgress = Math.max(targetStartProgress, Math.min(1, target.end / duration));
+  const visibleStart = viewport.windowSize < 1
+    ? (targetStartProgress - viewport.windowStart) / Math.max(viewport.windowSize, 1e-6)
+    : targetStartProgress;
+  const visibleEnd = viewport.windowSize < 1
+    ? (targetEndProgress - viewport.windowStart) / Math.max(viewport.windowSize, 1e-6)
+    : targetEndProgress;
+  const regionX = layout.timelineX + layout.timelineWidth * Math.max(0, Math.min(1, visibleStart));
+  const regionWidth = layout.timelineWidth * Math.max(0, Math.min(1, visibleEnd) - Math.max(0, Math.min(1, visibleStart)));
+  if (regionWidth <= 6) {
+    return null;
+  }
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
+  const pair = normalizeOnAirReviewClipFadePair(target.fadeIn, target.fadeOut, target.end - target.start);
+  const fadeInX = regionX + Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, pair.fadeIn / Math.max(0.02, target.end - target.start)))));
+  const fadeOutX = regionX + regionWidth - Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, pair.fadeOut / Math.max(0.02, target.end - target.start)))));
+  const tolerance = Math.max(10, layout.width * 0.008);
+  if (Math.abs(localX - fadeInX) <= tolerance) {
+    return { kind: "in", target };
+  }
+  if (Math.abs(localX - fadeOutX) <= tolerance) {
+    return { kind: "out", target };
+  }
+  return null;
 }
 
 function beginRecordingProcessingPhase() {
@@ -5484,6 +8085,84 @@ function downloadBlobAsset(url, filename) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
+}
+
+function downloadBlobObject(blob, filename) {
+  if (!blob) {
+    return;
+  }
+  const objectUrl = URL.createObjectURL(blob);
+  downloadBlobAsset(objectUrl, filename);
+  window.setTimeout(() => {
+    try {
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      // Ignore object URL cleanup failures.
+    }
+  }, 4000);
+}
+
+function encodeAudioBufferToWavBlob(audioBuffer) {
+  if (!audioBuffer || !(audioBuffer.length > 0) || !(audioBuffer.sampleRate > 0)) {
+    throw new Error("Audio export buffer is unavailable.");
+  }
+  const channelCount = Math.max(1, Math.min(2, Number(audioBuffer.numberOfChannels) || 1));
+  const sampleRate = Math.max(8000, Math.round(Number(audioBuffer.sampleRate) || 48000));
+  const frameCount = Math.max(1, Number(audioBuffer.length) || 1);
+  const bytesPerSample = 2;
+  const blockAlign = channelCount * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = frameCount * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  let offset = 0;
+
+  function writeAscii(value) {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset, value.charCodeAt(index));
+      offset += 1;
+    }
+  }
+
+  function writeUint32(value) {
+    view.setUint32(offset, value, true);
+    offset += 4;
+  }
+
+  function writeUint16(value) {
+    view.setUint16(offset, value, true);
+    offset += 2;
+  }
+
+  writeAscii("RIFF");
+  writeUint32(36 + dataSize);
+  writeAscii("WAVE");
+  writeAscii("fmt ");
+  writeUint32(16);
+  writeUint16(1);
+  writeUint16(channelCount);
+  writeUint32(sampleRate);
+  writeUint32(byteRate);
+  writeUint16(blockAlign);
+  writeUint16(16);
+  writeAscii("data");
+  writeUint32(dataSize);
+
+  const channelData = [];
+  for (let channel = 0; channel < channelCount; channel += 1) {
+    channelData.push(audioBuffer.getChannelData(Math.min(channel, audioBuffer.numberOfChannels - 1)));
+  }
+
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, Number(channelData[channel][frame] || 0)));
+      const pcm = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+      view.setInt16(offset, pcm, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
 }
 
 function updateRecordingTimerText() {
@@ -5934,6 +8613,41 @@ function clearLocalRecordingAsset() {
   recordingAudioDurationSeconds = 0;
   recordingAssetDurationProbeToken += 1;
   syncReviewPanelUI();
+}
+
+async function importOnAirReviewFile(file) {
+  if (!file) {
+    return false;
+  }
+  const type = String(file.type || "").toLowerCase();
+  const isAudio = type.startsWith("audio/");
+  const isVideo = type.startsWith("video/");
+  if (!isAudio && !isVideo) {
+    if (onAirReviewWindowStatus) {
+      onAirReviewWindowStatus.textContent = "Choose an audio or video recording file.";
+    }
+    return false;
+  }
+  clearLocalRecordingAsset();
+  if (isAudio) {
+    recordingAudioBlob = file;
+    recordingAudioMimeType = type || "audio/webm";
+    recordingAudioUrl = URL.createObjectURL(file);
+  } else {
+    recordingMediaBlob = file;
+    recordingMediaMimeType = type || "video/webm";
+    recordingMediaUrl = URL.createObjectURL(file);
+  }
+  await refreshRecordingAssetDurations().catch(() => {
+    // Duration probe fallback is handled by syncReviewPanelUI.
+  });
+  syncReviewPanelUI();
+  const preferredKind = getPreferredOnAirReviewKind() || (isVideo ? "video" : "audio");
+  openOnAirReviewPlayback(preferredKind);
+  if (onAirReviewWindowStatus) {
+    onAirReviewWindowStatus.textContent = String(file.name || "Recording") + " loaded into Review Cut.";
+  }
+  return true;
 }
 
 function clearRecordingAutomationTimers() {
@@ -10762,6 +13476,42 @@ function getOnAirReviewGainBoundariesForClip(clip, fromEditedTime) {
     .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.0005);
 }
 
+function getOnAirReviewFadeRegionBoundariesForClip(clip, fromEditedTime) {
+  const clipId = Math.max(1, Number(clip && clip.clipId) || 0);
+  const clipStart = Math.max(0, Number(clip && clip.start) || 0);
+  const clipEnd = Math.max(clipStart, Number(clip && clip.end) || clipStart);
+  const rangeStart = Math.max(clipStart, Number(fromEditedTime) || 0);
+  const boundaries = [rangeStart, clipEnd];
+  onAirReviewFadeRegions.forEach((region) => {
+    if (!region || region.clipId !== clipId) {
+      return;
+    }
+    const start = Math.max(clipStart, Number(region.start) || 0);
+    const end = Math.min(clipEnd, Math.max(start, Number(region.end) || start));
+    if (end <= rangeStart || start >= clipEnd) {
+      return;
+    }
+    boundaries.push(Math.max(rangeStart, start));
+    boundaries.push(end);
+  });
+  return boundaries
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right)
+    .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.0005);
+}
+
+function getOnAirReviewPlaybackBoundariesForClip(clip, fromEditedTime) {
+  const boundaries = [
+    ...getOnAirReviewGainBoundariesForClip(clip, fromEditedTime),
+    ...getOnAirReviewCleanupBoundariesForClip(clip, fromEditedTime),
+    ...getOnAirReviewFadeRegionBoundariesForClip(clip, fromEditedTime)
+  ];
+  return boundaries
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right)
+    .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.0005);
+}
+
 function getOnAirReviewOverlapMixMultiplier(clip, chunkStart, chunkDuration, clips) {
   const mode = normalizeOnAirReviewOverlapMode(onAirReviewOverlapMode);
   if (!clip || !Array.isArray(clips) || !clips.length) {
@@ -10793,6 +13543,88 @@ function getOnAirReviewOverlapMixMultiplier(clip, chunkStart, chunkDuration, cli
   return 1;
 }
 
+function getOnAirReviewFadeEnvelopeForClipChunk(clip, chunkStart, chunkDuration) {
+  const clipDuration = Math.max(0.01, Number(clip && clip.duration) || 0);
+  const fadePair = normalizeOnAirReviewClipFadePair(clip && clip.fadeIn, clip && clip.fadeOut, clipDuration);
+  const fadeIn = fadePair.fadeIn;
+  const fadeOut = fadePair.fadeOut;
+  const localStart = Math.max(0, Number(chunkStart) - Number(clip && clip.start));
+  const localEnd = Math.max(localStart, localStart + Math.max(0, Number(chunkDuration) || 0));
+  let startMultiplier = 1;
+  let endMultiplier = 1;
+  if (fadeIn > 0.001) {
+    startMultiplier = Math.min(startMultiplier, shapeOnAirReviewFadeRatio(localStart / fadeIn));
+    endMultiplier = Math.min(endMultiplier, shapeOnAirReviewFadeRatio(localEnd / fadeIn));
+  }
+  if (fadeOut > 0.001) {
+    const startRemaining = Math.max(0, clipDuration - localStart);
+    const endRemaining = Math.max(0, clipDuration - localEnd);
+    startMultiplier = Math.min(startMultiplier, shapeOnAirReviewFadeRatio(startRemaining / fadeOut));
+    endMultiplier = Math.min(endMultiplier, shapeOnAirReviewFadeRatio(endRemaining / fadeOut));
+  }
+  return {
+    start: Math.max(0, Math.min(1, startMultiplier)),
+    end: Math.max(0, Math.min(1, endMultiplier))
+  };
+}
+
+function getOnAirReviewFadeRegionEnvelopeForClipChunk(clip, chunkStart, chunkDuration) {
+  const clipId = Math.max(1, Number(clip && clip.clipId) || 0);
+  if (!clipId || !onAirReviewFadeRegions.length) {
+    return { start: 1, end: 1 };
+  }
+  let startMultiplier = 1;
+  let endMultiplier = 1;
+  onAirReviewFadeRegions.forEach((region) => {
+    if (!region || region.clipId !== clipId) {
+      return;
+    }
+    const regionStart = Math.max(Number(clip && clip.start) || 0, Number(region.start) || 0);
+    const regionEnd = Math.min(Number(clip && clip.end) || regionStart, Math.max(regionStart, Number(region.end) || regionStart));
+    if (regionEnd - regionStart <= 0.01) {
+      return;
+    }
+    const overlapStart = Math.max(chunkStart, regionStart);
+    const overlapEnd = Math.min(chunkStart + Math.max(0, Number(chunkDuration) || 0), regionEnd);
+    if (overlapEnd - overlapStart <= 0.0005) {
+      return;
+    }
+    const regionDuration = regionEnd - regionStart;
+    const fadePair = normalizeOnAirReviewClipFadePair(region.fadeIn, region.fadeOut, regionDuration);
+    const localStart = overlapStart - regionStart;
+    const localEnd = overlapEnd - regionStart;
+    if (fadePair.fadeIn > 0.001) {
+      startMultiplier = Math.min(startMultiplier, shapeOnAirReviewFadeRatio(localStart / fadePair.fadeIn));
+      endMultiplier = Math.min(endMultiplier, shapeOnAirReviewFadeRatio(localEnd / fadePair.fadeIn));
+    }
+    if (fadePair.fadeOut > 0.001) {
+      const startRemaining = Math.max(0, regionDuration - localStart);
+      const endRemaining = Math.max(0, regionDuration - localEnd);
+      startMultiplier = Math.min(startMultiplier, shapeOnAirReviewFadeRatio(startRemaining / fadePair.fadeOut));
+      endMultiplier = Math.min(endMultiplier, shapeOnAirReviewFadeRatio(endRemaining / fadePair.fadeOut));
+    }
+  });
+  return {
+    start: Math.max(0, Math.min(1, startMultiplier)),
+    end: Math.max(0, Math.min(1, endMultiplier))
+  };
+}
+
+function shapeOnAirReviewFadeRatio(ratio) {
+  const clamped = Math.max(0, Math.min(1, Number(ratio) || 0));
+  if (normalizeOnAirReviewFadeCurveMode(onAirReviewFadeCurveMode) === "linear") {
+    return clamped;
+  }
+  return Math.sin((clamped * Math.PI) / 2);
+}
+
+function normalizeOnAirReviewScheduledGain(value) {
+  if (!(value > 0.0001)) {
+    return 0.0001;
+  }
+  return Math.max(0.0001, Math.min(1.2, Number(value) || 0.0001));
+}
+
 function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
   if (!canUseOnAirReviewClipPlayback()) {
     return false;
@@ -10813,7 +13645,7 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
     if (clip.end <= playbackStart || clip.start >= playbackEnd) {
       return;
     }
-    const boundaries = getOnAirReviewGainBoundariesForClip(clip, playbackStart)
+    const boundaries = getOnAirReviewPlaybackBoundariesForClip(clip, playbackStart)
       .map((value) => Math.max(playbackStart, Math.min(playbackEnd, value)));
     for (let index = 0; index < boundaries.length - 1; index += 1) {
       const chunkStart = Math.max(playbackStart, boundaries[index]);
@@ -10822,19 +13654,26 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
       if (chunkDuration <= 0.01) {
         continue;
       }
+      const midpoint = chunkStart + Math.max(0.005, chunkDuration / 2);
+      const clipBuffer = String(clip.sourceKind || "recording") === "recording"
+        ? (shouldUseOnAirReviewCleanedBufferAt(midpoint) ? onAirReviewCleanedAudioBuffer : buffer)
+        : getOnAirReviewBufferForClip(clip);
+      if (!clipBuffer) {
+        continue;
+      }
       const sourceOffset = Math.max(0, clip.sourceStart + (chunkStart - clip.start));
-      if (sourceOffset >= buffer.duration) {
+      if (sourceOffset >= clipBuffer.duration) {
         continue;
       }
       const sourceBounds = getOnAirReviewNormalizedSourceBounds(clip);
-      const clipSourceEnd = Math.min(buffer.duration, sourceBounds.sourceEnd);
+      const clipSourceEnd = Math.min(clipBuffer.duration, sourceBounds.sourceEnd);
       const availableClipDuration = Math.max(0, clipSourceEnd - sourceOffset);
       if (availableClipDuration <= 0.005) {
         continue;
       }
       const safeDuration = Math.min(
         chunkDuration,
-        Math.max(0.01, buffer.duration - sourceOffset),
+        Math.max(0.01, clipBuffer.duration - sourceOffset),
         availableClipDuration
       );
       if (safeDuration <= 0.01) {
@@ -10842,15 +13681,25 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
       }
       const source = context.createBufferSource();
       const gainNode = context.createGain();
-      const midpoint = chunkStart + safeDuration / 2;
-      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint));
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint) + (Number(clip.clipGainDb) || 0));
       const overlapGain = getOnAirReviewOverlapMixMultiplier(clip, chunkStart, safeDuration, clips);
-      gainNode.gain.value = Math.max(0, Math.min(1.2, clipGain * overlapGain));
-      source.buffer = buffer;
+      const clipFadeEnvelope = getOnAirReviewFadeEnvelopeForClipChunk(clip, chunkStart, safeDuration);
+      const regionFadeEnvelope = getOnAirReviewFadeRegionEnvelopeForClipChunk(clip, chunkStart, safeDuration);
+      const startGain = normalizeOnAirReviewScheduledGain(clipGain * overlapGain * clipFadeEnvelope.start * regionFadeEnvelope.start);
+      const endGain = normalizeOnAirReviewScheduledGain(clipGain * overlapGain * clipFadeEnvelope.end * regionFadeEnvelope.end);
+      const nodeStartAt = clockStart + Math.max(0, chunkStart - playbackStart);
+      gainNode.gain.cancelScheduledValues(nodeStartAt);
+      gainNode.gain.setValueAtTime(startGain, nodeStartAt);
+      if (Math.abs(endGain - startGain) > 0.0005) {
+        gainNode.gain.linearRampToValueAtTime(endGain, nodeStartAt + safeDuration);
+      } else {
+        gainNode.gain.setValueAtTime(endGain, nodeStartAt + safeDuration);
+      }
+      source.buffer = clipBuffer;
       source.connect(gainNode);
       gainNode.connect(onAirReviewClipMixGainNode);
       try {
-        source.start(clockStart + Math.max(0, chunkStart - playbackStart), sourceOffset, safeDuration);
+        source.start(nodeStartAt, sourceOffset, safeDuration);
       } catch (error) {
         continue;
       }
@@ -10888,6 +13737,33 @@ function applyOnAirReviewPlaybackGain(immediate) {
   }
 }
 
+function updateOnAirReviewUi(options) {
+  const config = options && typeof options === "object" ? options : {};
+  const shouldRender = config.render !== false;
+  const shouldApplyGain = config.applyGain !== false;
+  const duration = getOnAirReviewTimelineDuration();
+  const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
+  if (onAirReviewTime) {
+    onAirReviewTime.textContent = formatPreviewClock(current) + " / " + formatPreviewClock(duration);
+  }
+  if (onAirReviewScrub && !onAirReviewScrubInFlight) {
+    const max = duration > 0 ? 1000 : 0;
+    const value = duration > 0 ? Math.round((current / duration) * 1000) : 0;
+    onAirReviewScrub.max = String(max || 1000);
+    onAirReviewScrub.value = String(Math.max(0, Math.min(1000, value)));
+  }
+  if (onAirReviewGainReadout) {
+    onAirReviewGainReadout.textContent = formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb());
+  }
+  if (shouldApplyGain) {
+    applyOnAirReviewPlaybackGain();
+  }
+  updateOnAirReviewPanControl();
+  if (shouldRender) {
+    queueOnAirReviewWaveRender();
+  }
+}
+
 function updateOnAirReviewPlayState() {
   if (!onAirReviewPlayBtn) {
     return;
@@ -10908,23 +13784,7 @@ function updateOnAirReviewMuteState() {
 }
 
 function updateOnAirReviewTime() {
-  if (!onAirReviewTime) {
-    return;
-  }
-  const duration = getOnAirReviewTimelineDuration();
-  const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
-  onAirReviewTime.textContent = formatPreviewClock(current) + " / " + formatPreviewClock(duration);
-  if (onAirReviewScrub && !onAirReviewScrubInFlight) {
-    const max = duration > 0 ? 1000 : 0;
-    const value = duration > 0 ? Math.round((current / duration) * 1000) : 0;
-    onAirReviewScrub.max = String(max || 1000);
-    onAirReviewScrub.value = String(Math.max(0, Math.min(1000, value)));
-  }
-  if (onAirReviewGainReadout) {
-    onAirReviewGainReadout.textContent = formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb());
-  }
-  applyOnAirReviewPlaybackGain();
-  queueOnAirReviewWaveRender();
+  updateOnAirReviewUi();
 }
 
 function pauseOnAirReviewMedia() {
@@ -10947,37 +13807,45 @@ function closeOnAirReviewPlayback() {
   setOnAirReviewModalOpen(false);
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
-  updateOnAirReviewTime();
+  updateOnAirReviewUi({ render: false, applyGain: false });
+}
+
+function resetOnAirReviewPlayheadToStart() {
+  seekOnAirReviewEditedTime(0, { followViewport: true });
+  setOnAirReviewViewportFocusTime(0);
+  updateOnAirReviewUi({ render: true, applyGain: true });
 }
 
 function openOnAirReviewPlayback(kind) {
   const isVideo = kind === "video";
   const target = isVideo ? onAirReviewVideo : onAirReviewAudio;
   const other = isVideo ? onAirReviewAudio : onAirReviewVideo;
-  if (!target || !target.src) {
-    return;
-  }
-  if (other) {
+  if (target && target.src && other) {
     try {
       other.pause();
     } catch (error) {
       // Ignore pause races.
     }
   }
-  onAirActiveReviewMedia = target;
-  ensureOnAirReviewAudioGraph();
+  onAirActiveReviewMedia = target && target.src ? target : null;
+  if (onAirActiveReviewMedia) {
+    ensureOnAirReviewAudioGraph();
+  }
   ensureOnAirReviewTimeline();
-  seekOnAirReviewEditedTime(onAirReviewEditedTime || 0);
+  resetOnAirReviewZoomToFit(0);
+  resetOnAirReviewPlayheadToStart();
   setOnAirReviewModalOpen(true);
   if (onAirReviewWindowStatus) {
-    onAirReviewWindowStatus.textContent =
-      (isVideo ? "Video" : "Audio") +
-      " review loaded. Click anywhere in the waveform strip to scrub through the show.";
+    onAirReviewWindowStatus.textContent = onAirActiveReviewMedia
+      ? ((isVideo ? "Video" : "Audio") + " review loaded. Click anywhere in the waveform strip to scrub through the show.")
+      : "Review Cut is open. Load a saved audio or video recording to start editing.";
   }
-  updateOnAirReviewTime();
+  updateOnAirReviewUi({ render: false, applyGain: false });
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
-  applyOnAirReviewPlaybackGain(true);
+  if (onAirActiveReviewMedia) {
+    applyOnAirReviewPlaybackGain(true);
+  }
   queueOnAirReviewWaveRender();
 }
 
@@ -11509,6 +14377,108 @@ function renderOnAirLibraryList() {
   });
 }
 
+function renderOnAirReviewLibraryList() {
+  if (!onAirReviewLibraryList) {
+    return;
+  }
+  const assets = onAirMusicLibrary.slice().sort((left, right) => Number(right && right.createdAt || 0) - Number(left && left.createdAt || 0));
+  onAirReviewLibraryList.innerHTML = "";
+  if (onAirReviewLibraryNote) {
+    onAirReviewLibraryNote.textContent = assets.length
+      ? "Preview a library sound, insert it on the selected or next open track, or replace the current selection."
+      : "No music library tracks are available to insert yet.";
+  }
+  if (!assets.length) {
+    const empty = document.createElement("p");
+    empty.className = "camera-status onair-library-empty";
+    empty.textContent = "Upload a music track first, then it will appear here for review insert.";
+    onAirReviewLibraryList.appendChild(empty);
+    return;
+  }
+  assets.slice(0, 10).forEach((asset) => {
+    const row = document.createElement("div");
+    row.className = "onair-review-library-row";
+    const meta = document.createElement("div");
+    meta.className = "onair-review-library-meta";
+    const title = document.createElement("p");
+    title.className = "onair-library-title";
+    title.textContent = String(asset.title || asset.name || asset.originalFilename || "Untitled Track");
+    const detail = document.createElement("p");
+    detail.className = "onair-library-detail";
+    detail.textContent = [
+      asset && asset.source === "browser-local" ? "This Browser" : formatLibraryAssetStatus(asset.status),
+      formatLibraryAssetSize(asset.byteSize || asset.size)
+    ].filter(Boolean).join(" • ");
+    meta.appendChild(title);
+    meta.appendChild(detail);
+    row.appendChild(meta);
+    const actions = document.createElement("div");
+    actions.className = "onair-review-library-actions";
+    const previewAction = document.createElement("button");
+    previewAction.type = "button";
+    previewAction.className = "onair-review-toolbar-btn";
+    previewAction.textContent = "Preview";
+    previewAction.addEventListener("click", async () => {
+      await startOnAirLibraryPreview(asset);
+      if (onAirMediaStatus) {
+        onAirMediaStatus.textContent = "Previewing " + String(asset.title || asset.name || "track") + ".";
+      }
+    });
+    actions.appendChild(previewAction);
+    const insertAction = document.createElement("button");
+    insertAction.type = "button";
+    insertAction.className = "onair-review-toolbar-btn";
+    insertAction.textContent = "Insert";
+    insertAction.addEventListener("click", async () => {
+      insertAction.disabled = true;
+      try {
+        if (await insertOnAirReviewLibraryAssetAtPlayhead(asset)) {
+          const insertedClip = getOnAirReviewSelectedClip();
+          onAirMediaStatus.textContent =
+            String(asset.title || asset.name || "Track") +
+            " inserted into Track " +
+            String(insertedClip ? insertedClip.lane + 1 : 1) +
+            ".";
+        } else {
+          onAirMediaStatus.textContent = "Unable to insert this library track right now.";
+        }
+      } finally {
+        renderOnAirReviewLibraryList();
+      }
+    });
+    actions.appendChild(insertAction);
+    const replaceAction = document.createElement("button");
+    replaceAction.type = "button";
+    replaceAction.className = "onair-review-toolbar-btn";
+    replaceAction.dataset.reviewLibraryReplace = "1";
+    replaceAction.textContent = "Replace";
+    replaceAction.disabled = !hasOnAirReviewSelection();
+    replaceAction.addEventListener("click", async () => {
+      replaceAction.disabled = true;
+      try {
+        const replaceState = getOnAirReviewReplaceSelectionState();
+        if (!replaceState.allowed) {
+          onAirMediaStatus.textContent = replaceState.reason;
+          if (onAirReviewWaveNote) {
+            onAirReviewWaveNote.textContent = replaceState.reason;
+          }
+          return;
+        }
+        if (await replaceOnAirReviewSelectionWithLibraryAsset(asset)) {
+          onAirMediaStatus.textContent = String(asset.title || asset.name || "Track") + " replaced the selected range.";
+        } else {
+          onAirMediaStatus.textContent = "Replace could not be applied right now.";
+        }
+      } finally {
+        renderOnAirReviewLibraryList();
+      }
+    });
+    actions.appendChild(replaceAction);
+    row.appendChild(actions);
+    onAirReviewLibraryList.appendChild(row);
+  });
+}
+
 function updateOnAirLibraryTabsUI() {
   document.querySelectorAll("[data-library-view]").forEach((button) => {
     button.classList.toggle("active", String(button.dataset.libraryView || "") === onAirLibraryView);
@@ -11578,6 +14548,7 @@ async function refreshOnAirMusicLibrary() {
     onAirMusicCatalogStatus = "error";
   }
   populateOnAirMusicTrackSelect();
+  renderOnAirReviewLibraryList();
   if (onAirLibraryOpen && onAirLibraryView === "music") {
     renderOnAirLibraryList();
   }
@@ -15427,16 +18398,15 @@ onAirDownloadBtn.addEventListener("click", () => {
 });
 
 onAirReviewLaunchBtn?.addEventListener("click", () => {
-  if (!hasLocalRecordingAsset()) {
-    return;
-  }
-  setRecordingWorkflowState("review");
-  syncReviewPanelUI();
   const preferredKind = getPreferredOnAirReviewKind();
-  if (preferredKind) {
-    openOnAirReviewPlayback(preferredKind);
-    onAirMediaStatus.textContent = "Review cut opened.";
+  if (hasLocalRecordingAsset()) {
+    setRecordingWorkflowState("review");
+    syncReviewPanelUI();
   }
+  openOnAirReviewPlayback(preferredKind || "audio");
+  onAirMediaStatus.textContent = hasLocalRecordingAsset()
+    ? "Review cut opened."
+    : "Review Cut opened. Load a saved recording to start editing.";
 });
 
 onAirExportVideoBtn?.addEventListener("click", () => {
@@ -15446,17 +18416,56 @@ onAirExportVideoBtn?.addEventListener("click", () => {
   const extension = getVideoExportExtension();
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   downloadBlobAsset(recordingMediaUrl, "doggfather-show-video-" + stamp + "." + extension);
-  onAirMediaStatus.textContent = "Video show download started.";
+  if (getOnAirReviewExportAffectsAudio()) {
+    onAirMediaStatus.textContent = "Source video download started. Review Cut edits currently render through Audio Only export.";
+    if (onAirExportNote) {
+      onAirExportNote.textContent = "Audio Only exports the edited Review Cut mix. Video Show downloads the source review video.";
+    }
+  } else {
+    onAirMediaStatus.textContent = "Video show download started.";
+  }
 });
 
-onAirExportAudioBtn?.addEventListener("click", () => {
-  if (!recordingAudioUrl) {
-    return;
-  }
-  const extension = getAudioExportExtension();
+onAirExportAudioBtn?.addEventListener("click", async () => {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  downloadBlobAsset(recordingAudioUrl, "doggfather-show-audio-" + stamp + "." + extension);
-  onAirMediaStatus.textContent = "Audio-only download started.";
+  const filename = "doggfather-show-audio-" + stamp + ".wav";
+  if (onAirExportAudioBtn) {
+    onAirExportAudioBtn.disabled = true;
+  }
+  try {
+    if ((recordingAudioBlob && recordingAudioUrl) || (recordingMediaBlob && recordingMediaUrl) || getOnAirReviewMediaClips().length) {
+      if (onAirMediaStatus) {
+        onAirMediaStatus.textContent = "Rendering edited Review Cut audio...";
+      }
+      const editedBlob = await renderOnAirReviewEditedAudioBlob();
+      downloadBlobObject(editedBlob, filename);
+      if (onAirMediaStatus) {
+        onAirMediaStatus.textContent = "Edited audio export started.";
+      }
+      if (onAirExportNote) {
+        onAirExportNote.textContent = "Audio Only exports the edited Review Cut mix as WAV.";
+      }
+      return;
+    }
+    if (!recordingAudioUrl) {
+      return;
+    }
+    const extension = getAudioExportExtension();
+    downloadBlobAsset(recordingAudioUrl, "doggfather-show-audio-" + stamp + "." + extension);
+    if (onAirMediaStatus) {
+      onAirMediaStatus.textContent = "Audio-only download started.";
+    }
+  } catch (error) {
+    if (onAirMediaStatus) {
+      onAirMediaStatus.textContent =
+        (error && error.message ? error.message : "Edited audio export failed.") +
+        (recordingAudioUrl ? " Source audio is still available from the browser download path." : "");
+    }
+  } finally {
+    if (onAirExportAudioBtn) {
+      onAirExportAudioBtn.disabled = false;
+    }
+  }
 });
 
 onAirMusicTrackSelect.addEventListener("change", () => {
@@ -16224,8 +19233,8 @@ onAirReviewAudio?.addEventListener("pause", () => {
 
 onAirReviewAudio?.addEventListener("ended", () => {
   logReviewAudioState("ended");
+  resetOnAirReviewPlayheadToStart();
   updateOnAirReviewPlayState();
-  updateOnAirReviewTime();
 });
 
 onAirReviewAudio?.addEventListener("error", () => {
@@ -16259,8 +19268,8 @@ onAirReviewVideo?.addEventListener("pause", () => {
 });
 
 onAirReviewVideo?.addEventListener("ended", () => {
+  resetOnAirReviewPlayheadToStart();
   updateOnAirReviewPlayState();
-  updateOnAirReviewTime();
 });
 
 onAirReviewVideo?.addEventListener("timeupdate", () => {
@@ -16327,6 +19336,17 @@ onAirReviewSelectModeBtn?.addEventListener("click", () => {
 
 onAirReviewSelectAllBtn?.addEventListener("click", () => {
   ensureOnAirReviewTimeline();
+  const targetClip = getOnAirReviewSelectAllTargetClip();
+  if (targetClip) {
+    setOnAirReviewSelectMode(true);
+    setOnAirReviewSelectedClipIndex(targetClip.clipId);
+    setOnAirReviewSelection(targetClip.start, targetClip.end);
+    setOnAirReviewViewportFocusTime(targetClip.start + targetClip.duration / 2);
+    if (onAirReviewWaveNote) {
+      onAirReviewWaveNote.textContent = getOnAirReviewClipDisplayLabel(targetClip) + " fully selected.";
+    }
+    return;
+  }
   const duration = getOnAirReviewTimelineDuration();
   if (!(duration > 0)) {
     return;
@@ -16338,6 +19358,64 @@ onAirReviewSelectAllBtn?.addEventListener("click", () => {
 
 onAirReviewClearSelectionBtn?.addEventListener("click", () => {
   clearOnAirReviewSelection();
+});
+
+onAirReviewAddMarkerBtn?.addEventListener("click", () => {
+  if (addOnAirReviewPointMarker()) {
+    onAirMediaStatus.textContent = "Point marker added to the review timeline.";
+  }
+});
+
+onAirReviewAddRangeMarkerBtn?.addEventListener("click", () => {
+  if (addOnAirReviewRangeMarkerFromSelection()) {
+    onAirMediaStatus.textContent = "Range marker added to the review timeline.";
+  }
+});
+
+onAirReviewClearMarkersBtn?.addEventListener("click", () => {
+  if (clearOnAirReviewMarkers()) {
+    onAirMediaStatus.textContent = "Review markers cleared.";
+  }
+});
+
+onAirReviewCleanSelectionBtn?.addEventListener("click", async () => {
+  if (await applyOnAirReviewCleanupToSelection()) {
+    onAirMediaStatus.textContent = "Auto cleanup applied to the selected range.";
+  } else {
+    onAirMediaStatus.textContent = "Select a range with usable audio before applying cleanup.";
+  }
+});
+
+onAirReviewCleanAllBtn?.addEventListener("click", async () => {
+  if (await applyOnAirReviewCleanupToAll()) {
+    onAirMediaStatus.textContent = "Auto cleanup applied to the full review cut.";
+  } else {
+    onAirMediaStatus.textContent = "Cleanup could not be applied right now.";
+  }
+});
+
+onAirReviewClearCleanupBtn?.addEventListener("click", () => {
+  if (clearOnAirReviewCleanupRanges()) {
+    onAirMediaStatus.textContent = "Review cleanup ranges cleared.";
+  }
+});
+
+onAirReviewPreviewAutoBtn?.addEventListener("click", () => {
+  if (setOnAirReviewCleanupPreviewMode("auto")) {
+    onAirMediaStatus.textContent = "Cleanup preview set to Auto.";
+  }
+});
+
+onAirReviewPreviewOriginalBtn?.addEventListener("click", () => {
+  if (setOnAirReviewCleanupPreviewMode("original")) {
+    onAirMediaStatus.textContent = "Cleanup preview set to Original.";
+  }
+});
+
+onAirReviewPreviewCleanedBtn?.addEventListener("click", () => {
+  if (setOnAirReviewCleanupPreviewMode("cleaned")) {
+    onAirMediaStatus.textContent = "Cleanup preview set to Cleaned.";
+  }
 });
 
 onAirReviewDeleteBtn?.addEventListener("click", () => {
@@ -16364,6 +19442,30 @@ onAirReviewSplitSelectionBtn?.addEventListener("click", () => {
   }
 });
 
+onAirReviewRemoveClipBtn?.addEventListener("click", () => {
+  const clip = getOnAirReviewClipRemoveCandidate();
+  if (clip && removeOnAirReviewClip(clip.clipId)) {
+    onAirMediaStatus.textContent =
+      (String(clip.sourceKind || "recording") === "library"
+        ? String(clip.sourceAssetLabel || "Inserted clip")
+        : "Selected clip") + " removed from the review cut.";
+  }
+});
+
+onAirReviewTrackUpBtn?.addEventListener("click", () => {
+  const clip = getOnAirReviewTrackCandidateClip();
+  if (clip && moveOnAirReviewClipToLane(clip.clipId, clip.lane - 1)) {
+    onAirMediaStatus.textContent = "Clip moved to Track " + String(clip.lane) + ".";
+  }
+});
+
+onAirReviewTrackDownBtn?.addEventListener("click", () => {
+  const clip = getOnAirReviewTrackCandidateClip();
+  if (clip && moveOnAirReviewClipToLane(clip.clipId, clip.lane + 1)) {
+    onAirMediaStatus.textContent = "Clip moved to Track " + String(clip.lane + 2) + ".";
+  }
+});
+
 onAirReviewGainDownBtn?.addEventListener("click", () => {
   if (applyOnAirReviewSelectionGain(-3)) {
     onAirMediaStatus.textContent = "Selected range lowered by 3 dB.";
@@ -16385,6 +19487,66 @@ onAirReviewGainResetBtn?.addEventListener("click", () => {
 onAirReviewGainNormalizeBtn?.addEventListener("click", () => {
   if (normalizeOnAirReviewSelectionGain()) {
     onAirMediaStatus.textContent = "Selected range normalized.";
+  }
+});
+
+onAirReviewInsertGainDownBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewInsertClipGainDelta(-3)) {
+    onAirMediaStatus.textContent = "Inserted clip lowered by 3 dB.";
+  }
+});
+
+onAirReviewInsertGainUpBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewInsertClipGainDelta(3)) {
+    onAirMediaStatus.textContent = "Inserted clip raised by 3 dB.";
+  }
+});
+
+onAirReviewInsertGainResetBtn?.addEventListener("click", () => {
+  if (resetOnAirReviewInsertClipGain()) {
+    onAirMediaStatus.textContent = "Inserted clip level reset.";
+  }
+});
+
+onAirReviewFadeInDownBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewClipFadeDelta("in", -0.2)) {
+    onAirMediaStatus.textContent = "Clip fade in reduced.";
+  }
+});
+
+onAirReviewFadeInUpBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewClipFadeDelta("in", 0.2)) {
+    onAirMediaStatus.textContent = "Clip fade in increased.";
+  }
+});
+
+onAirReviewFadeOutDownBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewClipFadeDelta("out", -0.2)) {
+    onAirMediaStatus.textContent = "Clip fade out reduced.";
+  }
+});
+
+onAirReviewFadeOutUpBtn?.addEventListener("click", () => {
+  if (applyOnAirReviewClipFadeDelta("out", 0.2)) {
+    onAirMediaStatus.textContent = "Clip fade out increased.";
+  }
+});
+
+onAirReviewFadeResetBtn?.addEventListener("click", () => {
+  if (resetOnAirReviewClipFades()) {
+    onAirMediaStatus.textContent = "Clip fades cleared.";
+  }
+});
+
+onAirReviewFadeCurveLinearBtn?.addEventListener("click", () => {
+  if (setOnAirReviewFadeCurveMode("linear")) {
+    onAirMediaStatus.textContent = "Fade curve set to Linear.";
+  }
+});
+
+onAirReviewFadeCurveSoftBtn?.addEventListener("click", () => {
+  if (setOnAirReviewFadeCurveMode("soft")) {
+    onAirMediaStatus.textContent = "Fade curve set to Soft.";
   }
 });
 
@@ -16418,6 +19580,19 @@ onAirReviewCloseBtn?.addEventListener("click", () => {
   closeOnAirReviewPlayback();
 });
 
+onAirReviewLoadBtn?.addEventListener("click", () => {
+  onAirReviewFileInput?.click();
+});
+
+onAirReviewFileInput?.addEventListener("change", async (event) => {
+  const file = event.target && event.target.files ? event.target.files[0] : null;
+  if (!file) {
+    return;
+  }
+  await importOnAirReviewFile(file);
+  event.target.value = "";
+});
+
 onAirReviewBackdrop?.addEventListener("click", () => {
   closeOnAirReviewPlayback();
 });
@@ -16433,7 +19608,11 @@ onAirReviewScrub?.addEventListener("input", () => {
 
 onAirReviewScrub?.addEventListener("change", () => {
   onAirReviewScrubInFlight = false;
-  updateOnAirReviewTime();
+  updateOnAirReviewUi({ render: false, applyGain: false });
+});
+
+onAirReviewPan?.addEventListener("input", () => {
+  panOnAirReviewViewportBySlider(onAirReviewPan.value);
 });
 
 onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
@@ -16441,9 +19620,27 @@ onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
   onAirReviewSelectionPointerClientX = event.clientX;
   onAirReviewSelectionPointerId = event.pointerId;
   onAirReviewWaveCanvas.setPointerCapture?.(event.pointerId);
+  if (!isOnAirReviewTimelineHitAtClient(event.clientX)) {
+    onAirReviewWavePointerDown = false;
+    onAirReviewSelectionPointerId = null;
+    onAirReviewWaveCanvas.releasePointerCapture?.(event.pointerId);
+    return;
+  }
+  const fadeHandleHit = getOnAirReviewFadeHandleHitAtClient(event.clientX, event.clientY);
+  if (fadeHandleHit) {
+    onAirReviewFadeDragState = fadeHandleHit;
+    if (onAirReviewWaveNote) {
+      onAirReviewWaveNote.textContent = "Fade handle active. Drag to adjust the " + (fadeHandleHit.kind === "in" ? "fade in" : "fade out") + ".";
+    }
+    return;
+  }
   const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
   if (onAirReviewSelectMode) {
-    const hitHandle = getOnAirReviewSelectionHandleHit(seconds);
+    const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
+    if (clipHit) {
+      setOnAirReviewSelectedClipIndex(clipHit.clipId);
+    }
+    const hitHandle = getOnAirReviewSelectionHandleHitAtClient(event.clientX) || getOnAirReviewSelectionHandleHit(seconds);
     if (hitHandle) {
       onAirReviewSelectionDragMode = hitHandle;
       onAirReviewSelectionHandleOffset = hitHandle === "start"
@@ -16451,23 +19648,27 @@ onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
         : seconds - onAirReviewSelectionEnd;
     } else {
       onAirReviewSelectionDragMode = "new";
-      onAirReviewSelectionAnchor = seconds;
+      const anchoredSeconds = clampOnAirReviewSelectionSecondsToClip(seconds);
+      onAirReviewSelectionAnchor = anchoredSeconds;
       onAirReviewSelectionHandleOffset = 0;
-      setOnAirReviewSelection(seconds, seconds);
+      setOnAirReviewSelection(anchoredSeconds, anchoredSeconds);
     }
     if (onAirReviewSelectionDragMode === "start") {
       onAirReviewSelectionAnchor = onAirReviewSelectionEnd;
     } else if (onAirReviewSelectionDragMode === "end") {
       onAirReviewSelectionAnchor = onAirReviewSelectionStart;
     }
-    setOnAirReviewViewportFocusTime(seconds);
     startOnAirReviewSelectionAutoPan();
     return;
   }
   if (onAirReviewMoveMode) {
-    const clipHit = getOnAirReviewClipHit(seconds);
-    if (clipHit && beginOnAirReviewClipDrag(clipHit, seconds)) {
-      setOnAirReviewViewportFocusTime(seconds);
+    const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
+    if (clipHit) {
+      setOnAirReviewSelectedClipIndex(clipHit.clipId);
+    } else {
+      setOnAirReviewSelectedClipIndex(-1);
+    }
+    if (clipHit && beginOnAirReviewClipDrag(clipHit, seconds, event.clientX)) {
       return;
     }
   }
@@ -16480,6 +19681,11 @@ onAirReviewWaveCanvas?.addEventListener("pointermove", (event) => {
     return;
   }
   onAirReviewSelectionPointerClientX = event.clientX;
+  if (onAirReviewFadeDragState) {
+    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+    applyOnAirReviewFadeHandleDrag(onAirReviewFadeDragState.kind, onAirReviewFadeDragState.target, seconds);
+    return;
+  }
   if (onAirReviewSelectMode) {
     const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
     updateOnAirReviewSelectionFromDrag(seconds);
@@ -16487,7 +19693,7 @@ onAirReviewWaveCanvas?.addEventListener("pointermove", (event) => {
   }
   if (onAirReviewMoveMode && onAirReviewClipDragState) {
     const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
-    updateOnAirReviewClipDrag(seconds);
+    updateOnAirReviewClipDrag(seconds, event.clientX);
     return;
   }
   seekOnAirReviewFromClientX(event.clientX);
@@ -16501,15 +19707,17 @@ onAirReviewWaveCanvas?.addEventListener("pointerup", (event) => {
   }
   onAirReviewSelectionPointerId = null;
   endOnAirReviewClipDrag();
+  onAirReviewFadeDragState = null;
   onAirReviewSelectionDragMode = "";
   onAirReviewSelectionHandleOffset = 0;
-  resetOnAirReviewViewportFocusTime();
+  updateOnAirReviewUi({ render: true, applyGain: false });
 });
 
 onAirReviewWaveCanvas?.addEventListener("pointerleave", () => {
   if (!onAirReviewSelectMode) {
     onAirReviewWavePointerDown = false;
     endOnAirReviewClipDrag();
+    onAirReviewFadeDragState = null;
     onAirReviewSelectionDragMode = "";
     onAirReviewSelectionHandleOffset = 0;
   }
@@ -16520,9 +19728,10 @@ onAirReviewWaveCanvas?.addEventListener("pointercancel", () => {
   stopOnAirReviewSelectionAutoPan();
   onAirReviewSelectionPointerId = null;
   endOnAirReviewClipDrag();
+  onAirReviewFadeDragState = null;
   onAirReviewSelectionDragMode = "";
   onAirReviewSelectionHandleOffset = 0;
-  resetOnAirReviewViewportFocusTime();
+  updateOnAirReviewUi({ render: true, applyGain: false });
 });
 
 updateOnAirCameraPauseUI();
