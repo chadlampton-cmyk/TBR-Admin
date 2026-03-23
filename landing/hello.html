@@ -604,6 +604,10 @@
                     </div>
                     <div class="onair-review-wave-shell">
                       <canvas id="onair-review-wave-canvas" class="onair-review-wave-canvas" width="1600" height="320" aria-label="Review waveform timeline"></canvas>
+                      <div id="onair-review-playhead" class="onair-review-playhead" aria-hidden="true">
+                        <div class="onair-review-playhead-cap"></div>
+                        <div class="onair-review-playhead-line"></div>
+                      </div>
                       <input
                         type="range"
                         class="onair-review-pan"
@@ -1389,6 +1393,15 @@
     <script src="./auth.js?v=20260311-92"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
     <script src="./vendor/twilio-video.min.js?v=20260312-01"></script>
-    <script src="./hello.js?v=20260320-201"></script>
+    <script src="./review-cut-state.js?v=20260323-001"></script>
+    <script src="./review-cut-render.js?v=20260323-001"></script>
+    <script src="./review-cut-playback.js?v=20260323-001"></script>
+    <script src="./review-cut-playback-controller.js?v=20260323-005"></script>
+    <script src="./review-cut-viewport-controller.js?v=20260323-002"></script>
+    <script src="./review-cut-playhead-controller.js?v=20260323-002"></script>
+    <script src="./review-cut-interaction-controller.js?v=20260323-002"></script>
+    <script src="./review-cut-media-controller.js?v=20260323-002"></script>
+    <script src="./review-cut-session-controller.js?v=20260323-002"></script>
+    <script src="./hello.js?v=20260323-431"></script>
   </body>
 </html>

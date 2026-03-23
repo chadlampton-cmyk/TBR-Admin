@@ -176,6 +176,9 @@ const onAirReviewLoopReadout = document.getElementById("onair-review-loop-readou
 const onAirReviewPan = document.getElementById("onair-review-pan");
 const onAirReviewScrub = document.getElementById("onair-review-scrub");
 const onAirReviewWaveCanvas = document.getElementById("onair-review-wave-canvas");
+const onAirReviewPlayhead = document.getElementById("onair-review-playhead");
+const onAirReviewPlayheadLine = onAirReviewPlayhead?.querySelector(".onair-review-playhead-line") || null;
+const onAirReviewPlayheadCap = onAirReviewPlayhead?.querySelector(".onair-review-playhead-cap") || null;
 const onAirReviewWaveNote = document.getElementById("onair-review-wave-note");
 const onAirReviewLibraryNote = document.getElementById("onair-review-library-note");
 const onAirReviewLibraryList = document.getElementById("onair-review-library-list");
@@ -229,6 +232,9 @@ const onAirReviewZoomFitBtn = document.getElementById("onair-review-zoom-fit-btn
 const onAirReviewZoomInBtn = document.getElementById("onair-review-zoom-in-btn");
 const onAirReviewMuteBtn = document.getElementById("onair-review-mute-btn");
 const onAirReviewCloseBtn = document.getElementById("onair-review-close-btn");
+const reviewCutStateApi = window.ReviewCutState || {};
+const reviewCutRenderApi = window.ReviewCutRender || {};
+const reviewCutPlaybackApi = window.ReviewCutPlayback || {};
 const onAirExportPanel = document.getElementById("onair-export-panel");
 const onAirExportNote = document.getElementById("onair-export-note");
 const onAirExportVideoBtn = document.getElementById("onair-export-video-btn");
@@ -708,10 +714,63 @@ let onAirReviewTimelineSourceToken = "";
 let onAirReviewEditedDuration = 0;
 let onAirReviewTimelineExplicitDuration = 0;
 let onAirReviewEditedTime = 0;
-let onAirReviewPlaybackFrameId = 0;
-let onAirReviewPlaybackAnchorAt = 0;
-let onAirReviewPlaybackAnchorEditedTime = 0;
-let onAirReviewLoopSelectionActive = false;
+const reviewCutViewportControllerFactory = window.ReviewCutViewportController || {};
+const onAirReviewViewportController = typeof reviewCutViewportControllerFactory.create === "function"
+  ? reviewCutViewportControllerFactory.create()
+  : null;
+const reviewCutPlayheadControllerFactory = window.ReviewCutPlayheadController || {};
+const onAirReviewPlayheadController = typeof reviewCutPlayheadControllerFactory.create === "function"
+  ? reviewCutPlayheadControllerFactory.create({
+    root: onAirReviewPlayhead,
+    line: onAirReviewPlayheadLine,
+    cap: onAirReviewPlayheadCap,
+    waveCanvas: onAirReviewWaveCanvas
+  })
+  : null;
+const reviewCutSessionControllerApi = window.ReviewCutSessionController || {};
+const reviewCutPlaybackControllerFactory = window.ReviewCutPlaybackController || {};
+const boundRequestAnimationFrame = typeof window.requestAnimationFrame === "function"
+  ? window.requestAnimationFrame.bind(window)
+  : null;
+const boundCancelAnimationFrame = typeof window.cancelAnimationFrame === "function"
+  ? window.cancelAnimationFrame.bind(window)
+  : null;
+const onAirReviewPlaybackController = typeof reviewCutPlaybackControllerFactory.create === "function"
+  ? reviewCutPlaybackControllerFactory.create()
+  : {
+      snapshot() {
+        return {
+          playbackFrameId: 0,
+          visualFrameId: 0,
+          visualPlaybackMode: "",
+          clipPlaybackLoopActive: false,
+          playbackSessionId: 0,
+          playbackAnchorAt: 0,
+          playbackAnchorEditedTime: 0,
+          loopSelectionActive: false
+        };
+      },
+      isPlaying(isNativePlayingFn) {
+        return !!(typeof isNativePlayingFn === "function" && isNativePlayingFn());
+      },
+      getPlaybackFrameId() { return 0; },
+      setPlaybackFrameId() {},
+      clearPlaybackFrame() {},
+      getVisualFrameId() { return 0; },
+      setVisualFrameId() {},
+      clearVisualFrame() {},
+      getVisualPlaybackMode() { return ""; },
+      setVisualPlaybackMode() {},
+      isClipPlaybackLoopActive() { return false; },
+      setClipPlaybackLoopActive() {},
+      getPlaybackSessionId() { return 0; },
+      bumpPlaybackSession() { return 0; },
+      getPlaybackAnchorAt() { return 0; },
+      getPlaybackAnchorEditedTime() { return 0; },
+      setPlaybackAnchor() {},
+      isLoopSelectionActive() { return false; },
+      setLoopSelectionActive() {}
+    };
 let onAirReviewAudioContext = null;
 let onAirReviewVideoSourceNode = null;
 let onAirReviewAudioSourceNode = null;
@@ -751,6 +810,135 @@ let onAirMusicRecordingStream = null;
 let onAirMusicRecordingSourceNode = null;
 let onAirMusicRecordingGainNode = null;
 let onAirAuxMusicCues = [];
+
+function getOnAirReviewPlaybackFrameId() {
+  return Number(onAirReviewPlaybackController.getPlaybackFrameId()) || 0;
+}
+
+function setOnAirReviewPlaybackFrameId(value) {
+  onAirReviewPlaybackController.setPlaybackFrameId(value);
+}
+
+function clearOnAirReviewPlaybackFrameId() {
+  onAirReviewPlaybackController.clearPlaybackFrame();
+}
+
+function getOnAirReviewVisualFrameId() {
+  return Number(onAirReviewPlaybackController.getVisualFrameId()) || 0;
+}
+
+function setOnAirReviewVisualFrameId(value) {
+  onAirReviewPlaybackController.setVisualFrameId(value);
+}
+
+function clearOnAirReviewVisualFrameId() {
+  onAirReviewPlaybackController.clearVisualFrame();
+}
+
+function getOnAirReviewVisualPlaybackMode() {
+  return String(onAirReviewPlaybackController.getVisualPlaybackMode() || "");
+}
+
+function setOnAirReviewVisualPlaybackMode(value) {
+  onAirReviewPlaybackController.setVisualPlaybackMode(value);
+}
+
+function isOnAirReviewClipPlaybackLoopActive() {
+  return !!onAirReviewPlaybackController.isClipPlaybackLoopActive();
+}
+
+function setOnAirReviewClipPlaybackLoopActive(value) {
+  onAirReviewPlaybackController.setClipPlaybackLoopActive(value);
+}
+
+function getOnAirReviewPlaybackSessionId() {
+  return Number(onAirReviewPlaybackController.getPlaybackSessionId()) || 0;
+}
+
+function bumpOnAirReviewPlaybackSession() {
+  return Number(onAirReviewPlaybackController.bumpPlaybackSession()) || 0;
+}
+
+function getOnAirReviewPlaybackAnchorAt() {
+  return Number(onAirReviewPlaybackController.getPlaybackAnchorAt()) || 0;
+}
+
+function getOnAirReviewPlaybackAnchorEditedTime() {
+  return Number(onAirReviewPlaybackController.getPlaybackAnchorEditedTime()) || 0;
+}
+
+function setOnAirReviewPlaybackAnchor(anchorAt, anchorEditedTime) {
+  onAirReviewPlaybackController.setPlaybackAnchor(anchorAt, anchorEditedTime);
+}
+
+function isOnAirReviewLoopSelectionPlaybackActive() {
+  return !!onAirReviewPlaybackController.isLoopSelectionActive();
+}
+
+function setOnAirReviewLoopSelectionPlaybackActive(value) {
+  onAirReviewPlaybackController.setLoopSelectionActive(value);
+}
+
+function getOnAirReviewTransportState() {
+  return String(
+    (typeof onAirReviewPlaybackController.getTransportState === "function"
+      ? onAirReviewPlaybackController.getTransportState()
+      : "") || "idle"
+  );
+}
+
+function setOnAirReviewTransportState(value) {
+  if (typeof onAirReviewPlaybackController.setTransportState === "function") {
+    if (String(value || "").toLowerCase() === "playing") {
+      pushReviewCutDiagnostic("transport_playing_attempt", "");
+    }
+    onAirReviewPlaybackController.setTransportState(value);
+  }
+  if (onAirReviewPlayheadController && typeof onAirReviewPlayheadController.setTransportState === "function") {
+    onAirReviewPlayheadController.setTransportState(value, onAirReviewEditedTime);
+  }
+}
+
+function beginReviewCutPlaybackSession(sourceLabel) {
+  const source = String(sourceLabel || "unknown");
+  pushReviewCutDiagnostic("transport_playing_begin", "source=" + source);
+  setOnAirReviewTransportState("playing");
+}
+
+function commitReviewCutPlaybackStart(sessionId, playbackStart, loopBounds) {
+  const safeSessionId = Number(sessionId) || 0;
+  pushReviewCutDiagnostic("play_commit_enter", "session=" + String(safeSessionId));
+  if (!safeSessionId || safeSessionId !== getOnAirReviewPlaybackSessionId()) {
+    pushReviewCutDiagnostic("play_commit_aborted", "reason=session-mismatch | session=" + String(safeSessionId));
+    stopOnAirReviewClipPlayback(safeSessionId || undefined);
+    return false;
+  }
+  if (!hasOnAirReviewScheduledClipPlayback()) {
+    pushReviewCutDiagnostic("play_commit_aborted", "reason=no-scheduled-clips | session=" + String(safeSessionId));
+    stopOnAirReviewClipPlayback(safeSessionId || undefined);
+    return false;
+  }
+  const safePlaybackStart = Math.max(0, Number(playbackStart) || 0);
+  setOnAirReviewLoopSelectionPlaybackActive(!!loopBounds);
+  if (
+    !Number.isFinite(onAirReviewViewportFocusTime) &&
+    onAirReviewPlayheadController &&
+    typeof onAirReviewPlayheadController.setPlaybackViewportAnchorTime === "function"
+  ) {
+    onAirReviewPlayheadController.setPlaybackViewportAnchorTime(safePlaybackStart);
+  }
+  setOnAirReviewPlaybackAnchor(performance.now(), safePlaybackStart);
+  setOnAirReviewClipPlaybackLoopActive(true);
+  beginReviewCutPlaybackSession("clip-start");
+  pushReviewCutDiagnostic("clip_start", "start=" + Number(safePlaybackStart || 0).toFixed(3));
+  clearOnAirReviewPlaybackFrameId();
+  startOnAirReviewVisualLoop("clip");
+  pushReviewCutDiagnostic("play_started", "mode=clip");
+  updateOnAirReviewUi({ render: true, applyGain: true });
+  updateOnAirReviewPlayState();
+  pushReviewCutDiagnostic("play_commit_exit", "session=" + String(safeSessionId));
+  return true;
+}
 let onAirMixerAudioContext = null;
 let onAirMixerMusicBusGainNode = null;
 let onAirMixerMasterGainNode = null;
@@ -1025,6 +1213,47 @@ function logReviewAudioState(label) {
       " | duration " +
       (Number.isFinite(duration) && duration > 0 ? duration.toFixed(2) + "s" : "unknown")
   });
+}
+
+function pushReviewCutDiagnostic(label, details) {
+  const media = getActiveOnAirReviewMediaElement();
+  const playbackSnapshot = onAirReviewPlaybackController.snapshot();
+  const diagnosticDetails = [
+    String(details || ""),
+    "editedTime=" + Number(onAirReviewEditedTime || 0).toFixed(3),
+    "timelineDuration=" + Number(getOnAirReviewTimelineDuration() || 0).toFixed(3),
+    "transport=" + String(playbackSnapshot.transportState || "idle"),
+    "clipPlayback=" + String(!!playbackSnapshot.clipPlaybackLoopActive),
+    "visualMode=" + String(playbackSnapshot.visualPlaybackMode || "off"),
+    "rafPlayback=" + String(!!playbackSnapshot.playbackFrameId),
+    "rafVisual=" + String(!!playbackSnapshot.visualFrameId),
+    "nativePlaying=" + String(isOnAirReviewNativeMediaPlaying()),
+    "media=" + (media === onAirReviewAudio ? "audio" : media === onAirReviewVideo ? "video" : "none")
+  ].filter(Boolean).join(" | ");
+  pushRecordingDiagnostic("review_cut_" + label, diagnosticDetails, {
+    review: "Inspecting",
+    reviewNote: "Review Cut " + label.replace(/_/g, " ")
+  });
+}
+
+function getReviewCutDebugSnapshot() {
+  const media = getActiveOnAirReviewMediaElement();
+  const playbackSnapshot = onAirReviewPlaybackController.snapshot();
+  return {
+    editedTime: Number(onAirReviewEditedTime || 0),
+    timelineDuration: Number(getOnAirReviewTimelineDuration() || 0),
+    transportState: String(playbackSnapshot.transportState || "idle"),
+    clipPlaybackLoopActive: !!playbackSnapshot.clipPlaybackLoopActive,
+    visualPlaybackMode: String(playbackSnapshot.visualPlaybackMode || ""),
+    playbackFrameActive: !!playbackSnapshot.playbackFrameId,
+    visualFrameActive: !!playbackSnapshot.visualFrameId,
+    nativeMediaPlaying: isOnAirReviewNativeMediaPlaying(),
+    canUseClipPlayback: canUseOnAirReviewClipPlayback(),
+    activeMedia: media === onAirReviewAudio ? "audio" : media === onAirReviewVideo ? "video" : "",
+    audioCurrentTime: onAirReviewAudio ? Number(onAirReviewAudio.currentTime || 0) : 0,
+    audioPaused: onAirReviewAudio ? !!onAirReviewAudio.paused : true,
+    audioEnded: onAirReviewAudio ? !!onAirReviewAudio.ended : false
+  };
 }
 
 function scheduleMediaDebugUpload() {
@@ -3483,7 +3712,6 @@ function syncReviewPanelUI() {
     onAirReviewWavePeaks = [];
     onAirReviewNoiseFloorMap = [];
     onAirReviewNoiseOverlayProfile = "off";
-    setOnAirReviewModalOpen(false);
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "No review file loaded yet. Use Load Recording to import a saved audio or video file.";
     }
@@ -3500,7 +3728,17 @@ function setOnAirReviewModalOpen(open) {
     onAirReviewModal.setAttribute("aria-hidden", onAirReviewModalOpen ? "false" : "true");
   }
   if (!onAirReviewModalOpen) {
-    pauseOnAirReviewMedia();
+    resetReviewCutPlaybackSession({ reason: "modal_closed" });
+    [onAirReviewVideo, onAirReviewAudio].forEach((media) => {
+      if (!media) {
+        return;
+      }
+      try {
+        media.pause();
+      } catch (error) {
+        // Ignore pause races.
+      }
+    });
   }
   if (onAirReviewModalOpen) {
     renderOnAirReviewLibraryList();
@@ -3572,7 +3810,9 @@ function getPreferredOnAirReviewKind() {
 }
 
 function clampOnAirReviewZoomLevel(nextLevel) {
-  return Math.max(1, Math.min(12, Number(nextLevel) || 1));
+  return typeof reviewCutStateApi.clampZoomLevel === "function"
+    ? reviewCutStateApi.clampZoomLevel(nextLevel)
+    : Math.max(1, Math.min(12, Number(nextLevel) || 1));
 }
 
 function getOnAirReviewAssetDuration() {
@@ -3580,17 +3820,29 @@ function getOnAirReviewAssetDuration() {
 }
 
 function getOnAirReviewTimelineDuration() {
+  if (typeof reviewCutStateApi.getTimelineDuration === "function") {
+    return reviewCutStateApi.getTimelineDuration({
+      timelineSegments: onAirReviewTimelineSegments,
+      editedDuration: onAirReviewEditedDuration,
+      explicitDuration: onAirReviewTimelineExplicitDuration,
+      assetDuration: getOnAirReviewAssetDuration()
+    });
+  }
   if (!onAirReviewTimelineSegments.length) {
     return Math.max(0, getOnAirReviewAssetDuration());
   }
-  return Math.max(
-    0,
-    Number(onAirReviewEditedDuration || 0),
-    Number(onAirReviewTimelineExplicitDuration || 0)
-  );
+  return Math.max(0, Number(onAirReviewEditedDuration || 0), Number(onAirReviewTimelineExplicitDuration || 0));
 }
 
 function getOnAirReviewTimelineSourceToken() {
+  if (typeof reviewCutStateApi.getTimelineSourceToken === "function") {
+    return reviewCutStateApi.getTimelineSourceToken({
+      activeKind: onAirActiveReviewMedia === onAirReviewVideo ? "video" : onAirActiveReviewMedia === onAirReviewAudio ? "audio" : "",
+      recordingMediaUrl,
+      recordingAudioUrl,
+      assetDuration: getOnAirReviewAssetDuration()
+    });
+  }
   return [
     String(onAirActiveReviewMedia === onAirReviewVideo ? "video" : onAirActiveReviewMedia === onAirReviewAudio ? "audio" : ""),
     String(recordingMediaUrl || ""),
@@ -3600,11 +3852,13 @@ function getOnAirReviewTimelineSourceToken() {
 }
 
 function recalculateOnAirReviewTimelineDuration() {
-  onAirReviewEditedDuration = onAirReviewTimelineSegments.reduce((maxEnd, segment) => {
-    const duration = Math.max(0, Number(segment && segment.duration) || 0);
-    const start = Math.max(0, Number(segment && segment.timelineStart) || 0);
-    return Math.max(maxEnd, start + duration);
-  }, 0);
+  onAirReviewEditedDuration = typeof reviewCutStateApi.recalculateTimelineDuration === "function"
+    ? reviewCutStateApi.recalculateTimelineDuration(onAirReviewTimelineSegments)
+    : onAirReviewTimelineSegments.reduce((maxEnd, segment) => {
+      const duration = Math.max(0, Number(segment && segment.duration) || 0);
+      const start = Math.max(0, Number(segment && segment.timelineStart) || 0);
+      return Math.max(maxEnd, start + duration);
+    }, 0);
 }
 
 function buildDefaultOnAirReviewTimeline(durationSeconds) {
@@ -3633,42 +3887,24 @@ function buildDefaultOnAirReviewTimeline(durationSeconds) {
 }
 
 function getOnAirReviewNormalizedSourceBounds(clipLike) {
-  const sourceStart = Math.max(0, Number(clipLike && clipLike.sourceStart) || 0);
-  const duration = Math.max(0, Number(clipLike && clipLike.duration) || 0);
-  const rawSourceEnd = Math.max(0, Number(clipLike && clipLike.sourceEnd) || 0);
-  const sourceEnd = rawSourceEnd > sourceStart + 0.0005
-    ? rawSourceEnd
-    : sourceStart + duration;
-  return {
-    sourceStart,
-    sourceEnd: Math.max(sourceStart, sourceEnd)
-  };
+  return typeof reviewCutStateApi.getNormalizedSourceBounds === "function"
+    ? reviewCutStateApi.getNormalizedSourceBounds(clipLike)
+    : {
+      sourceStart: Math.max(0, Number(clipLike && clipLike.sourceStart) || 0),
+      sourceEnd: Math.max(0, Number(clipLike && clipLike.sourceEnd) || 0)
+    };
 }
 
 function clampOnAirReviewFadeSeconds(seconds, clipDuration) {
-  const duration = Math.max(0, Number(clipDuration) || 0);
-  const maxFade = duration > 0 ? Math.min(6, Math.max(0, duration - 0.02)) : 0;
-  return Math.max(0, Math.min(maxFade, Number(seconds) || 0));
+  return typeof reviewCutStateApi.clampFadeSeconds === "function"
+    ? reviewCutStateApi.clampFadeSeconds(seconds, clipDuration)
+    : Math.max(0, Number(seconds) || 0);
 }
 
 function normalizeOnAirReviewClipFadePair(fadeInSeconds, fadeOutSeconds, clipDuration) {
-  const duration = Math.max(0, Number(clipDuration) || 0);
-  let fadeIn = clampOnAirReviewFadeSeconds(fadeInSeconds, duration);
-  let fadeOut = clampOnAirReviewFadeSeconds(fadeOutSeconds, duration);
-  if (!(duration > 0.02)) {
-    return { fadeIn: 0, fadeOut: 0 };
-  }
-  const maxTotal = Math.max(0.02, duration - 0.03);
-  const total = fadeIn + fadeOut;
-  if (total > maxTotal && total > 0.0005) {
-    const scale = maxTotal / total;
-    fadeIn *= scale;
-    fadeOut *= scale;
-  }
-  return {
-    fadeIn: clampOnAirReviewFadeSeconds(fadeIn, duration),
-    fadeOut: clampOnAirReviewFadeSeconds(fadeOut, duration)
-  };
+  return typeof reviewCutStateApi.normalizeClipFadePair === "function"
+    ? reviewCutStateApi.normalizeClipFadePair(fadeInSeconds, fadeOutSeconds, clipDuration)
+    : { fadeIn: Math.max(0, Number(fadeInSeconds) || 0), fadeOut: Math.max(0, Number(fadeOutSeconds) || 0) };
 }
 
 function getNextOnAirReviewClipId() {
@@ -3677,15 +3913,11 @@ function getNextOnAirReviewClipId() {
   return id;
 }
 
-const ON_AIR_REVIEW_MAX_TRACKS = 5;
-const ON_AIR_REVIEW_MAX_LANE_INDEX = ON_AIR_REVIEW_MAX_TRACKS - 1;
-const ON_AIR_REVIEW_SOURCE_PALETTES = [
-  { bodyTop: "rgba(88, 117, 148, 0.24)", bodyBottom: "rgba(30, 45, 60, 0.14)", accent: "rgba(177, 208, 238, 0.94)", stroke: "rgba(171, 197, 222, 0.34)", text: "rgba(231, 239, 247, 0.92)", wave: "rgba(219, 232, 245, 0.86)", waveBase: "rgba(214, 226, 238, 0.14)" },
-  { bodyTop: "rgba(88, 137, 118, 0.24)", bodyBottom: "rgba(28, 50, 42, 0.14)", accent: "rgba(165, 227, 191, 0.94)", stroke: "rgba(146, 204, 170, 0.34)", text: "rgba(230, 245, 236, 0.92)", wave: "rgba(222, 244, 231, 0.86)", waveBase: "rgba(207, 232, 217, 0.14)" },
-  { bodyTop: "rgba(151, 113, 77, 0.24)", bodyBottom: "rgba(58, 39, 27, 0.14)", accent: "rgba(244, 201, 136, 0.94)", stroke: "rgba(220, 181, 120, 0.34)", text: "rgba(248, 239, 223, 0.92)", wave: "rgba(249, 232, 197, 0.88)", waveBase: "rgba(237, 218, 178, 0.14)" },
-  { bodyTop: "rgba(123, 94, 146, 0.24)", bodyBottom: "rgba(42, 30, 57, 0.14)", accent: "rgba(213, 189, 244, 0.94)", stroke: "rgba(186, 164, 222, 0.34)", text: "rgba(241, 235, 248, 0.92)", wave: "rgba(235, 224, 249, 0.88)", waveBase: "rgba(220, 207, 237, 0.14)" },
-  { bodyTop: "rgba(142, 92, 101, 0.24)", bodyBottom: "rgba(56, 31, 39, 0.14)", accent: "rgba(236, 183, 197, 0.94)", stroke: "rgba(216, 163, 176, 0.34)", text: "rgba(248, 234, 239, 0.92)", wave: "rgba(248, 224, 232, 0.87)", waveBase: "rgba(234, 210, 219, 0.14)" }
-];
+const ON_AIR_REVIEW_MAX_TRACKS = Number(reviewCutStateApi.MAX_TRACKS) || 5;
+const ON_AIR_REVIEW_MAX_LANE_INDEX = Number(reviewCutStateApi.MAX_LANE_INDEX) || (ON_AIR_REVIEW_MAX_TRACKS - 1);
+const ON_AIR_REVIEW_SOURCE_PALETTES = Array.isArray(reviewCutStateApi.SOURCE_PALETTES)
+  ? reviewCutStateApi.SOURCE_PALETTES
+  : [];
 
 function hashOnAirReviewString(value) {
   const source = String(value || "");
@@ -3710,42 +3942,21 @@ function getOnAirReviewRecordingDefaultLabel() {
 }
 
 function getOnAirReviewClipDisplayLabel(clip) {
-  if (!clip) {
-    return "";
-  }
-  if (String(clip.sourceKind || "recording") === "recording") {
-    return String(clip.sourceAssetLabel || getOnAirReviewRecordingDefaultLabel() || "Show Recording");
-  }
-  return String(clip.sourceAssetLabel || "Library Insert");
+  return typeof reviewCutStateApi.getClipDisplayLabel === "function"
+    ? reviewCutStateApi.getClipDisplayLabel(clip, getOnAirReviewRecordingDefaultLabel())
+    : "";
 }
 
 function getOnAirReviewClipPalette(clip, uniqueSourceCount) {
-  const label = getOnAirReviewClipDisplayLabel(clip);
-  const paletteIndex = hashOnAirReviewString(String(clip && clip.sourceKind || "") + "|" + String(clip && clip.sourceAssetId || "") + "|" + label) % ON_AIR_REVIEW_SOURCE_PALETTES.length;
-  if (String(clip && clip.sourceKind || "recording") === "recording" && uniqueSourceCount <= 1) {
-    return {
-      bodyTop: "rgba(82, 99, 118, 0.18)",
-      bodyBottom: "rgba(26, 37, 48, 0.10)",
-      accent: "rgba(194, 208, 224, 0.88)",
-      stroke: "rgba(154, 173, 194, 0.24)",
-      text: "rgba(226, 234, 242, 0.9)",
-      wave: "rgba(224, 232, 239, 0.84)",
-      waveBase: "rgba(210, 220, 229, 0.14)"
-    };
-  }
-  return ON_AIR_REVIEW_SOURCE_PALETTES[paletteIndex];
+  return typeof reviewCutStateApi.getClipPalette === "function"
+    ? reviewCutStateApi.getClipPalette(clip, uniqueSourceCount, getOnAirReviewRecordingDefaultLabel())
+    : ON_AIR_REVIEW_SOURCE_PALETTES[0];
 }
 
 function getOnAirReviewTrackLabel(laneIndex, clips) {
-  const laneClips = Array.isArray(clips) ? clips.filter((clip) => clip && clip.laneIndex === laneIndex) : [];
-  if (!laneClips.length) {
-    return "Empty";
-  }
-  const labels = Array.from(new Set(laneClips.map((clip) => getOnAirReviewClipDisplayLabel(clip)).filter(Boolean)));
-  if (labels.length === 1) {
-    return labels[0];
-  }
-  return labels[0] + " +" + String(labels.length - 1);
+  return typeof reviewCutStateApi.getTrackLabel === "function"
+    ? reviewCutStateApi.getTrackLabel(laneIndex, clips, getOnAirReviewRecordingDefaultLabel())
+    : "Empty";
 }
 
 function getOnAirReviewMediaClips() {
@@ -3887,7 +4098,8 @@ function cloneOnAirReviewGainAdjustments(adjustments) {
     ? adjustments.map((adjustment) => ({
       start: Math.max(0, Number(adjustment && adjustment.start) || 0),
       end: Math.max(0, Number(adjustment && adjustment.end) || 0),
-      db: clampOnAirReviewGainDb(adjustment && adjustment.db)
+      db: clampOnAirReviewGainDb(adjustment && adjustment.db),
+      clipId: Math.max(0, Number(adjustment && adjustment.clipId) || 0)
     }))
     : [];
 }
@@ -3992,15 +4204,15 @@ function createOnAirReviewClipDescriptor(clipLike) {
 }
 
 function normalizeOnAirReviewCleanupPreviewMode(mode) {
-  const value = String(mode || "").toLowerCase();
-  if (value === "original" || value === "cleaned") {
-    return value;
-  }
-  return "auto";
+  return typeof reviewCutStateApi.normalizeCleanupPreviewMode === "function"
+    ? reviewCutStateApi.normalizeCleanupPreviewMode(mode)
+    : "auto";
 }
 
 function normalizeOnAirReviewFadeCurveMode(mode) {
-  return String(mode || "").toLowerCase() === "linear" ? "linear" : "soft";
+  return typeof reviewCutStateApi.normalizeFadeCurveMode === "function"
+    ? reviewCutStateApi.normalizeFadeCurveMode(mode)
+    : "soft";
 }
 
 function captureOnAirReviewHistorySnapshot(label) {
@@ -4029,6 +4241,12 @@ function captureOnAirReviewHistorySnapshot(label) {
 }
 
 function getOnAirReviewViewportAnchorTime(currentSeconds) {
+  const playbackAnchorTime = onAirReviewPlayheadController && typeof onAirReviewPlayheadController.snapshot === "function"
+    ? Number(onAirReviewPlayheadController.snapshot().playbackViewportAnchorTime)
+    : null;
+  if (onAirReviewViewportController && typeof onAirReviewViewportController.getViewportAnchor === "function") {
+    return onAirReviewViewportController.getViewportAnchor(currentSeconds, playbackAnchorTime);
+  }
   if (Number.isFinite(onAirReviewViewportFocusTime)) {
     return Math.max(0, Number(onAirReviewViewportFocusTime) || 0);
   }
@@ -4129,18 +4347,31 @@ function getOnAirReviewSelectionDuration() {
 }
 
 function clampOnAirReviewGainDb(dbValue) {
-  return Math.max(-24, Math.min(18, Number(dbValue) || 0));
+  return typeof reviewCutStateApi.clampGainDb === "function"
+    ? reviewCutStateApi.clampGainDb(dbValue)
+    : Math.max(-24, Math.min(18, Number(dbValue) || 0));
 }
 
 function dbToGainMultiplier(dbValue) {
-  return Math.pow(10, clampOnAirReviewGainDb(dbValue) / 20);
+  return typeof reviewCutStateApi.dbToGainMultiplier === "function"
+    ? reviewCutStateApi.dbToGainMultiplier(dbValue)
+    : Math.pow(10, clampOnAirReviewGainDb(dbValue) / 20);
 }
 
-function getOnAirReviewGainDbAt(seconds) {
+function getOnAirReviewGainAdjustmentTargetClip() {
+  return getOnAirReviewSelectionTargetClip() || getOnAirReviewSelectedClip() || null;
+}
+
+function getOnAirReviewGainDbAt(seconds, clip) {
   const target = Math.max(0, Number(seconds) || 0);
+  const clipId = Math.max(0, Number(clip && clip.clipId) || Number(clip) || 0);
   return clampOnAirReviewGainDb(
     onAirReviewGainAdjustments.reduce((total, adjustment) => {
       if (!adjustment) {
+        return total;
+      }
+      const adjustmentClipId = Math.max(0, Number(adjustment.clipId) || 0);
+      if (adjustmentClipId > 0 && adjustmentClipId !== clipId) {
         return total;
       }
       const start = Math.max(0, Number(adjustment.start) || 0);
@@ -4154,8 +4385,9 @@ function getOnAirReviewGainDbAt(seconds) {
 }
 
 function getOnAirReviewSelectionAverageGainDb() {
+  const targetClip = getOnAirReviewGainAdjustmentTargetClip();
   if (!hasOnAirReviewSelection()) {
-    return getOnAirReviewGainDbAt(onAirReviewEditedTime);
+    return getOnAirReviewGainDbAt(onAirReviewEditedTime, targetClip);
   }
   const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
@@ -4163,17 +4395,15 @@ function getOnAirReviewSelectionAverageGainDb() {
   let total = 0;
   for (let index = 0; index < sampleCount; index += 1) {
     const progress = sampleCount === 1 ? 0.5 : index / (sampleCount - 1);
-    total += getOnAirReviewGainDbAt(start + (end - start) * progress);
+    total += getOnAirReviewGainDbAt(start + (end - start) * progress, targetClip);
   }
   return clampOnAirReviewGainDb(total / sampleCount);
 }
 
 function formatOnAirReviewGainDb(dbValue) {
-  const rounded = Math.round(clampOnAirReviewGainDb(dbValue) * 10) / 10;
-  if (Math.abs(rounded) < 0.05) {
-    return "0 dB";
-  }
-  return (rounded > 0 ? "+" : "") + rounded.toFixed(1).replace(/\.0$/, "") + " dB";
+  return typeof reviewCutStateApi.formatGainDb === "function"
+    ? reviewCutStateApi.formatGainDb(dbValue)
+    : "0 dB";
 }
 
 function normalizeOnAirReviewGainAdjustments() {
@@ -4185,15 +4415,21 @@ function normalizeOnAirReviewGainAdjustments() {
       const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
       const end = Math.max(start, Number(adjustment && adjustment.end) || start);
       const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+      const clipId = Math.max(0, Number(adjustment && adjustment.clipId) || 0);
       if (end - start <= 0.01 || Math.abs(db) < 0.05) {
         return;
       }
       const previous = normalized[normalized.length - 1];
-      if (previous && Math.abs(previous.db - db) < 0.05 && Math.abs(previous.end - start) < 0.02) {
+      if (
+        previous &&
+        previous.clipId === clipId &&
+        Math.abs(previous.db - db) < 0.05 &&
+        Math.abs(previous.end - start) < 0.02
+      ) {
         previous.end = end;
         return;
       }
-      normalized.push({ start, end, db });
+      normalized.push({ start, end, db, clipId });
     });
   onAirReviewGainAdjustments = normalized;
 }
@@ -4208,22 +4444,24 @@ function shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd
     const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
     const end = Math.max(start, Number(adjustment && adjustment.end) || start);
     const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+    const clipId = Math.max(0, Number(adjustment && adjustment.clipId) || 0);
     if (end <= selectionStart) {
-      nextAdjustments.push({ start, end, db });
+      nextAdjustments.push({ start, end, db, clipId });
       return;
     }
     if (start >= selectionEnd) {
-      nextAdjustments.push({ start: start - removedDuration, end: end - removedDuration, db });
+      nextAdjustments.push({ start: start - removedDuration, end: end - removedDuration, db, clipId });
       return;
     }
     if (start < selectionStart) {
-      nextAdjustments.push({ start, end: selectionStart, db });
+      nextAdjustments.push({ start, end: selectionStart, db, clipId });
     }
     if (end > selectionEnd) {
       nextAdjustments.push({
         start: selectionStart,
         end: selectionStart + (end - selectionEnd),
-        db
+        db,
+        clipId
       });
     }
   });
@@ -4231,23 +4469,29 @@ function shiftOnAirReviewGainAdjustmentsAfterDelete(selectionStart, selectionEnd
   normalizeOnAirReviewGainAdjustments();
 }
 
-function removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd) {
+function removeOnAirReviewGainAdjustmentsInRange(selectionStart, selectionEnd, clip) {
   const safeStart = Math.max(0, Number(selectionStart) || 0);
   const safeEnd = Math.max(safeStart, Number(selectionEnd) || safeStart);
+  const clipId = Math.max(0, Number(clip && clip.clipId) || Number(clip) || 0);
   const nextAdjustments = [];
   onAirReviewGainAdjustments.forEach((adjustment) => {
     const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
     const end = Math.max(start, Number(adjustment && adjustment.end) || start);
     const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+    const adjustmentClipId = Math.max(0, Number(adjustment && adjustment.clipId) || 0);
+    if (clipId > 0 && adjustmentClipId !== clipId) {
+      nextAdjustments.push({ start, end, db, clipId: adjustmentClipId });
+      return;
+    }
     if (end <= safeStart || start >= safeEnd) {
-      nextAdjustments.push({ start, end, db });
+      nextAdjustments.push({ start, end, db, clipId: adjustmentClipId });
       return;
     }
     if (start < safeStart) {
-      nextAdjustments.push({ start, end: safeStart, db });
+      nextAdjustments.push({ start, end: safeStart, db, clipId: adjustmentClipId });
     }
     if (end > safeEnd) {
-      nextAdjustments.push({ start: safeEnd, end, db });
+      nextAdjustments.push({ start: safeEnd, end, db, clipId: adjustmentClipId });
     }
   });
   onAirReviewGainAdjustments = nextAdjustments;
@@ -4266,18 +4510,19 @@ function shiftOnAirReviewGainAdjustmentsForClipMove(sourceStart, sourceEnd, delt
     const start = Math.max(0, Number(adjustment && adjustment.start) || 0);
     const end = Math.max(start, Number(adjustment && adjustment.end) || start);
     const db = clampOnAirReviewGainDb(adjustment && adjustment.db);
+    const clipId = Math.max(0, Number(adjustment && adjustment.clipId) || 0);
     if (end <= safeStart || start >= safeEnd) {
-      nextAdjustments.push({ start, end, db });
+      nextAdjustments.push({ start, end, db, clipId });
       return;
     }
     if (start < safeStart) {
-      nextAdjustments.push({ start, end: safeStart, db });
+      nextAdjustments.push({ start, end: safeStart, db, clipId });
     }
     const movedStart = Math.max(safeStart, start) + delta;
     const movedEnd = Math.min(safeEnd, end) + delta;
-    nextAdjustments.push({ start: movedStart, end: movedEnd, db });
+    nextAdjustments.push({ start: movedStart, end: movedEnd, db, clipId });
     if (end > safeEnd) {
-      nextAdjustments.push({ start: safeEnd, end, db });
+      nextAdjustments.push({ start: safeEnd, end, db, clipId });
     }
   });
   onAirReviewGainAdjustments = nextAdjustments;
@@ -4362,6 +4607,7 @@ function applyOnAirReviewSelectionGain(deltaDb) {
   }
   const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const targetClip = getOnAirReviewGainAdjustmentTargetClip();
   if (end - start <= 0.01) {
     return false;
   }
@@ -4369,16 +4615,16 @@ function applyOnAirReviewSelectionGain(deltaDb) {
   onAirReviewGainAdjustments.push({
     start,
     end,
-    db: clampOnAirReviewGainDb(deltaDb)
+    db: clampOnAirReviewGainDb(deltaDb),
+    clipId: Math.max(0, Number(targetClip && targetClip.clipId) || 0)
   });
   normalizeOnAirReviewGainAdjustments();
   updateOnAirReviewSelectionControls();
   applyOnAirReviewPlaybackGain();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -4423,10 +4669,10 @@ function getOnAirReviewMixedPeakForRange(startSeconds, endSeconds) {
       channels.forEach((data) => {
         clipSample += Number(data[sampleIndex] || 0);
       });
-      mixedSample += clipSample / Math.max(1, channels.length);
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(editedTime, clip) + (Number(clip.clipGainDb) || 0));
+      mixedSample += (clipSample / Math.max(1, channels.length)) * clipGain;
     });
-    const gainedSample = mixedSample * dbToGainMultiplier(getOnAirReviewGainDbAt(editedTime));
-    peak = Math.max(peak, Math.abs(gainedSample));
+    peak = Math.max(peak, Math.abs(mixedSample));
   }
   return peak;
 }
@@ -4460,10 +4706,9 @@ function normalizeOnAirReviewSelectionGain() {
   updateOnAirReviewSelectionControls();
   applyOnAirReviewPlaybackGain(true);
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -4479,12 +4724,13 @@ function resetOnAirReviewSelectionGain() {
   }
   const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const targetClip = getOnAirReviewGainAdjustmentTargetClip();
   if (end - start <= 0.01) {
     return false;
   }
   const beforeCount = onAirReviewGainAdjustments.length;
   pushOnAirReviewHistorySnapshot("gain-reset");
-  removeOnAirReviewGainAdjustmentsInRange(start, end);
+  removeOnAirReviewGainAdjustmentsInRange(start, end, targetClip);
   if (onAirReviewGainAdjustments.length === beforeCount) {
     if (onAirReviewUndoStack.length) {
       const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
@@ -4498,10 +4744,9 @@ function resetOnAirReviewSelectionGain() {
   updateOnAirReviewSelectionControls();
   applyOnAirReviewPlaybackGain(true);
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -4570,62 +4815,172 @@ function getOnAirReviewTimelinePosition(seconds) {
 }
 
 function seekOnAirReviewEditedTime(seconds, options) {
-  ensureOnAirReviewTimeline();
-  const config = options && typeof options === "object" ? options : {};
-  const totalDuration = getOnAirReviewTimelineDuration();
-  onAirReviewEditedTime = Math.max(0, Math.min(totalDuration, Number(seconds) || 0));
-  if (config.followViewport) {
-    setOnAirReviewViewportFocusTime(onAirReviewEditedTime);
-  }
+  return reviewCutSessionControllerApi.seekEditedTime({
+    targetSeconds: seconds,
+    options,
+    ensureTimeline: ensureOnAirReviewTimeline,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    setViewportFocusTime: setOnAirReviewViewportFocusTime,
+    getActiveMedia: getActiveOnAirReviewMediaElement,
+    getTimelinePosition: getOnAirReviewTimelinePosition,
+    isLoopSelectionPlaybackActive: isOnAirReviewLoopSelectionPlaybackActive,
+    getLoopBounds: getOnAirReviewLoopBounds,
+    canUseClipPlayback: canUseOnAirReviewClipPlayback,
+    isPlaying: isOnAirReviewPlaying,
+    scheduleClipPlayback: scheduleOnAirReviewClipPlayback,
+    stopClipPlayback: stopOnAirReviewClipPlayback,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    updateUi: updateOnAirReviewUi,
+    syncPlayhead: syncOnAirReviewPlayheadNow
+  });
+}
+
+function isOnAirReviewNativeMediaPlaying() {
   const media = getActiveOnAirReviewMediaElement();
-  const position = getOnAirReviewTimelinePosition(onAirReviewEditedTime);
-  const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
-  if (canUseOnAirReviewClipPlayback()) {
-    if (media) {
-      try {
-        media.pause();
-      } catch (error) {
-        // Ignore pause races.
-      }
-      if (position && position.segment && position.segment.type === "media") {
-        try {
-          media.currentTime = Math.max(0, Number(position.sourceTime) || 0);
-        } catch (error) {
-          // Ignore seek races.
-        }
-      }
-    }
-    if (isOnAirReviewPlaying()) {
-      scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    } else {
-      stopOnAirReviewClipPlayback();
-    }
-  } else if (media && position && position.segment && position.segment.type === "media") {
-    const targetSourceTime = Math.max(0, Number(position.sourceTime) || 0);
-    if (Math.abs(Number(media.currentTime || 0) - targetSourceTime) > 0.06) {
-      try {
-        media.currentTime = targetSourceTime;
-      } catch (error) {
-        // Ignore seek races.
-      }
-    }
-    if (config.play) {
-      media.play().catch(() => {});
-    } else if (!isOnAirReviewPlaying()) {
-      media.pause();
-    }
-  } else if (media) {
-    media.pause();
-  }
-  if (isOnAirReviewPlaying()) {
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
-  }
-  updateOnAirReviewUi({ render: true, applyGain: true });
+  return typeof reviewCutPlaybackApi.isNativeMediaPlaying === "function"
+    ? reviewCutPlaybackApi.isNativeMediaPlaying(media)
+    : !!(media && media.src && !media.paused && !media.ended);
+}
+
+function hasOnAirReviewScheduledClipPlayback() {
+  return Array.isArray(onAirReviewScheduledClipNodes) && onAirReviewScheduledClipNodes.some((entry) => !!(entry && entry.source));
 }
 
 function isOnAirReviewPlaying() {
-  return !!onAirReviewPlaybackFrameId;
+  return getOnAirReviewTransportState() === "playing" || isOnAirReviewNativeMediaPlaying();
+}
+
+function getOnAirReviewLivePlaybackTime() {
+  const visualPlaybackMode = getOnAirReviewVisualPlaybackMode();
+  if (visualPlaybackMode === "clip") {
+    const totalDuration = getOnAirReviewTimelineDuration();
+    const loopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
+    const elapsed = Math.max(0, (performance.now() - getOnAirReviewPlaybackAnchorAt()) / 1000);
+    let nextEditedTime = Math.max(0, Math.min(totalDuration, getOnAirReviewPlaybackAnchorEditedTime() + elapsed));
+    if (loopBounds) {
+      const loopLength = Math.max(0.01, loopBounds.end - loopBounds.start);
+      if (nextEditedTime >= loopBounds.end) {
+        const overshoot = nextEditedTime - loopBounds.start;
+        nextEditedTime = loopBounds.start + (overshoot % loopLength);
+      }
+    }
+    return nextEditedTime;
+  }
+  if (visualPlaybackMode === "native") {
+    syncOnAirReviewEditedTimeFromActiveMedia();
+    return onAirReviewEditedTime;
+  }
+  return onAirReviewEditedTime;
+}
+
+function stopOnAirReviewVisualLoop() {
+  return reviewCutSessionControllerApi.stopVisualLoop({
+    getVisualPlaybackMode: getOnAirReviewVisualPlaybackMode,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    getVisualFrameId: getOnAirReviewVisualFrameId,
+    cancelVisualFrame: boundCancelAnimationFrame,
+    clearVisualFrameId: clearOnAirReviewVisualFrameId,
+    setVisualPlaybackMode: setOnAirReviewVisualPlaybackMode
+  });
+}
+
+function advanceOnAirReviewClipTransport(sessionId) {
+  return reviewCutSessionControllerApi.advanceClipTransport({
+    sessionId,
+    canCallbackContinue: canOnAirReviewCallbackContinue,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    isLoopSelectionPlaybackActive: isOnAirReviewLoopSelectionPlaybackActive,
+    getLoopBounds: getOnAirReviewLoopBounds,
+    getPlaybackAnchorAt: getOnAirReviewPlaybackAnchorAt,
+    getPlaybackAnchorEditedTime: getOnAirReviewPlaybackAnchorEditedTime,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    stopClipPlayback: stopOnAirReviewClipPlayback,
+    scheduleClipPlayback: scheduleOnAirReviewClipPlayback,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    updateTimelineIndicators: updateOnAirReviewTimelineIndicators,
+    finishSession: finishOnAirReviewPlaybackSession
+  });
+}
+
+function tickOnAirReviewVisuals(sessionId) {
+  return reviewCutSessionControllerApi.tickVisuals({
+    sessionId,
+    clearVisualFrameId: clearOnAirReviewVisualFrameId,
+    getPlaybackSessionId: getOnAirReviewPlaybackSessionId,
+    getVisualPlaybackMode: getOnAirReviewVisualPlaybackMode,
+    isModalOpen() {
+      return !!onAirReviewModalOpen;
+    },
+    isNativeMediaPlaying: isOnAirReviewNativeMediaPlaying,
+    canCallbackContinue: canOnAirReviewCallbackContinue,
+    stopVisualLoop: stopOnAirReviewVisualLoop,
+    isLoopSelectionPlaybackActive: isOnAirReviewLoopSelectionPlaybackActive,
+    getLoopBounds: getOnAirReviewLoopBounds,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    getPlaybackAnchorAt: getOnAirReviewPlaybackAnchorAt,
+    getPlaybackAnchorEditedTime: getOnAirReviewPlaybackAnchorEditedTime,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    stopClipPlayback: stopOnAirReviewClipPlayback,
+    scheduleClipPlayback: scheduleOnAirReviewClipPlayback,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    updateTimelineIndicators: updateOnAirReviewTimelineIndicators,
+    finishSession: finishOnAirReviewPlaybackSession,
+    getLivePlaybackTime: getOnAirReviewLivePlaybackTime,
+    getEditedTime() {
+      return onAirReviewEditedTime;
+    },
+    syncPlayhead: syncOnAirReviewPlayheadNow,
+    requestFrame: boundRequestAnimationFrame,
+    setVisualFrameId: setOnAirReviewVisualFrameId
+  });
+}
+
+function startOnAirReviewVisualLoop(mode) {
+  return reviewCutSessionControllerApi.startVisualLoop({
+    mode,
+    isNativeMediaPlaying: isOnAirReviewNativeMediaPlaying,
+    getTransportState: getOnAirReviewTransportState,
+    getVisualPlaybackMode: getOnAirReviewVisualPlaybackMode,
+    setVisualPlaybackMode: setOnAirReviewVisualPlaybackMode,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    getVisualFrameId: getOnAirReviewVisualFrameId,
+    getPlaybackSessionId: getOnAirReviewPlaybackSessionId,
+    requestFrame: boundRequestAnimationFrame,
+    setVisualFrameId: setOnAirReviewVisualFrameId,
+    clearVisualFrameId: clearOnAirReviewVisualFrameId,
+    isModalOpen() {
+      return !!onAirReviewModalOpen;
+    },
+    canCallbackContinue: canOnAirReviewCallbackContinue,
+    stopVisualLoop: stopOnAirReviewVisualLoop,
+    isLoopSelectionPlaybackActive: isOnAirReviewLoopSelectionPlaybackActive,
+    getLoopBounds: getOnAirReviewLoopBounds,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    getPlaybackAnchorAt: getOnAirReviewPlaybackAnchorAt,
+    getPlaybackAnchorEditedTime: getOnAirReviewPlaybackAnchorEditedTime,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    ensurePlaybackViewportVisibility: ensureOnAirReviewPlaybackViewportVisibility,
+    stopClipPlayback: stopOnAirReviewClipPlayback,
+    scheduleClipPlayback: scheduleOnAirReviewClipPlayback,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    updateTimelineIndicators: updateOnAirReviewTimelineIndicators,
+    finishSession: finishOnAirReviewPlaybackSession,
+    getLivePlaybackTime: getOnAirReviewLivePlaybackTime,
+    getEditedTime() {
+      return onAirReviewEditedTime;
+    },
+    syncPlayhead: syncOnAirReviewPlayheadNow
+  });
 }
 
 function getOnAirReviewLoopBounds() {
@@ -4640,111 +4995,137 @@ function getOnAirReviewLoopBounds() {
   return { start, end };
 }
 
-function stopOnAirReviewPlaybackLoop() {
-  if (onAirReviewPlaybackFrameId) {
-    cancelAnimationFrame(onAirReviewPlaybackFrameId);
-    onAirReviewPlaybackFrameId = 0;
-  }
+function resetReviewCutPlaybackSession(options) {
+  onAirReviewPlaybackController.resetSession({
+    ...(options && typeof options === "object" ? options : {}),
+    isClipPlaybackLoopActive: isOnAirReviewClipPlaybackLoopActive,
+    getPlaybackFrameId: getOnAirReviewPlaybackFrameId,
+    getVisualFrameId: getOnAirReviewVisualFrameId,
+    hasScheduledClipPlayback: hasOnAirReviewScheduledClipPlayback,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    getPlaybackSessionId: getOnAirReviewPlaybackSessionId,
+    bumpPlaybackSession: bumpOnAirReviewPlaybackSession,
+    cancelPlaybackFrame: cancelAnimationFrame,
+    clearPlaybackFrameId: clearOnAirReviewPlaybackFrameId,
+    setTransportState: setOnAirReviewTransportState,
+    setClipPlaybackLoopActive: setOnAirReviewClipPlaybackLoopActive,
+    setLoopSelectionActive: setOnAirReviewLoopSelectionPlaybackActive,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    stopVisualLoop: stopOnAirReviewVisualLoop,
+    stopClipPlayback: stopOnAirReviewClipPlayback
+  });
 }
 
-function tickOnAirReviewPlayback() {
-  onAirReviewPlaybackFrameId = 0;
-  if (!onAirReviewModalOpen) {
+function stopOnAirReviewPlaybackLoop() {
+  resetReviewCutPlaybackSession({ reason: "stop_playback_loop" });
+}
+
+function canOnAirReviewCallbackContinue(sessionId) {
+  return Number(sessionId) === getOnAirReviewPlaybackSessionId() && getOnAirReviewTransportState() === "playing";
+}
+
+function finishOnAirReviewPlaybackSession(reason, options) {
+  onAirReviewPlaybackController.finishSession({
+    ...(options && typeof options === "object" ? options : {}),
+    reason,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    resetSession: resetReviewCutPlaybackSession,
+    getActiveMedia: getActiveOnAirReviewMediaElement,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    setViewportFocusTime: setOnAirReviewViewportFocusTime,
+    updatePlayState: updateOnAirReviewPlayState,
+    updateUi: updateOnAirReviewUi,
+    syncPlayhead: syncOnAirReviewPlayheadNow
+  });
+}
+
+function finishOnAirReviewPlaybackSessionForSession(sessionId, reason, options) {
+  if (Number(sessionId) !== getOnAirReviewPlaybackSessionId()) {
     return;
   }
-  const media = getActiveOnAirReviewMediaElement();
-  const totalDuration = getOnAirReviewTimelineDuration();
-  const loopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
-  const elapsed = Math.max(0, (performance.now() - onAirReviewPlaybackAnchorAt) / 1000);
-  let nextEditedTime = Math.max(0, Math.min(totalDuration, onAirReviewPlaybackAnchorEditedTime + elapsed));
-  if (loopBounds) {
-    if (nextEditedTime >= loopBounds.end - 0.01) {
-      nextEditedTime = loopBounds.start;
-      if (canUseOnAirReviewClipPlayback()) {
-        onAirReviewEditedTime = loopBounds.start;
-        stopOnAirReviewClipPlayback();
-        scheduleOnAirReviewClipPlayback(loopBounds.start, loopBounds.end);
-        updateOnAirReviewUi({ render: true, applyGain: true });
-      } else {
-        seekOnAirReviewEditedTime(loopBounds.start, { play: true });
-      }
-      onAirReviewPlaybackAnchorAt = performance.now();
-      onAirReviewPlaybackAnchorEditedTime = loopBounds.start;
-      onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
-      return;
-    }
-  }
-  if (canUseOnAirReviewClipPlayback()) {
-    onAirReviewEditedTime = nextEditedTime;
-    updateOnAirReviewUi({ render: true, applyGain: true });
-  } else {
-    seekOnAirReviewEditedTime(nextEditedTime, { play: true });
-  }
-  if (nextEditedTime >= totalDuration - 0.01) {
-    stopOnAirReviewPlaybackLoop();
-    stopOnAirReviewClipPlayback();
-    if (media) {
-      media.pause();
-    }
-    onAirReviewEditedTime = 0;
-    setOnAirReviewViewportFocusTime(0);
-    updateOnAirReviewPlayState();
-    updateOnAirReviewUi({ render: true, applyGain: true });
+  finishOnAirReviewPlaybackSession(reason, options);
+}
+
+function tickOnAirReviewPlayback(sessionId) {
+  clearOnAirReviewPlaybackFrameId();
+  if (sessionId !== getOnAirReviewPlaybackSessionId()) {
     return;
   }
-  onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
+  // Legacy clip-transport RAF path intentionally disabled.
+  // Clip-mode session time is now advanced only by the visual/session loop.
 }
 
 async function startOnAirReviewPlaybackLoop() {
-  const media = getActiveOnAirReviewMediaElement();
-  if (!media) {
-    return;
-  }
-  await resumeOnAirReviewAudioGraph().catch(() => {});
-  ensureOnAirReviewTimeline();
-  stopOnAirReviewPlaybackLoop();
-  const loopBounds = getOnAirReviewLoopBounds();
-  onAirReviewLoopSelectionActive = !!loopBounds;
-  const totalDuration = getOnAirReviewTimelineDuration();
-  let playbackStart = onAirReviewEditedTime;
-  if (loopBounds) {
-    playbackStart = onAirReviewEditedTime >= loopBounds.start && onAirReviewEditedTime <= loopBounds.end
-      ? onAirReviewEditedTime
-      : loopBounds.start;
-  } else if (totalDuration > 0 && onAirReviewEditedTime >= totalDuration - 0.01) {
-    playbackStart = 0;
-  }
-  onAirReviewPlaybackAnchorAt = performance.now();
-  onAirReviewPlaybackAnchorEditedTime = playbackStart;
-  if (canUseOnAirReviewClipPlayback()) {
-    try {
-      media.pause();
-    } catch (error) {
-      // Ignore pause races.
-    }
-    seekOnAirReviewEditedTime(playbackStart);
-    scheduleOnAirReviewClipPlayback(playbackStart, loopBounds ? loopBounds.end : undefined);
-  } else {
-    const position = getOnAirReviewTimelinePosition(playbackStart);
-    if (position && position.segment && position.segment.type === "media") {
-      seekOnAirReviewEditedTime(playbackStart, { play: true });
-    } else {
-      media.pause();
-    }
-  }
-  onAirReviewPlaybackFrameId = requestAnimationFrame(tickOnAirReviewPlayback);
-  updateOnAirReviewPlayState();
+  return onAirReviewPlaybackController.startPlaybackLoop({
+    getActiveMedia: getActiveOnAirReviewMediaElement,
+    canStartClipPlayback: canStartOnAirReviewClipPlayback,
+    getFallbackMedia() {
+      return onAirReviewAudio;
+    },
+    isLibraryPreviewPlaying() {
+      return !!(onAirLibraryPreviewAudio && !onAirLibraryPreviewAudio.paused);
+    },
+    closeLibraryPreview: closeOnAirLibraryPreview,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    resumeAudioGraph: resumeOnAirReviewAudioGraph,
+    ensureTimeline: ensureOnAirReviewTimeline,
+    resetSession: resetReviewCutPlaybackSession,
+    bumpPlaybackSession: bumpOnAirReviewPlaybackSession,
+    getLoopBounds: getOnAirReviewLoopBounds,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    getEditedTime() {
+      return onAirReviewEditedTime;
+    },
+    canUseClipPlayback: canUseOnAirReviewClipPlayback,
+    setTransportState: setOnAirReviewTransportState,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    scheduleClipPlayback: scheduleOnAirReviewClipPlayback,
+    updatePlayState: updateOnAirReviewPlayState,
+    updateUi: updateOnAirReviewUi,
+    commitPlaybackStart: commitReviewCutPlaybackStart,
+    setClipPlaybackLoopActive: setOnAirReviewClipPlaybackLoopActive,
+    setLoopSelectionActive: setOnAirReviewLoopSelectionPlaybackActive,
+    setPlaybackAnchor: setOnAirReviewPlaybackAnchor,
+    beginPlaybackSession: beginReviewCutPlaybackSession,
+    getTimelinePosition: getOnAirReviewTimelinePosition,
+    seekEditedTime: seekOnAirReviewEditedTime,
+    startVisualLoop: startOnAirReviewVisualLoop
+  });
+}
+
+function restartOnAirReviewPlaybackLoopAfterFinished() {
+  return onAirReviewPlaybackController.restartAfterFinished({
+    getTransportState: getOnAirReviewTransportState,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    setViewportFocusTime: setOnAirReviewViewportFocusTime,
+    updateUi: updateOnAirReviewUi,
+    syncPlayhead: syncOnAirReviewPlayheadNow,
+    startPlaybackLoop: startOnAirReviewPlaybackLoop
+  });
 }
 
 function pauseOnAirReviewPlaybackLoop() {
-  stopOnAirReviewPlaybackLoop();
-  onAirReviewLoopSelectionActive = false;
-  stopOnAirReviewClipPlayback();
-  const media = getActiveOnAirReviewMediaElement();
-  if (media) {
-    media.pause();
-  }
-  updateOnAirReviewPlayState();
+  onAirReviewPlaybackController.finishSession({
+    reason: "pause_requested",
+    resetToStart: false,
+    pushDiagnostic: pushReviewCutDiagnostic,
+    resetSession: resetReviewCutPlaybackSession,
+    getActiveMedia: getActiveOnAirReviewMediaElement,
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    },
+    setViewportFocusTime: setOnAirReviewViewportFocusTime,
+    updatePlayState: updateOnAirReviewPlayState,
+    updateUi: updateOnAirReviewUi,
+    syncPlayhead: syncOnAirReviewPlayheadNow
+  });
 }
 
 function applyOnAirReviewDeleteToTimeline(mode) {
@@ -4825,20 +5206,56 @@ function applyOnAirReviewDeleteToTimeline(mode) {
 
 function getOnAirReviewViewport(durationSeconds, currentSeconds) {
   const duration = Math.max(0, Number(durationSeconds) || 0);
+  const playbackAnchorTime = onAirReviewPlayheadController && typeof onAirReviewPlayheadController.snapshot === "function"
+    ? Number(onAirReviewPlayheadController.snapshot().playbackViewportAnchorTime)
+    : null;
+  if (onAirReviewViewportController && typeof onAirReviewViewportController.getViewport === "function") {
+    return onAirReviewViewportController.getViewport({
+      durationSeconds: duration,
+      currentSeconds,
+      playbackAnchorSeconds: playbackAnchorTime,
+      zoomLevel: onAirReviewZoomLevel,
+      getViewportFn: typeof reviewCutStateApi.getViewport === "function" ? reviewCutStateApi.getViewport : null
+    });
+  }
   const focusSeconds = getOnAirReviewViewportAnchorTime(currentSeconds);
-  const current = Math.max(0, Number(focusSeconds) || 0);
-  const currentProgress = duration > 0 ? Math.max(0, Math.min(1, current / duration)) : 0;
-  const windowSize = duration > 0 ? Math.max(1 / clampOnAirReviewZoomLevel(onAirReviewZoomLevel), 0.08) : 1;
-  const clampedWindowSize = Math.max(0.08, Math.min(1, windowSize));
-  const windowStart = duration > 0
-    ? Math.max(0, Math.min(1 - clampedWindowSize, currentProgress - clampedWindowSize / 2))
-    : 0;
-  return {
-    currentProgress,
-    windowSize: clampedWindowSize,
-    windowStart,
-    windowEnd: Math.min(1, windowStart + clampedWindowSize)
-  };
+  return typeof reviewCutStateApi.getViewport === "function"
+    ? reviewCutStateApi.getViewport({ durationSeconds: duration, focusSeconds, zoomLevel: onAirReviewZoomLevel })
+    : { currentProgress: 0, windowSize: 1, windowStart: 0, windowEnd: 1 };
+}
+
+function ensureOnAirReviewPlaybackViewportVisibility() {
+  const duration = getOnAirReviewTimelineDuration();
+  if (!(duration > 0) || !(onAirReviewZoomLevel > 1)) {
+    return;
+  }
+  const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
+  const viewport = getOnAirReviewViewport(duration, current);
+  if (!viewport || !(Number(viewport.windowSize) > 0) || Number(viewport.windowSize) >= 0.999) {
+    return;
+  }
+  const windowSize = Math.max(0.000001, Number(viewport.windowSize) || 1);
+  const windowStart = Math.max(0, Number(viewport.windowStart) || 0);
+  const currentProgress = Math.max(0, Math.min(1, current / duration));
+  const visibleProgress = Math.max(0, Math.min(1, (currentProgress - windowStart) / windowSize));
+  const followTrigger = 0.8;
+  if (visibleProgress < followTrigger) {
+    return;
+  }
+  const targetVisibleProgress = 0.78;
+  const targetFocus = current - ((targetVisibleProgress - 0.5) * windowSize * duration);
+  const currentFocus = Number.isFinite(onAirReviewViewportFocusTime)
+    ? Math.max(0, Math.min(duration, Number(onAirReviewViewportFocusTime) || 0))
+    : ((windowStart + windowSize / 2) * duration);
+  const focusDelta = targetFocus - currentFocus;
+  if (focusDelta <= 0.015) {
+    return;
+  }
+  const maxStep = Math.max(0.04, duration * windowSize * 0.035);
+  const nextFocus = currentFocus + Math.min(focusDelta, maxStep);
+  setOnAirReviewViewportFocusTime(nextFocus);
+  queueOnAirReviewWaveRender();
+  updateOnAirReviewPanControl();
 }
 
 function updateOnAirReviewPanControl() {
@@ -4868,9 +5285,9 @@ function panOnAirReviewViewportBySlider(rawValue) {
     updateOnAirReviewPanControl();
     return;
   }
-  const sliderProgress = Math.max(0, Math.min(1, (Number(rawValue) || 0) / 1000));
-  const nextWindowStart = maxStart * sliderProgress;
-  const nextFocus = (nextWindowStart + viewport.windowSize / 2) * duration;
+  const nextFocus = onAirReviewViewportController && typeof onAirReviewViewportController.getPanFocusTime === "function"
+    ? onAirReviewViewportController.getPanFocusTime(rawValue, viewport, duration)
+    : (((Math.max(0, Math.min(1, (Number(rawValue) || 0) / 1000)) * maxStart) + viewport.windowSize / 2) * duration);
   setOnAirReviewViewportFocusTime(nextFocus);
   queueOnAirReviewWaveRender();
   updateOnAirReviewPanControl();
@@ -4925,23 +5342,15 @@ function getOnAirReviewPeakForClipAtEditedTime(clip, editedTime) {
 }
 
 function getOnAirReviewRulerStepSeconds(visibleDurationSeconds, meterWidthPx) {
-  const visibleDuration = Math.max(0.01, Number(visibleDurationSeconds) || 0.01);
-  const meterWidth = Math.max(120, Number(meterWidthPx) || 120);
-  const targetTickCount = Math.max(3, Math.floor(meterWidth / 92));
-  const rawStep = visibleDuration / targetTickCount;
-  const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800];
-  return steps.find((step) => step >= rawStep) || steps[steps.length - 1];
+  return typeof reviewCutStateApi.getRulerStepSeconds === "function"
+    ? reviewCutStateApi.getRulerStepSeconds(visibleDurationSeconds, meterWidthPx)
+    : 1;
 }
 
 function formatOnAirReviewRulerLabel(seconds, stepSeconds) {
-  const safeSeconds = Math.max(0, Number(seconds) || 0);
-  if (stepSeconds < 1) {
-    return safeSeconds.toFixed(stepSeconds < 0.5 ? 1 : 0);
-  }
-  if (safeSeconds < 60) {
-    return String(Math.round(safeSeconds));
-  }
-  return formatPreviewClock(safeSeconds);
+  return typeof reviewCutStateApi.formatRulerLabel === "function"
+    ? reviewCutStateApi.formatRulerLabel(seconds, stepSeconds, formatPreviewClock)
+    : formatPreviewClock(Math.max(0, Number(seconds) || 0));
 }
 
 function getOnAirReviewNoiseAtEditedProgress(progress, totalDuration) {
@@ -4994,9 +5403,21 @@ function setOnAirReviewViewportFocusTime(seconds) {
   const duration = getOnAirReviewTimelineDuration();
   if (!Number.isFinite(seconds)) {
     onAirReviewViewportFocusTime = null;
+    if (onAirReviewViewportController && typeof onAirReviewViewportController.clearExplicitFocusTime === "function") {
+      onAirReviewViewportController.clearExplicitFocusTime();
+    }
+    if (onAirReviewPlayheadController && typeof onAirReviewPlayheadController.clearPlaybackViewportAnchorTime === "function") {
+      onAirReviewPlayheadController.clearPlaybackViewportAnchorTime();
+    }
     return;
   }
   onAirReviewViewportFocusTime = duration > 0 ? Math.max(0, Math.min(duration, Number(seconds) || 0)) : 0;
+  if (onAirReviewViewportController && typeof onAirReviewViewportController.setExplicitFocusTime === "function") {
+    onAirReviewViewportController.setExplicitFocusTime(onAirReviewViewportFocusTime, duration);
+  }
+  if (onAirReviewPlayheadController && typeof onAirReviewPlayheadController.setPlaybackViewportAnchorTime === "function") {
+    onAirReviewPlayheadController.setPlaybackViewportAnchorTime(onAirReviewViewportFocusTime);
+  }
 }
 
 function setOnAirReviewSelectedClipIndex(entryIndex) {
@@ -5136,7 +5557,7 @@ function stopOnAirReviewSelectionAutoPan() {
 
 function tickOnAirReviewSelectionAutoPan() {
   onAirReviewAutoPanFrameId = 0;
-  if (!onAirReviewWavePointerDown || !onAirReviewSelectMode || !onAirReviewWaveCanvas) {
+  if (!onAirReviewWavePointerDown || onAirReviewMoveMode || !onAirReviewWaveCanvas) {
     return;
   }
   const duration = getOnAirReviewTimelineDuration();
@@ -5150,20 +5571,28 @@ function tickOnAirReviewSelectionAutoPan() {
   const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
   const visibleDuration = duration * viewport.windowSize;
   let direction = 0;
+  let edgeStrength = 0;
   if (leftDistance < edgeThreshold) {
     direction = -1;
+    edgeStrength = 1 - Math.max(0, Math.min(1, leftDistance / edgeThreshold));
   } else if (rightDistance < edgeThreshold) {
     direction = 1;
+    edgeStrength = 1 - Math.max(0, Math.min(1, rightDistance / edgeThreshold));
   }
   if (!direction) {
     return;
   }
   const currentFocus = getOnAirReviewViewportAnchorTime(onAirReviewEditedTime);
-  const nextFocus = Math.max(0, Math.min(duration, currentFocus + direction * Math.max(0.03, visibleDuration * 0.014)));
+  const panStep = Math.max(0.02, visibleDuration * (0.004 + edgeStrength * 0.014));
+  const nextFocus = Math.max(0, Math.min(duration, currentFocus + direction * panStep));
   if (Math.abs(nextFocus - currentFocus) > 0.001) {
     setOnAirReviewViewportFocusTime(nextFocus);
     const seconds = getOnAirReviewSecondsFromClientX(onAirReviewSelectionPointerClientX);
-    updateOnAirReviewSelectionFromDrag(seconds);
+    if (onAirReviewSelectMode) {
+      updateOnAirReviewSelectionFromDrag(seconds);
+    } else {
+      seekOnAirReviewEditedTime(seconds, { silentDiagnostic: true });
+    }
   }
   onAirReviewAutoPanFrameId = requestAnimationFrame(tickOnAirReviewSelectionAutoPan);
 }
@@ -5260,10 +5689,9 @@ function setOnAirReviewOverlapMode(mode) {
   onAirReviewOverlapMode = nextMode;
   updateOnAirReviewOverlapModeUi();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent = "Overlap mode set to " + nextMode + " for stacked clips.";
@@ -5470,10 +5898,9 @@ async function buildOnAirReviewCleanupBuffer() {
 
 function scheduleOnAirReviewPlaybackRefresh() {
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
 }
 
@@ -5529,6 +5956,7 @@ async function applyOnAirReviewCleanupToAll() {
 
 async function insertOnAirReviewLibraryAssetAtPlayhead(asset) {
   ensureOnAirReviewTimeline();
+  closeOnAirLibraryPreview();
   const decoded = await ensureOnAirReviewLibraryAssetDecoded(asset);
   if (!decoded || !decoded.buffer || !(decoded.buffer.duration > 0)) {
     return false;
@@ -5559,6 +5987,60 @@ async function insertOnAirReviewLibraryAssetAtPlayhead(asset) {
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent = decoded.assetLabel + " inserted at " + formatPreviewClock(insertAt) + ".";
+  }
+  return true;
+}
+
+async function insertOnAirReviewImportedAudioFileAtPlayhead(file) {
+  ensureOnAirReviewTimeline();
+  if (!file || typeof file.arrayBuffer !== "function") {
+    return false;
+  }
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) {
+    return false;
+  }
+  const decodeContext = new AudioContextCtor();
+  let decoded = null;
+  try {
+    const audioData = await file.arrayBuffer();
+    decoded = await decodeContext.decodeAudioData(audioData.slice(0));
+  } finally {
+    decodeContext.close().catch(() => {});
+  }
+  if (!decoded || !(decoded.duration > 0)) {
+    return false;
+  }
+  const assetId = "import_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+  const assetLabel = String(file.name || "Imported Audio");
+  onAirReviewLibraryBufferCache.set(assetId, decoded);
+  onAirReviewLibraryWaveCache.set(assetId, sampleWaveformPeaksFromAudioBuffer(decoded, 900));
+  pushOnAirReviewHistorySnapshot("audio-import");
+  const insertAt = Math.max(0, Math.min(getOnAirReviewTimelineDuration(), Number(onAirReviewEditedTime) || 0));
+  const targetLane = getOnAirReviewSmartInsertLane(insertAt);
+  const nextClips = getOnAirReviewMediaClips().map((clip) => createOnAirReviewClipDescriptor(clip));
+  nextClips.push({
+    start: insertAt,
+    duration: decoded.duration,
+    sourceStart: 0,
+    sourceEnd: decoded.duration,
+    lane: targetLane,
+    sourceKind: "library",
+    sourceAssetId: assetId,
+    sourceAssetLabel: assetLabel
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(getOnAirReviewTimelineDuration(), insertAt + decoded.duration));
+  const insertedClip = getOnAirReviewMediaClips().find((clip) =>
+    clip.sourceKind === "library" &&
+    clip.sourceAssetId === assetId &&
+    clip.lane === targetLane &&
+    Math.abs(clip.start - insertAt) < 0.01
+  );
+  setOnAirReviewSelectedClipIndex(insertedClip ? insertedClip.clipId : -1);
+  seekOnAirReviewEditedTime(insertAt);
+  queueOnAirReviewWaveRender();
+  if (onAirReviewWaveNote) {
+    onAirReviewWaveNote.textContent = assetLabel + " inserted on T" + String(targetLane + 1) + " at " + formatPreviewClock(insertAt) + ".";
   }
   return true;
 }
@@ -5598,6 +6080,7 @@ async function replaceOnAirReviewSelectionWithLibraryAsset(asset) {
     return false;
   }
   ensureOnAirReviewTimeline();
+  closeOnAirLibraryPreview();
   const decoded = await ensureOnAirReviewLibraryAssetDecoded(asset);
   if (!decoded || !decoded.buffer || !(decoded.buffer.duration > 0)) {
     return false;
@@ -5994,10 +6477,9 @@ function applyOnAirReviewClipFadeDelta(kind, deltaSeconds) {
   }
   updateOnAirReviewSelectionControls();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -6026,10 +6508,9 @@ function resetOnAirReviewClipFades() {
   }
   updateOnAirReviewSelectionControls();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -6285,10 +6766,9 @@ function applyOnAirReviewInsertClipGainDelta(deltaDb) {
   rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
   updateOnAirReviewSelectionControls();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -6311,10 +6791,9 @@ function resetOnAirReviewInsertClipGain() {
   rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
   updateOnAirReviewSelectionControls();
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
-    const activeLoopBounds = onAirReviewLoopSelectionActive ? getOnAirReviewLoopBounds() : null;
+    const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
-    onAirReviewPlaybackAnchorAt = performance.now();
-    onAirReviewPlaybackAnchorEditedTime = onAirReviewEditedTime;
+    setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
@@ -6459,7 +6938,6 @@ function moveOnAirReviewClip(entryIndex, targetStart) {
     onAirReviewClipDragState.pendingDuration = requiredDuration;
   }
   rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(lockedDuration, requiredDuration));
-  shiftOnAirReviewGainAdjustmentsForClipMove(clip.start, clip.end, nextStart - clip.start);
   shiftOnAirReviewCleanupRangesForClipMove(clip.start, clip.end, nextStart - clip.start);
   shiftOnAirReviewFadeRegionsForClipMove(clip.clipId, clip.start, clip.end, nextStart - clip.start);
   if (hasOnAirReviewSelection()) {
@@ -6530,8 +7008,13 @@ function getOnAirReviewSmartInsertLane(insertAt) {
     return Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(selectedClip.lane) || 0));
   }
   const clips = getOnAirReviewMediaClips();
+  if (!clips.length) {
+    return 0;
+  }
+  const hasRecordingClip = clips.some((clip) => String(clip && clip.sourceKind || "recording") === "recording");
   const insertPreferredLanes = [];
-  for (let lane = 1; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
+  const laneStart = hasRecordingClip ? 1 : 0;
+  for (let lane = laneStart; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
     insertPreferredLanes.push(lane);
   }
   if (selectedClip) {
@@ -6540,7 +7023,9 @@ function getOnAirReviewSmartInsertLane(insertAt) {
       insertPreferredLanes.unshift(selectedLane);
     }
   }
-  insertPreferredLanes.push(0);
+  if (hasRecordingClip && !insertPreferredLanes.includes(0)) {
+    insertPreferredLanes.push(0);
+  }
   for (const lane of insertPreferredLanes) {
     const occupied = clips.some((clip) => clip.lane === lane && targetTime >= clip.start - 0.005 && targetTime <= clip.end + 0.005);
     if (!occupied) {
@@ -6762,6 +7247,14 @@ function updateOnAirReviewZoomControls() {
 }
 
 function setOnAirReviewZoomLevel(nextLevel) {
+  const duration = getOnAirReviewTimelineDuration();
+  if (duration > 0) {
+    const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+    const currentFocus = Number.isFinite(onAirReviewViewportFocusTime)
+      ? Number(onAirReviewViewportFocusTime)
+      : ((Math.max(0, Number(viewport.windowStart) || 0) + (Math.max(0.08, Math.min(1, Number(viewport.windowSize) || 1)) / 2)) * duration);
+    setOnAirReviewViewportFocusTime(currentFocus);
+  }
   onAirReviewZoomLevel = clampOnAirReviewZoomLevel(nextLevel);
   updateOnAirReviewZoomControls();
   queueOnAirReviewWaveRender();
@@ -6794,6 +7287,9 @@ function resizeOnAirReviewWaveCanvas() {
   if (onAirReviewWaveCanvas.width !== width || onAirReviewWaveCanvas.height !== height) {
     onAirReviewWaveCanvas.width = width;
     onAirReviewWaveCanvas.height = height;
+  }
+  if (onAirReviewPlayhead) {
+    onAirReviewPlayhead.style.height = targetCssHeight + "px";
   }
   if (!onAirReviewWaveContext) {
     onAirReviewWaveContext = onAirReviewWaveCanvas.getContext("2d");
@@ -7100,7 +7596,7 @@ async function renderOnAirReviewEditedAudioBuffer() {
       }
       const source = offline.createBufferSource();
       const gainNode = offline.createGain();
-      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint) + (Number(clip.clipGainDb) || 0));
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint, clip) + (Number(clip.clipGainDb) || 0));
       const overlapGain = getOnAirReviewOverlapMixMultiplier(clip, chunkStart, safeDuration, clips);
       const clipFadeEnvelope = getOnAirReviewFadeEnvelopeForClipChunk(clip, chunkStart, safeDuration);
       const regionFadeEnvelope = getOnAirReviewFadeRegionEnvelopeForClipChunk(clip, chunkStart, safeDuration);
@@ -7223,7 +7719,7 @@ function drawOnAirReviewClipWaveform(ctx, clip, options) {
     if (peak <= 0.002) {
       continue;
     }
-    const gainDb = getOnAirReviewGainDbAt(editedTime) + (Number(clip.clipGainDb) || 0);
+    const gainDb = getOnAirReviewGainDbAt(editedTime, clip) + (Number(clip.clipGainDb) || 0);
     const adjustedPeak = Math.max(0.02, Math.min(1, peak * Math.max(0.25, Math.min(2.4, dbToGainMultiplier(gainDb)))));
     const x = clipX + index * barStep + barStep / 2;
     const halfHeight = Math.max(1.2, adjustedPeak * usableHalfHeight * Math.min(1, 0.84 + normalizedZoom * 0.048));
@@ -7352,11 +7848,12 @@ function renderOnAirReviewWaveform() {
   const timelineX = meterX + trackHeaderWidth + 10;
   const timelineWidth = Math.max(24, meterWidth - trackHeaderWidth - 10);
   const duration = getOnAirReviewTimelineDuration();
-  const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
-  const viewport = getOnAirReviewViewport(duration, current);
-  const currentProgress = viewport.currentProgress;
-  const windowSize = viewport.windowSize;
-  const windowStart = viewport.windowStart;
+  const geometry = getOnAirReviewTimelineGeometry();
+  const current = geometry.current;
+  const viewport = geometry.viewport;
+  const currentProgress = geometry.currentProgress;
+  const windowSize = geometry.windowSize;
+  const windowStart = geometry.windowStart;
   const mediaClips = duration > 0 ? getOnAirReviewMediaClips() : [];
   const laneCount = ON_AIR_REVIEW_MAX_TRACKS;
   const laneGap = Math.max(6, Math.floor(height * 0.03));
@@ -7878,16 +8375,6 @@ function renderOnAirReviewWaveform() {
     }
   }
 
-  const playheadWindowProgress = windowSize < 1
-    ? Math.max(0, Math.min(1, (currentProgress - windowStart) / Math.max(windowSize, 1e-6)))
-    : currentProgress;
-  const playheadX = timelineX + timelineWidth * playheadWindowProgress;
-  ctx.strokeStyle = "rgba(255, 156, 76, 0.98)";
-  ctx.lineWidth = Math.max(2, Math.floor((window.devicePixelRatio || 1) * 1.6));
-  ctx.beginPath();
-  ctx.moveTo(playheadX, meterY - 4);
-  ctx.lineTo(playheadX, meterY + meterHeight + 4);
-  ctx.stroke();
 }
 
 function queueOnAirReviewWaveRender() {
@@ -7908,18 +8395,78 @@ function queueOnAirReviewWaveRender() {
   });
 }
 
-function seekOnAirReviewFromClientX(clientX) {
+function getOnAirReviewTimelineGeometry() {
+  if (!onAirReviewWaveCanvas) {
+    return null;
+  }
+  resizeOnAirReviewWaveCanvas();
+  const duration = getOnAirReviewTimelineDuration();
+  const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
+  const viewport = getOnAirReviewViewport(duration, current);
   const layout = getOnAirReviewWaveLayout();
   if (!layout) {
+    return null;
+  }
+  const currentProgress = viewport.currentProgress;
+  const windowSize = viewport.windowSize;
+  const windowStart = viewport.windowStart;
+  const playheadWindowProgress = windowSize < 1
+    ? Math.max(0, Math.min(1, (currentProgress - windowStart) / Math.max(windowSize, 1e-6)))
+    : currentProgress;
+  const playheadX = layout.timelineX + layout.timelineWidth * playheadWindowProgress;
+  return {
+    duration,
+    current,
+    viewport,
+    layout,
+    currentProgress,
+    windowSize,
+    windowStart,
+    playheadX
+  };
+}
+
+function renderOnAirReviewPlayheadOverlay(geometry) {
+  if (!onAirReviewPlayheadController || typeof onAirReviewPlayheadController.render !== "function") {
     return;
   }
-  const duration = getOnAirReviewTimelineDuration();
+  resizeOnAirReviewWaveCanvas();
+  const info = geometry || getOnAirReviewTimelineGeometry();
+  if (!info) {
+    if (typeof onAirReviewPlayheadController.hide === "function") {
+      onAirReviewPlayheadController.hide();
+    }
+    return;
+  }
+  onAirReviewPlayheadController.render({
+    duration: info.duration,
+    currentSeconds: info.current,
+    layout: info.layout,
+    viewport: info.viewport
+  });
+}
+
+function syncOnAirReviewPlayheadNow() {
+  try {
+    renderOnAirReviewPlayheadOverlay();
+  } catch (error) {
+    pushRecordingDiagnostic("review_playhead_render_failed", String((error && error.message) || error || "render failed"));
+  }
+}
+
+function seekOnAirReviewFromClientX(clientX) {
+  const geometry = getOnAirReviewTimelineGeometry();
+  if (!geometry || !geometry.layout) {
+    return;
+  }
+  const layout = geometry.layout;
+  const duration = geometry.duration;
   if (!(duration > 0)) {
     return;
   }
   const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
   const localPercent = Math.max(0, Math.min(1, (localX - layout.timelineX) / Math.max(1, layout.timelineWidth)));
-  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+  const viewport = geometry.viewport;
   const windowSize = viewport.windowSize;
   const windowStart = viewport.windowStart;
   const absolutePercent = windowSize < 1
@@ -7929,56 +8476,38 @@ function seekOnAirReviewFromClientX(clientX) {
 }
 
 function getOnAirReviewWaveLayout() {
-  if (!onAirReviewWaveCanvas) {
-    return null;
-  }
-  const rect = onAirReviewWaveCanvas.getBoundingClientRect();
-  const width = onAirReviewWaveCanvas.width;
-  const height = onAirReviewWaveCanvas.height;
-  const shellInset = Math.max(4, Math.floor(height * 0.04));
-  const shellWidth = Math.max(12, width - shellInset * 2);
-  const shellHeight = Math.max(12, height - shellInset * 2);
-  const meterInsetX = Math.max(16, Math.floor(width * 0.02));
-  const meterInsetY = Math.max(18, Math.floor(height * 0.18));
-  const meterX = shellInset + meterInsetX;
-  const meterY = shellInset + meterInsetY;
-  const meterWidth = Math.max(24, shellWidth - meterInsetX * 2);
-  const meterHeight = Math.max(16, shellHeight - meterInsetY * 2);
-  const trackHeaderWidth = Math.max(92, Math.min(148, Math.floor(meterWidth * 0.11)));
-  const timelineX = meterX + trackHeaderWidth + 10;
-  const timelineWidth = Math.max(24, meterWidth - trackHeaderWidth - 10);
-  const mediaClips = getOnAirReviewMediaClips();
-  const laneCount = ON_AIR_REVIEW_MAX_TRACKS;
-  const laneGap = Math.max(6, Math.floor(height * 0.03));
-  const laneHeight = Math.max(18, Math.floor((meterHeight - laneGap * Math.max(0, laneCount - 1)) / laneCount));
-  return { rect, width, height, meterX, meterY, meterWidth, meterHeight, trackHeaderWidth, timelineX, timelineWidth, laneCount, laneGap, laneHeight };
+  return typeof reviewCutRenderApi.getWaveLayout === "function"
+    ? reviewCutRenderApi.getWaveLayout(onAirReviewWaveCanvas, ON_AIR_REVIEW_MAX_TRACKS)
+    : null;
 }
 
 function isOnAirReviewTimelineHitAtClient(clientX) {
   const layout = getOnAirReviewWaveLayout();
-  if (!layout) {
-    return false;
+  if (onAirReviewPlayhead) {
+    const playheadRect = onAirReviewPlayhead.getBoundingClientRect();
+    if (clientX >= playheadRect.left && clientX <= playheadRect.right) {
+      return true;
+    }
   }
-  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
-  return localX >= layout.timelineX && localX <= layout.timelineX + layout.timelineWidth;
+  return typeof reviewCutRenderApi.isTimelineHitAtClient === "function"
+    ? reviewCutRenderApi.isTimelineHitAtClient(clientX, layout)
+    : false;
 }
 
 function getOnAirReviewSecondsFromClientX(clientX) {
-  const layout = getOnAirReviewWaveLayout();
-  if (!layout) {
+  const geometry = getOnAirReviewTimelineGeometry();
+  if (!geometry || !geometry.layout) {
     return 0;
   }
-  const duration = getOnAirReviewTimelineDuration();
+  const layout = geometry.layout;
+  const duration = geometry.duration;
   if (!(duration > 0)) {
     return 0;
   }
-  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
-  const localPercent = Math.max(0, Math.min(1, (localX - layout.timelineX) / Math.max(1, layout.timelineWidth)));
-  const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
-  const absolutePercent = viewport.windowSize < 1
-    ? Math.max(0, Math.min(1, viewport.windowStart + viewport.windowSize * localPercent))
-    : localPercent;
-  return duration * absolutePercent;
+  const viewport = geometry.viewport;
+  return typeof reviewCutRenderApi.getSecondsFromClientX === "function"
+    ? reviewCutRenderApi.getSecondsFromClientX(clientX, layout, duration, viewport)
+    : 0;
 }
 
 function getOnAirReviewClipHitAtClient(clientX, clientY) {
@@ -8627,6 +9156,25 @@ async function importOnAirReviewFile(file) {
       onAirReviewWindowStatus.textContent = "Choose an audio or video recording file.";
     }
     return false;
+  }
+  const hasExistingReviewContent = !!(
+    getOnAirReviewMediaClips().length ||
+    recordingAudioUrl ||
+    recordingMediaUrl ||
+    (onAirActiveReviewMedia && onAirActiveReviewMedia.src)
+  );
+  if (isAudio && hasExistingReviewContent) {
+    const inserted = await insertOnAirReviewImportedAudioFileAtPlayhead(file);
+    if (inserted) {
+      setOnAirReviewModalOpen(true);
+      if (onAirReviewWindowStatus) {
+        onAirReviewWindowStatus.textContent = String(file.name || "Imported audio") + " inserted into Review Cut.";
+      }
+      updateOnAirReviewUi({ render: false, applyGain: false, syncFromMedia: false });
+      updateOnAirReviewPlayState();
+      updateOnAirReviewMuteState();
+      return true;
+    }
   }
   clearLocalRecordingAsset();
   if (isAudio) {
@@ -13354,6 +13902,15 @@ function canUseOnAirReviewClipPlayback() {
   return getActiveOnAirReviewMediaElement() === onAirReviewAudio && !!onAirReviewDecodedAudioBuffer;
 }
 
+function canStartOnAirReviewClipPlayback() {
+  return !!(
+    onAirReviewDecodedAudioBuffer &&
+    onAirReviewAudio &&
+    onAirReviewAudio.src &&
+    (!onAirReviewVideo || !onAirReviewVideo.src || onAirActiveReviewMedia === onAirReviewAudio)
+  );
+}
+
 function ensureOnAirReviewAudioGraph() {
   if (onAirReviewAudioGraphUnavailable) {
     return null;
@@ -13431,8 +13988,14 @@ async function resumeOnAirReviewAudioGraph() {
   applyOnAirReviewPlaybackGain(true);
 }
 
-function stopOnAirReviewClipPlayback() {
+function stopOnAirReviewClipPlayback(sessionId) {
+  const targetSessionId = Number(sessionId) || 0;
+  const nextScheduledNodes = [];
   onAirReviewScheduledClipNodes.forEach((entry) => {
+    if (targetSessionId && Number(entry && entry.sessionId) !== targetSessionId) {
+      nextScheduledNodes.push(entry);
+      return;
+    }
     if (entry && entry.source) {
       try {
         entry.source.stop();
@@ -13453,15 +14016,20 @@ function stopOnAirReviewClipPlayback() {
       }
     }
   });
-  onAirReviewScheduledClipNodes = [];
+  onAirReviewScheduledClipNodes = nextScheduledNodes;
 }
 
 function getOnAirReviewGainBoundariesForClip(clip, fromEditedTime) {
+  const clipId = Math.max(0, Number(clip && clip.clipId) || 0);
   const clipStart = Math.max(0, Number(clip && clip.start) || 0);
   const clipEnd = Math.max(clipStart, Number(clip && clip.end) || clipStart);
   const rangeStart = Math.max(clipStart, Number(fromEditedTime) || 0);
   const boundaries = [rangeStart, clipEnd];
   onAirReviewGainAdjustments.forEach((adjustment) => {
+    const adjustmentClipId = Math.max(0, Number(adjustment && adjustment.clipId) || 0);
+    if (adjustmentClipId > 0 && adjustmentClipId !== clipId) {
+      return;
+    }
     const start = Math.max(clipStart, Number(adjustment && adjustment.start) || 0);
     const end = Math.min(clipEnd, Math.max(start, Number(adjustment && adjustment.end) || start));
     if (end <= rangeStart || start >= clipEnd) {
@@ -13519,7 +14087,12 @@ function getOnAirReviewOverlapMixMultiplier(clip, chunkStart, chunkDuration, cli
   }
   const midpoint = Math.max(chunkStart, chunkStart + Math.max(0.005, chunkDuration / 2));
   const overlapping = clips
-    .filter((entry) => entry && midpoint >= entry.start && midpoint <= entry.end)
+    .filter((entry) =>
+      entry &&
+      Number(entry.lane) === Number(clip.lane) &&
+      midpoint >= entry.start &&
+      midpoint <= entry.end
+    )
     .sort((left, right) => {
       if (Math.abs(left.start - right.start) > 0.0005) {
         return left.start - right.start;
@@ -13625,7 +14198,7 @@ function normalizeOnAirReviewScheduledGain(value) {
   return Math.max(0.0001, Math.min(1.2, Number(value) || 0.0001));
 }
 
-function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
+function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime, sessionId) {
   if (!canUseOnAirReviewClipPlayback()) {
     return false;
   }
@@ -13634,7 +14207,8 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
   if (!context || !buffer || !onAirReviewClipMixGainNode) {
     return false;
   }
-  stopOnAirReviewClipPlayback();
+  const activeSessionId = Number(sessionId) || getOnAirReviewPlaybackSessionId() || 0;
+  stopOnAirReviewClipPlayback(activeSessionId || undefined);
   const playbackStart = Math.max(0, Number(fromEditedTime) || 0);
   const playbackEnd = Number.isFinite(endEditedTime)
     ? Math.max(playbackStart, Number(endEditedTime) || playbackStart)
@@ -13681,7 +14255,7 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
       }
       const source = context.createBufferSource();
       const gainNode = context.createGain();
-      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint) + (Number(clip.clipGainDb) || 0));
+      const clipGain = dbToGainMultiplier(getOnAirReviewGainDbAt(midpoint, clip) + (Number(clip.clipGainDb) || 0));
       const overlapGain = getOnAirReviewOverlapMixMultiplier(clip, chunkStart, safeDuration, clips);
       const clipFadeEnvelope = getOnAirReviewFadeEnvelopeForClipChunk(clip, chunkStart, safeDuration);
       const regionFadeEnvelope = getOnAirReviewFadeRegionEnvelopeForClipChunk(clip, chunkStart, safeDuration);
@@ -13703,7 +14277,17 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime) {
       } catch (error) {
         continue;
       }
-      onAirReviewScheduledClipNodes.push({ source, gainNode });
+      const scheduledEntry = { source, gainNode, sessionId: activeSessionId };
+      source.onended = () => {
+        onAirReviewScheduledClipNodes = onAirReviewScheduledClipNodes.filter((entry) => entry !== scheduledEntry);
+        if (Number(scheduledEntry.sessionId) !== getOnAirReviewPlaybackSessionId()) {
+          return;
+        }
+        if (getOnAirReviewTransportState() !== "playing") {
+          return;
+        }
+      };
+      onAirReviewScheduledClipNodes.push(scheduledEntry);
     }
   });
   return true;
@@ -13737,21 +14321,52 @@ function applyOnAirReviewPlaybackGain(immediate) {
   }
 }
 
+function syncOnAirReviewEditedTimeFromActiveMedia() {
+  return reviewCutSessionControllerApi.syncEditedTimeFromMedia({
+    syncFn: reviewCutPlaybackApi.syncEditedTimeFromMedia,
+    canUseClipPlayback: canUseOnAirReviewClipPlayback,
+    getActiveMedia: getActiveOnAirReviewMediaElement,
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    getEditedTime() {
+      return onAirReviewEditedTime;
+    },
+    setEditedTime(value) {
+      onAirReviewEditedTime = Number(value) || 0;
+    }
+  });
+}
+
+function updateOnAirReviewTimelineIndicators(options) {
+  return reviewCutSessionControllerApi.updateTimelineIndicators({
+    ...(options && typeof options === "object" ? options : {}),
+    getTimelineDuration: getOnAirReviewTimelineDuration,
+    getEditedTime() {
+      return onAirReviewEditedTime;
+    },
+    elements: {
+      time: onAirReviewTime,
+      scrub: onAirReviewScrub
+    },
+    formatClock: formatPreviewClock,
+    isScrubInFlight() {
+      return !!onAirReviewScrubInFlight;
+    },
+    queueWaveRender: queueOnAirReviewWaveRender,
+    syncPlayhead: syncOnAirReviewPlayheadNow
+  });
+}
+
 function updateOnAirReviewUi(options) {
   const config = options && typeof options === "object" ? options : {};
   const shouldRender = config.render !== false;
   const shouldApplyGain = config.applyGain !== false;
+  const shouldSyncFromMedia = config.syncFromMedia !== false;
+  if (shouldSyncFromMedia) {
+    syncOnAirReviewEditedTimeFromActiveMedia();
+  }
   const duration = getOnAirReviewTimelineDuration();
   const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
-  if (onAirReviewTime) {
-    onAirReviewTime.textContent = formatPreviewClock(current) + " / " + formatPreviewClock(duration);
-  }
-  if (onAirReviewScrub && !onAirReviewScrubInFlight) {
-    const max = duration > 0 ? 1000 : 0;
-    const value = duration > 0 ? Math.round((current / duration) * 1000) : 0;
-    onAirReviewScrub.max = String(max || 1000);
-    onAirReviewScrub.value = String(Math.max(0, Math.min(1000, value)));
-  }
+  updateOnAirReviewTimelineIndicators({ render: false });
   if (onAirReviewGainReadout) {
     onAirReviewGainReadout.textContent = formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb());
   }
@@ -13789,7 +14404,6 @@ function updateOnAirReviewTime() {
 
 function pauseOnAirReviewMedia() {
   stopOnAirReviewPlaybackLoop();
-  stopOnAirReviewClipPlayback();
   [onAirReviewVideo, onAirReviewAudio].forEach((media) => {
     if (!media) {
       return;
@@ -13803,7 +14417,17 @@ function pauseOnAirReviewMedia() {
 }
 
 function closeOnAirReviewPlayback() {
-  pauseOnAirReviewMedia();
+  resetReviewCutPlaybackSession({ reason: "close_playback" });
+  [onAirReviewVideo, onAirReviewAudio].forEach((media) => {
+    if (!media) {
+      return;
+    }
+    try {
+      media.pause();
+    } catch (error) {
+      // Ignore pause races.
+    }
+  });
   setOnAirReviewModalOpen(false);
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
@@ -13814,6 +14438,32 @@ function resetOnAirReviewPlayheadToStart() {
   seekOnAirReviewEditedTime(0, { followViewport: true });
   setOnAirReviewViewportFocusTime(0);
   updateOnAirReviewUi({ render: true, applyGain: true });
+}
+
+function openOnAirReviewEditorEmpty() {
+  resetReviewCutPlaybackSession({ reason: "open_editor_empty" });
+  [onAirReviewVideo, onAirReviewAudio].forEach((media) => {
+    if (!media) {
+      return;
+    }
+    try {
+      media.pause();
+    } catch (error) {
+      // Ignore pause races.
+    }
+  });
+  onAirActiveReviewMedia = null;
+  ensureOnAirReviewTimeline();
+  resetOnAirReviewZoomToFit(0);
+  resetOnAirReviewPlayheadToStart();
+  setOnAirReviewModalOpen(true);
+  if (onAirReviewWindowStatus) {
+    onAirReviewWindowStatus.textContent = "Review Cut is open. Load a saved audio or video recording to start editing.";
+  }
+  updateOnAirReviewUi({ render: false, applyGain: false, syncFromMedia: false });
+  updateOnAirReviewPlayState();
+  updateOnAirReviewMuteState();
+  queueOnAirReviewWaveRender();
 }
 
 function openOnAirReviewPlayback(kind) {
@@ -13827,6 +14477,7 @@ function openOnAirReviewPlayback(kind) {
       // Ignore pause races.
     }
   }
+  resetReviewCutPlaybackSession({ reason: "open_playback" });
   onAirActiveReviewMedia = target && target.src ? target : null;
   if (onAirActiveReviewMedia) {
     ensureOnAirReviewAudioGraph();
@@ -18402,11 +19053,12 @@ onAirReviewLaunchBtn?.addEventListener("click", () => {
   if (hasLocalRecordingAsset()) {
     setRecordingWorkflowState("review");
     syncReviewPanelUI();
+    openOnAirReviewPlayback(preferredKind || "audio");
+    onAirMediaStatus.textContent = "Review cut opened.";
+    return;
   }
-  openOnAirReviewPlayback(preferredKind || "audio");
-  onAirMediaStatus.textContent = hasLocalRecordingAsset()
-    ? "Review cut opened."
-    : "Review Cut opened. Load a saved recording to start editing.";
+  openOnAirReviewEditorEmpty();
+  onAirMediaStatus.textContent = "Review Cut opened. Load a saved recording to start editing.";
 });
 
 onAirExportVideoBtn?.addEventListener("click", () => {
@@ -19202,92 +19854,11 @@ window.DFSMediaDebug = {
   },
   dump() {
     return [...mediaDebugEntries];
+  },
+  reviewCutSnapshot() {
+    return getReviewCutDebugSnapshot();
   }
 };
-
-onAirReviewAudio?.addEventListener("loadedmetadata", () => {
-  logReviewAudioState("loadedmetadata");
-  normalizeInfinityDurationReviewAudio();
-  updateOnAirReviewTime();
-});
-
-onAirReviewAudio?.addEventListener("loadeddata", () => {
-  logReviewAudioState("loadeddata");
-  updateOnAirReviewTime();
-});
-
-onAirReviewAudio?.addEventListener("canplay", () => {
-  logReviewAudioState("canplay");
-  updateOnAirReviewTime();
-});
-
-onAirReviewAudio?.addEventListener("play", () => {
-  logReviewAudioState("play");
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewAudio?.addEventListener("pause", () => {
-  logReviewAudioState("pause");
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewAudio?.addEventListener("ended", () => {
-  logReviewAudioState("ended");
-  resetOnAirReviewPlayheadToStart();
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewAudio?.addEventListener("error", () => {
-  logReviewAudioState("error");
-});
-
-onAirReviewAudio?.addEventListener("timeupdate", () => {
-  updateOnAirReviewTime();
-  if (!onAirReviewAudio || onAirReviewAudio.currentTime < 0.9) {
-    return;
-  }
-  if (Math.abs(onAirReviewAudio.currentTime - Math.round(onAirReviewAudio.currentTime)) <= 0.08) {
-    logReviewAudioState("timeupdate");
-  }
-});
-
-onAirReviewVideo?.addEventListener("loadedmetadata", () => {
-  updateOnAirReviewTime();
-});
-
-onAirReviewVideo?.addEventListener("loadeddata", () => {
-  updateOnAirReviewTime();
-});
-
-onAirReviewVideo?.addEventListener("play", () => {
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewVideo?.addEventListener("pause", () => {
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewVideo?.addEventListener("ended", () => {
-  resetOnAirReviewPlayheadToStart();
-  updateOnAirReviewPlayState();
-});
-
-onAirReviewVideo?.addEventListener("timeupdate", () => {
-  updateOnAirReviewTime();
-});
-
-onAirReviewPlayBtn?.addEventListener("click", async () => {
-  const media = getActiveOnAirReviewMediaElement();
-  if (!media || !media.src) {
-    return;
-  }
-  if (isOnAirReviewPlaying()) {
-    pauseOnAirReviewPlaybackLoop();
-  } else {
-    await startOnAirReviewPlaybackLoop();
-  }
-  updateOnAirReviewPlayState();
-});
 
 onAirReviewUndoBtn?.addEventListener("click", () => {
   const snapshot = undoOnAirReviewEdit();
@@ -19576,163 +20147,274 @@ onAirReviewZoomInBtn?.addEventListener("click", () => {
   setOnAirReviewZoomLevel(onAirReviewZoomLevel * 1.6);
 });
 
-onAirReviewCloseBtn?.addEventListener("click", () => {
-  closeOnAirReviewPlayback();
-});
-
-onAirReviewLoadBtn?.addEventListener("click", () => {
-  onAirReviewFileInput?.click();
-});
-
-onAirReviewFileInput?.addEventListener("change", async (event) => {
-  const file = event.target && event.target.files ? event.target.files[0] : null;
-  if (!file) {
-    return;
-  }
-  await importOnAirReviewFile(file);
-  event.target.value = "";
-});
-
-onAirReviewBackdrop?.addEventListener("click", () => {
-  closeOnAirReviewPlayback();
-});
-
-onAirReviewScrub?.addEventListener("input", () => {
-  onAirReviewScrubInFlight = true;
-  const duration = getOnAirReviewTimelineDuration();
-  const percent = Number(onAirReviewScrub.value || 0) / 1000;
-  if (duration > 0) {
-    seekOnAirReviewEditedTime(duration * percent);
-  }
-});
-
-onAirReviewScrub?.addEventListener("change", () => {
-  onAirReviewScrubInFlight = false;
-  updateOnAirReviewUi({ render: false, applyGain: false });
-});
-
-onAirReviewPan?.addEventListener("input", () => {
-  panOnAirReviewViewportBySlider(onAirReviewPan.value);
-});
-
-onAirReviewWaveCanvas?.addEventListener("pointerdown", (event) => {
-  onAirReviewWavePointerDown = true;
-  onAirReviewSelectionPointerClientX = event.clientX;
-  onAirReviewSelectionPointerId = event.pointerId;
-  onAirReviewWaveCanvas.setPointerCapture?.(event.pointerId);
-  if (!isOnAirReviewTimelineHitAtClient(event.clientX)) {
-    onAirReviewWavePointerDown = false;
-    onAirReviewSelectionPointerId = null;
-    onAirReviewWaveCanvas.releasePointerCapture?.(event.pointerId);
-    return;
-  }
-  const fadeHandleHit = getOnAirReviewFadeHandleHitAtClient(event.clientX, event.clientY);
-  if (fadeHandleHit) {
-    onAirReviewFadeDragState = fadeHandleHit;
-    if (onAirReviewWaveNote) {
-      onAirReviewWaveNote.textContent = "Fade handle active. Drag to adjust the " + (fadeHandleHit.kind === "in" ? "fade in" : "fade out") + ".";
+const reviewCutInteractionControllerApi = window.ReviewCutInteractionController || {};
+if (typeof reviewCutInteractionControllerApi.bind === "function") {
+  reviewCutInteractionControllerApi.bind({
+    elements: {
+      playBtn: onAirReviewPlayBtn,
+      scrub: onAirReviewScrub,
+      pan: onAirReviewPan,
+      closeBtn: onAirReviewCloseBtn,
+      loadBtn: onAirReviewLoadBtn,
+      fileInput: onAirReviewFileInput,
+      backdrop: onAirReviewBackdrop,
+      waveCanvas: onAirReviewWaveCanvas,
+      playhead: onAirReviewPlayhead
+    },
+    api: {
+      onPlayToggle() {
+        onAirReviewPlaybackController.handlePlayToggle({
+          getActiveMedia: getActiveOnAirReviewMediaElement,
+          canStartClipPlayback: canStartOnAirReviewClipPlayback,
+          isPlaying: isOnAirReviewPlaying,
+          getTransportState: getOnAirReviewTransportState,
+          onPause: pauseOnAirReviewPlaybackLoop,
+          onStart: startOnAirReviewPlaybackLoop,
+          onRestartAfterFinished: restartOnAirReviewPlaybackLoopAfterFinished,
+          pushDiagnostic: pushReviewCutDiagnostic,
+          onAfterToggle: updateOnAirReviewPlayState
+        });
+      },
+      onScrubInput(rawValue) {
+        onAirReviewScrubInFlight = true;
+        const duration = getOnAirReviewTimelineDuration();
+        const percent = Number(rawValue || 0) / 1000;
+        if (duration > 0) {
+          seekOnAirReviewEditedTime(duration * percent);
+        }
+      },
+      onScrubCommit() {
+        onAirReviewScrubInFlight = false;
+        updateOnAirReviewUi({ render: false, applyGain: false });
+      },
+      onPanInput(rawValue) {
+        panOnAirReviewViewportBySlider(rawValue);
+      },
+      onClose() {
+        closeOnAirReviewPlayback();
+      },
+      onLoadRequest() {
+        onAirReviewFileInput?.click();
+      },
+      async onFileChosen(file) {
+        await importOnAirReviewFile(file);
+      },
+      onWavePointerDown(event) {
+        onAirReviewWavePointerDown = true;
+        onAirReviewSelectionPointerClientX = event.clientX;
+        onAirReviewSelectionPointerId = event.pointerId;
+        event.currentTarget?.setPointerCapture?.(event.pointerId);
+        if (!isOnAirReviewTimelineHitAtClient(event.clientX)) {
+          onAirReviewWavePointerDown = false;
+          onAirReviewSelectionPointerId = null;
+          event.currentTarget?.releasePointerCapture?.(event.pointerId);
+          return;
+        }
+        const fadeHandleHit = getOnAirReviewFadeHandleHitAtClient(event.clientX, event.clientY);
+        if (fadeHandleHit) {
+          onAirReviewFadeDragState = fadeHandleHit;
+          if (onAirReviewWaveNote) {
+            onAirReviewWaveNote.textContent = "Fade handle active. Drag to adjust the " + (fadeHandleHit.kind === "in" ? "fade in" : "fade out") + ".";
+          }
+          return;
+        }
+        const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+        if (onAirReviewSelectMode) {
+          const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
+          if (clipHit) {
+            setOnAirReviewSelectedClipIndex(clipHit.clipId);
+          }
+          const hitHandle = getOnAirReviewSelectionHandleHitAtClient(event.clientX) || getOnAirReviewSelectionHandleHit(seconds);
+          if (hitHandle) {
+            onAirReviewSelectionDragMode = hitHandle;
+            onAirReviewSelectionHandleOffset = hitHandle === "start"
+              ? seconds - onAirReviewSelectionStart
+              : seconds - onAirReviewSelectionEnd;
+          } else {
+            onAirReviewSelectionDragMode = "new";
+            const anchoredSeconds = clampOnAirReviewSelectionSecondsToClip(seconds);
+            onAirReviewSelectionAnchor = anchoredSeconds;
+            onAirReviewSelectionHandleOffset = 0;
+            setOnAirReviewSelection(anchoredSeconds, anchoredSeconds);
+          }
+          if (onAirReviewSelectionDragMode === "start") {
+            onAirReviewSelectionAnchor = onAirReviewSelectionEnd;
+          } else if (onAirReviewSelectionDragMode === "end") {
+            onAirReviewSelectionAnchor = onAirReviewSelectionStart;
+          }
+          startOnAirReviewSelectionAutoPan();
+          return;
+        }
+        if (onAirReviewMoveMode) {
+          const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
+          if (clipHit) {
+            setOnAirReviewSelectedClipIndex(clipHit.clipId);
+          } else {
+            setOnAirReviewSelectedClipIndex(-1);
+          }
+          if (clipHit && beginOnAirReviewClipDrag(clipHit, seconds, event.clientX)) {
+            return;
+          }
+        }
+        onAirReviewSelectionDragMode = "";
+        startOnAirReviewSelectionAutoPan();
+        seekOnAirReviewFromClientX(event.clientX);
+      },
+      onWavePointerMove(event) {
+        if (!onAirReviewWavePointerDown) {
+          return;
+        }
+        onAirReviewSelectionPointerClientX = event.clientX;
+        if (onAirReviewFadeDragState) {
+          const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+          applyOnAirReviewFadeHandleDrag(onAirReviewFadeDragState.kind, onAirReviewFadeDragState.target, seconds);
+          return;
+        }
+        if (onAirReviewSelectMode) {
+          const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+          updateOnAirReviewSelectionFromDrag(seconds);
+          return;
+        }
+        if (onAirReviewMoveMode && onAirReviewClipDragState) {
+          const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
+          updateOnAirReviewClipDrag(seconds, event.clientX);
+          return;
+        }
+        startOnAirReviewSelectionAutoPan();
+        seekOnAirReviewFromClientX(event.clientX);
+      },
+      onWavePointerUp() {
+        onAirReviewWavePointerDown = false;
+        stopOnAirReviewSelectionAutoPan();
+        if (onAirReviewSelectionPointerId !== null) {
+          onAirReviewWaveCanvas.releasePointerCapture?.(onAirReviewSelectionPointerId);
+          onAirReviewPlayhead?.releasePointerCapture?.(onAirReviewSelectionPointerId);
+        }
+        onAirReviewSelectionPointerId = null;
+        endOnAirReviewClipDrag();
+        onAirReviewFadeDragState = null;
+        onAirReviewSelectionDragMode = "";
+        onAirReviewSelectionHandleOffset = 0;
+        updateOnAirReviewUi({ render: true, applyGain: false });
+      },
+      onWavePointerLeave() {
+        if (!onAirReviewSelectMode) {
+          onAirReviewWavePointerDown = false;
+          endOnAirReviewClipDrag();
+          onAirReviewFadeDragState = null;
+          onAirReviewSelectionDragMode = "";
+          onAirReviewSelectionHandleOffset = 0;
+        }
+      },
+      onWavePointerCancel() {
+        onAirReviewWavePointerDown = false;
+        stopOnAirReviewSelectionAutoPan();
+        onAirReviewSelectionPointerId = null;
+        endOnAirReviewClipDrag();
+        onAirReviewFadeDragState = null;
+        onAirReviewSelectionDragMode = "";
+        onAirReviewSelectionHandleOffset = 0;
+        updateOnAirReviewUi({ render: true, applyGain: false });
+      }
     }
-    return;
-  }
-  const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
-  if (onAirReviewSelectMode) {
-    const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
-    if (clipHit) {
-      setOnAirReviewSelectedClipIndex(clipHit.clipId);
-    }
-    const hitHandle = getOnAirReviewSelectionHandleHitAtClient(event.clientX) || getOnAirReviewSelectionHandleHit(seconds);
-    if (hitHandle) {
-      onAirReviewSelectionDragMode = hitHandle;
-      onAirReviewSelectionHandleOffset = hitHandle === "start"
-        ? seconds - onAirReviewSelectionStart
-        : seconds - onAirReviewSelectionEnd;
-    } else {
-      onAirReviewSelectionDragMode = "new";
-      const anchoredSeconds = clampOnAirReviewSelectionSecondsToClip(seconds);
-      onAirReviewSelectionAnchor = anchoredSeconds;
-      onAirReviewSelectionHandleOffset = 0;
-      setOnAirReviewSelection(anchoredSeconds, anchoredSeconds);
-    }
-    if (onAirReviewSelectionDragMode === "start") {
-      onAirReviewSelectionAnchor = onAirReviewSelectionEnd;
-    } else if (onAirReviewSelectionDragMode === "end") {
-      onAirReviewSelectionAnchor = onAirReviewSelectionStart;
-    }
-    startOnAirReviewSelectionAutoPan();
-    return;
-  }
-  if (onAirReviewMoveMode) {
-    const clipHit = getOnAirReviewClipHitAtClient(event.clientX, event.clientY);
-    if (clipHit) {
-      setOnAirReviewSelectedClipIndex(clipHit.clipId);
-    } else {
-      setOnAirReviewSelectedClipIndex(-1);
-    }
-    if (clipHit && beginOnAirReviewClipDrag(clipHit, seconds, event.clientX)) {
-      return;
-    }
-  }
-  onAirReviewSelectionDragMode = "";
-  seekOnAirReviewFromClientX(event.clientX);
-});
+  });
+}
 
-onAirReviewWaveCanvas?.addEventListener("pointermove", (event) => {
-  if (!onAirReviewWavePointerDown) {
-    return;
-  }
-  onAirReviewSelectionPointerClientX = event.clientX;
-  if (onAirReviewFadeDragState) {
-    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
-    applyOnAirReviewFadeHandleDrag(onAirReviewFadeDragState.kind, onAirReviewFadeDragState.target, seconds);
-    return;
-  }
-  if (onAirReviewSelectMode) {
-    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
-    updateOnAirReviewSelectionFromDrag(seconds);
-    return;
-  }
-  if (onAirReviewMoveMode && onAirReviewClipDragState) {
-    const seconds = getOnAirReviewSecondsFromClientX(event.clientX);
-    updateOnAirReviewClipDrag(seconds, event.clientX);
-    return;
-  }
-  seekOnAirReviewFromClientX(event.clientX);
-});
-
-onAirReviewWaveCanvas?.addEventListener("pointerup", (event) => {
-  onAirReviewWavePointerDown = false;
-  stopOnAirReviewSelectionAutoPan();
-  if (onAirReviewSelectionPointerId !== null) {
-    onAirReviewWaveCanvas.releasePointerCapture?.(onAirReviewSelectionPointerId);
-  }
-  onAirReviewSelectionPointerId = null;
-  endOnAirReviewClipDrag();
-  onAirReviewFadeDragState = null;
-  onAirReviewSelectionDragMode = "";
-  onAirReviewSelectionHandleOffset = 0;
-  updateOnAirReviewUi({ render: true, applyGain: false });
-});
-
-onAirReviewWaveCanvas?.addEventListener("pointerleave", () => {
-  if (!onAirReviewSelectMode) {
-    onAirReviewWavePointerDown = false;
-    endOnAirReviewClipDrag();
-    onAirReviewFadeDragState = null;
-    onAirReviewSelectionDragMode = "";
-    onAirReviewSelectionHandleOffset = 0;
-  }
-});
-
-onAirReviewWaveCanvas?.addEventListener("pointercancel", () => {
-  onAirReviewWavePointerDown = false;
-  stopOnAirReviewSelectionAutoPan();
-  onAirReviewSelectionPointerId = null;
-  endOnAirReviewClipDrag();
-  onAirReviewFadeDragState = null;
-  onAirReviewSelectionDragMode = "";
-  onAirReviewSelectionHandleOffset = 0;
-  updateOnAirReviewUi({ render: true, applyGain: false });
-});
+const reviewCutMediaControllerApi = window.ReviewCutMediaController || {};
+if (typeof reviewCutMediaControllerApi.bind === "function") {
+  reviewCutMediaControllerApi.bind({
+    elements: {
+      audio: onAirReviewAudio,
+      video: onAirReviewVideo
+    },
+    api: {
+      onAudioLoadedMetadata() {
+        logReviewAudioState("loadedmetadata");
+        normalizeInfinityDurationReviewAudio();
+        updateOnAirReviewUi({ syncFromMedia: true });
+      },
+      onAudioLoadedData() {
+        logReviewAudioState("loadeddata");
+        updateOnAirReviewUi({ syncFromMedia: true });
+      },
+      onAudioCanPlay() {
+        logReviewAudioState("canplay");
+        updateOnAirReviewUi({ syncFromMedia: true });
+      },
+      onAudioPlay() {
+        logReviewAudioState("play");
+        if (canUseOnAirReviewClipPlayback()) {
+          updateOnAirReviewPlayState();
+          return;
+        }
+        updateOnAirReviewUi({ syncFromMedia: true, applyGain: false });
+        startOnAirReviewVisualLoop("native");
+        updateOnAirReviewPlayState();
+      },
+      onAudioPause() {
+        logReviewAudioState("pause");
+        if (canUseOnAirReviewClipPlayback()) {
+          updateOnAirReviewPlayState();
+          return;
+        }
+        updateOnAirReviewUi({ syncFromMedia: true, applyGain: false });
+        stopOnAirReviewVisualLoop();
+        updateOnAirReviewPlayState();
+      },
+      onAudioEnded() {
+        logReviewAudioState("ended");
+        if (canUseOnAirReviewClipPlayback()) {
+          updateOnAirReviewPlayState();
+          return;
+        }
+        stopOnAirReviewVisualLoop();
+        resetOnAirReviewPlayheadToStart();
+        updateOnAirReviewPlayState();
+      },
+      onAudioError() {
+        logReviewAudioState("error");
+      },
+      onAudioTimeUpdate() {
+        if (canUseOnAirReviewClipPlayback()) {
+          return;
+        }
+        syncOnAirReviewEditedTimeFromActiveMedia();
+        updateOnAirReviewTimelineIndicators({ render: true });
+        if (!onAirReviewAudio || onAirReviewAudio.currentTime < 0.9) {
+          return;
+        }
+        if (Math.abs(onAirReviewAudio.currentTime - Math.round(onAirReviewAudio.currentTime)) <= 0.08) {
+          logReviewAudioState("timeupdate");
+        }
+      },
+      onVideoLoadedMetadata() {
+        updateOnAirReviewUi({ syncFromMedia: true });
+      },
+      onVideoLoadedData() {
+        updateOnAirReviewUi({ syncFromMedia: true });
+      },
+      onVideoPlay() {
+        updateOnAirReviewUi({ syncFromMedia: true, applyGain: false });
+        startOnAirReviewVisualLoop("native");
+        updateOnAirReviewPlayState();
+      },
+      onVideoPause() {
+        updateOnAirReviewUi({ syncFromMedia: true, applyGain: false });
+        stopOnAirReviewVisualLoop();
+        updateOnAirReviewPlayState();
+      },
+      onVideoEnded() {
+        stopOnAirReviewVisualLoop();
+        resetOnAirReviewPlayheadToStart();
+        updateOnAirReviewPlayState();
+      },
+      onVideoTimeUpdate() {
+        syncOnAirReviewEditedTimeFromActiveMedia();
+        updateOnAirReviewTimelineIndicators({ render: true });
+      }
+    }
+  });
+}
 
 updateOnAirCameraPauseUI();
 applyCameraSettingsFromStudioSettings();
