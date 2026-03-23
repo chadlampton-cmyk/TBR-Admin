@@ -1,6 +1,6 @@
 # DFS Locked Decisions
 
-Last updated: 2026-03-18
+Last updated: 2026-03-23
 
 ## Purpose
 These are the current product decisions that should be treated as stable unless explicitly changed.
@@ -9,10 +9,11 @@ These are the current product decisions that should be treated as stable unless 
 - DFS is a live production studio first.
 - DFS is not trying to become a full DAW or a full Adobe Audition replacement.
 - Post-production is secondary to the live operating experience.
+- `Review Cut` should behave like a serious editor inside DFS, but not a separate standalone product.
 
 ## Active Build Focus
 - The main product path is the single `hello` page flow.
-- New implementation work should center on `hello.html`, `hello.js`, and `styles.css`.
+- New implementation work should center on `hello.html`, `hello.js`, `styles.css`, and the modular `review-cut-*.js` files.
 - Historical standalone pages are not the current product center.
 
 ## Audio Controls
@@ -44,6 +45,13 @@ Locked sections:
 - guest-channel shell
 - output confidence/metering
 
+`Review Cut` owns:
+- browser-side review/edit workflow
+- multitrack timeline edits
+- cleanup preview
+- markers, fades, overlap behavior
+- edited audio export
+
 ## Queue / Playback Semantics
 - selecting a track does nothing by itself
 - `Queue Next` means timed playback
@@ -56,17 +64,22 @@ Locked sections:
 - recording mix should continue to route from the shared music bus
 - remote listeners should hear the same host program music that the host hears locally
 
+## Review Cut Direction
+- keep Review Cut non-destructive
+- preserve original/imported sources
+- store edits as timeline/editor state
+- render edited exports from the timeline state
+- empty Review Cut is allowed and should support building a cut from inserted audio
+- if a base recording occupies `T1`, inserted clips should prefer higher tracks
+
 ## UI Discipline
 - avoid cosmetic churn outside active problem areas
 - keep controls inside their containers
 - avoid overlapping controls/text
 - keep drawer behavior coherent before adding more features
-
-## Recording UI Direction
-- the top REC strip should stay compact
-- it can become more meter-like, but should not expand into a large waveform editor
-- the target reference style is closer to Adobe Audition's recessed stereo recording meter than to a decorative waveform
+- Review Cut polish should follow interaction correctness, not lead it
 
 ## Practical Constraint To Remember
 - UI shells can exist ahead of final mix/recording fidelity
 - do not mistake placeholder or partial guest-channel UI for completed mixer wiring
+- do not let Review Cut regress live recording/music paths while improving editor behavior

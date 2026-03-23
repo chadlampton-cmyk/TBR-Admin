@@ -1,6 +1,6 @@
 # DFS Phase Status
 
-Last updated: 2026-03-18
+Last updated: 2026-03-23
 
 ## Purpose
 Track the current build state of the active DFS prototype.
@@ -10,6 +10,7 @@ Current product baseline lives in:
 - `landing/hello.html`
 - `landing/hello.js`
 - `landing/styles.css`
+- `landing/review-cut-*.js`
 
 ## Current State By Area
 
@@ -39,7 +40,7 @@ Implemented:
 
 ### Recording / Review / Export
 Status:
-- working prototype baseline
+- working prototype baseline with active Review Cut rewrite
 
 Implemented:
 - countdown
@@ -48,13 +49,17 @@ Implemented:
 - export/download actions
 - music bus inclusion in recording mix
 - recording mix refresh when music starts after recording has already begun
-- compact REC strip visual treatment attempt
+- modular Review Cut editor core
+- multitrack insert/move/split/overlap behavior
+- clip-scoped gain behavior
+- empty-state Review Cut open + insert flow
 
 Current caveats:
 - browser-side pipeline
 - not backend-mastered
 - recording path is still effectively local + one remote stream path
-- REC strip styling does not yet match the intended Adobe Audition reference look
+- Review Cut still needs more track-head/zoom polish
+- modal accessibility and keyboard ownership are still below product standard
 
 ### Audio Controls / Live Mix
 Status:
@@ -95,15 +100,17 @@ Note:
 - `hello.*` still has some legacy dependencies on them, so cleanup is not fully complete
 
 ## Current Priority Order
-1. redesign the compact REC strip to match the intended Adobe Audition-style reference
-2. stabilize Audio Controls behavior
-3. finish active cue UI polish
-4. validate guest audio behavior against the real mix path
-5. validate recording output against live behavior
-6. remove or isolate legacy page dependencies from `hello`
+1. finish Review Cut zoomed track-head drag/playhead polish
+2. harden Review Cut accessibility and keyboard ownership
+3. stabilize Audio Controls behavior
+4. finish active cue UI polish
+5. validate guest audio behavior against the real mix path
+6. validate recording output against live behavior
+7. remove or isolate legacy page dependencies from `hello`
 
 ## Current Biggest Gaps
-- REC strip styling is functional but visually off-target
+- Review Cut track-head drag/zoom behavior still needs final smoothing
+- Review Cut modal accessibility is not enterprise-ready yet
 - guest slider behavior still needs full live/recording validation
 - recording/compositor still centers on one remote stream
 - live UI capabilities are ahead of recording fidelity in some areas

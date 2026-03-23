@@ -1,6 +1,6 @@
 # DFS Architecture
 
-Last updated: 2026-03-18
+Last updated: 2026-03-23
 
 ## Purpose
 This doc explains the current implementation shape of DFS, with emphasis on the active `hello` build.
@@ -15,6 +15,7 @@ Current implementation center:
 - `hello.html`
 - `hello.js`
 - `styles.css`
+- `review-cut-*.js`
 
 Frontend responsibilities:
 - lounge and preflight UI
@@ -25,6 +26,7 @@ Frontend responsibilities:
 - music library interaction
 - Web Audio cue engine and live controls
 - browser-side recording, review, and export
+- modular Review Cut editor orchestration
 
 ### Realtime Backend
 Directory:
@@ -51,11 +53,13 @@ Current model:
 
 Current practical behavior:
 - music bus can now be attached into the recording path even if recording started first
-- recording waveform/REC strip now listens to the recording mix path rather than mic-only assumptions
+- Review Cut edits are non-destructive timeline operations over decoded media
+- edited audio export is rendered from the Review Cut timeline
 
 Important practical note:
-- The UI can represent more participants than the current recording mix/compositor fully handles.
-- Recording is not yet a true multi-guest mixed console.
+- the UI can represent more participants than the current recording mix/compositor fully handles
+- recording is not yet a true multi-guest mixed console
+- edited video export is not implemented
 
 ## Active Frontend File Roles
 
@@ -67,6 +71,7 @@ Owns:
 - audio controls drawer
 - library drawer
 - review/export sections
+- Review Cut shell DOM
 
 ### `landing/hello.js`
 Owns:
@@ -78,7 +83,18 @@ Owns:
 - Web Audio music engine
 - active cue controls
 - recording lifecycle
-- review playback behavior
+- Review Cut shell/bootstrap and remaining editor orchestration
+
+### `landing/review-cut-*.js`
+Owns:
+- state helpers
+- timeline render helpers
+- playback/session state
+- playhead rendering
+- viewport policy
+- UI interaction binding
+- native media binding
+- session visual-loop logic
 
 ### `landing/styles.css`
 Owns:
@@ -86,7 +102,7 @@ Owns:
 - on-air layout
 - drawers
 - mixer layout
-- review player styling
+- Review Cut/editor styling
 - responsive behavior for the active page
 
 ## Audio Architecture
@@ -112,18 +128,6 @@ Current practical behavior:
 - guest validation remains incomplete against the full live/recording mix
 - guest gain should still be treated as a follow-up validation area, not a fully closed mixer feature
 
-## Video / Participant Architecture
-Current live layout:
-- local tile
-- primary remote tile
-- extra participant placeholders/tiles in the UI
-
-Current recording layout:
-- local tile plus one remote tile in the recording composite path
-
-Implication:
-- multi-participant live presence is ahead of multi-participant recording fidelity
-
 ## Historical Pages
 These pages remain in the repo, but they are not the current implementation center:
 - `landing/settings.html`
@@ -139,10 +143,10 @@ Current code reality:
 ## Resume Guidance
 For continued build work, treat the current architecture as:
 1. one active page shell
-2. one large controller file
-3. one main stylesheet
+2. one main stylesheet
+3. one large page controller plus modular Review Cut controllers
 
-Resume in the on-air audio/recording path first, not in the older standalone pages.
+Resume in the active `hello` flow and Review Cut modules first, not in the older standalone pages.
 
-Current immediate visual task:
-- refine the compact REC strip so it resembles Adobe Audition's recessed stereo recording meter treatment rather than the current approximation
+Current immediate product task:
+- finish Review Cut track-head drag and zoom-follow polish without regressing transport behavior
