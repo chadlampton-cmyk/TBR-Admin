@@ -5361,7 +5361,7 @@ body.ui-light .camera-placeholder {
 
 .onair-library-drawer {
   position: absolute;
-  top: 452px;
+  top: 96px;
   right: 0;
   width: 460px;
   overflow: visible;
@@ -6727,6 +6727,24 @@ body.ui-light .camera-placeholder {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
+}
+
+.onair-library-row[data-library-kind="post-production"] .onair-library-actions,
+.onair-library-row[data-library-kind="episodes"] .onair-library-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.onair-library-row[data-library-kind="post-production"] .onair-library-action,
+.onair-library-row[data-library-kind="episodes"] .onair-library-action {
+  min-width: 124px;
+  min-height: 36px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .onair-library-empty {

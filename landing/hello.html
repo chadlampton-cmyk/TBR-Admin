@@ -541,14 +541,16 @@
         </div>
         <div class="onair-review-modal hidden" id="onair-review-modal" aria-hidden="true">
           <div class="onair-review-modal-backdrop" id="onair-review-backdrop"></div>
-          <section class="onair-review-window" aria-label="Review cut editor">
+          <section class="onair-review-window" id="onair-review-window" role="dialog" aria-modal="true" aria-label="Review cut editor" tabindex="-1">
             <div class="onair-review-window-head">
               <div>
                 <p class="onair-review-title">Review Cut</p>
                 <p class="camera-status" id="onair-review-window-status">Open the review cut to audition the latest show draft.</p>
               </div>
               <div class="onair-review-window-actions">
-                <button type="button" class="onair-review-toolbar-btn" id="onair-review-load-btn">Load Recording</button>
+                <button type="button" class="onair-review-toolbar-btn" id="onair-review-save-draft-btn">Save Draft</button>
+                <button type="button" class="onair-review-toolbar-btn" id="onair-review-save-episode-btn">Save to Episodes</button>
+                <button type="button" class="onair-review-toolbar-btn" id="onair-review-load-btn">Import Source</button>
                 <button type="button" class="onair-review-close-icon" id="onair-review-close-btn" aria-label="Close review cut">×</button>
               </div>
             </div>
@@ -592,6 +594,16 @@
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-mode-btn" aria-label="Selection mode" aria-pressed="false">Sel</button>
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-select-all-btn" aria-label="Select all">All</button>
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-clear-selection-btn" aria-label="Clear selection">Clr</button>
+                        </div>
+                        <div class="onair-review-toolbar-group onair-review-toolbar-group-compact" aria-label="Timeline edit actions">
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-delete-btn" aria-label="Delete selection">Del</button>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-ripple-delete-btn" aria-label="Ripple delete selection">Rip</button>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-btn" aria-label="Split clip at playhead">Split</button>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-selection-btn" aria-label="Split clip at selection edges">Split Sel</button>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-remove-clip-btn" aria-label="Remove selected clip">Remove</button>
+                          <span class="onair-review-gain-readout" id="onair-review-track-readout">T1</span>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-track-up-btn" aria-label="Move clip up one track">Track−</button>
+                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-track-down-btn" aria-label="Move clip down one track">Track+</button>
                         </div>
                         <div class="onair-review-toolbar-group onair-review-toolbar-group-compact" aria-label="Timeline volume controls">
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-gain-down-btn" aria-label="Lower selected volume">Vol−</button>
@@ -661,23 +673,6 @@
                     </aside>
 
                     <aside class="onair-review-sidebar onair-review-sidebar-right" aria-label="Review inspector controls">
-                      <section class="onair-review-inspector-card">
-                        <div class="onair-review-panel-head">
-                          <p class="onair-review-panel-title">Edit</p>
-                          <span class="onair-review-gain-readout" id="onair-review-track-readout">T1</span>
-                        </div>
-                        <p class="camera-status onair-review-panel-note">Selection, splitting, clip placement, and track routing stay here instead of crowding the transport.</p>
-                        <div class="onair-review-control-grid">
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-delete-btn" aria-label="Delete selection">Del</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-ripple-delete-btn" aria-label="Ripple delete selection">Rip</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-btn" aria-label="Split clip at playhead">Split</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-split-selection-btn" aria-label="Split clip at selection edges">Split Sel</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-remove-clip-btn" aria-label="Remove selected clip">Remove Clip</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-track-up-btn" aria-label="Move clip up one track">Track−</button>
-                          <button type="button" class="onair-review-toolbar-btn" id="onair-review-track-down-btn" aria-label="Move clip down one track">Track+</button>
-                        </div>
-                      </section>
-
                       <section class="onair-review-inspector-card">
                         <div class="onair-review-panel-head">
                           <p class="onair-review-panel-title">Insert Level</p>
@@ -1402,6 +1397,6 @@
     <script src="./review-cut-interaction-controller.js?v=20260323-002"></script>
     <script src="./review-cut-media-controller.js?v=20260323-002"></script>
     <script src="./review-cut-session-controller.js?v=20260323-002"></script>
-    <script src="./hello.js?v=20260323-431"></script>
+    <script src="./hello.js?v=20260324-432"></script>
   </body>
 </html>

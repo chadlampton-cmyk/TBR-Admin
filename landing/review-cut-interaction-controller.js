@@ -59,8 +59,11 @@
       if (!file) {
         return;
       }
-      await api.onFileChosen(file);
-      event.target.value = "";
+      try {
+        await api.onFileChosen(file);
+      } finally {
+        event.target.value = "";
+      }
     });
 
     els.waveCanvas?.addEventListener("pointerdown", (event) => {
@@ -81,15 +84,15 @@
       }
     });
 
-    els.waveCanvas?.addEventListener("pointerleave", () => {
+    els.waveCanvas?.addEventListener("pointerleave", (event) => {
       if (typeof api.onWavePointerLeave === "function") {
-        api.onWavePointerLeave();
+        api.onWavePointerLeave(event);
       }
     });
 
-    els.waveCanvas?.addEventListener("pointercancel", () => {
+    els.waveCanvas?.addEventListener("pointercancel", (event) => {
       if (typeof api.onWavePointerCancel === "function") {
-        api.onWavePointerCancel();
+        api.onWavePointerCancel(event);
       }
     });
 
@@ -111,15 +114,15 @@
       }
     });
 
-    els.playhead?.addEventListener("pointerleave", () => {
+    els.playhead?.addEventListener("pointerleave", (event) => {
       if (typeof api.onWavePointerLeave === "function") {
-        api.onWavePointerLeave();
+        api.onWavePointerLeave(event);
       }
     });
 
-    els.playhead?.addEventListener("pointercancel", () => {
+    els.playhead?.addEventListener("pointercancel", (event) => {
       if (typeof api.onWavePointerCancel === "function") {
-        api.onWavePointerCancel();
+        api.onWavePointerCancel(event);
       }
     });
   }

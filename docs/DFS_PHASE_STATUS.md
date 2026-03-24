@@ -1,6 +1,6 @@
 # DFS Phase Status
 
-Last updated: 2026-03-23
+Last updated: 2026-03-24 (late)
 
 ## Purpose
 Track the current build state of the active DFS prototype.
@@ -37,29 +37,43 @@ Implemented:
 - media action controls
 - music library drawer
 - audio controls drawer
+- library/audio drawers now behave as mutually exclusive panels
 
 ### Recording / Review / Export
 Status:
-- working prototype baseline with active Review Cut rewrite
+- stable browser-side audio editing baseline with storage-backed workflow partially wired
 
 Implemented:
 - countdown
 - browser-side record/stop flow
-- review player
-- export/download actions
+- review player / Review Cut launch
+- browser-side edited audio export
 - music bus inclusion in recording mix
 - recording mix refresh when music starts after recording has already begun
 - modular Review Cut editor core
 - multitrack insert/move/split/overlap behavior
 - clip-scoped gain behavior
 - empty-state Review Cut open + insert flow
+- improved selection stability and drag reliability
+- tighter playhead/zoom follow
+- improved Review Cut modal accessibility baseline
+- improved import/error/status handling
+- auto-save attempt from stop-recording into shared `Post-Production`
+- `Post-Production` rows with `Review Cut` and `Delete`
+- Review Cut `Save Draft`
+- Review Cut `Save to Episodes`
+- `Episodes` row `Export Audio`
+- `Episodes` row `Delete`
+- naming aligned closer to the configured recording-name pattern
 
 Current caveats:
 - browser-side pipeline
 - not backend-mastered
 - recording path is still effectively local + one remote stream path
-- Review Cut still needs more track-head/zoom polish
-- modal accessibility and keyboard ownership are still below product standard
+- control-room/export wording still trails the intended workflow
+- storage-backed saves depend on working R2 RW credentials and need live validation after credential updates
+- `Post-Production` / `Episodes` still behave as asset rows, not richer grouped editorial objects
+- edited video export is still not implemented
 
 ### Audio Controls / Live Mix
 Status:
@@ -100,17 +114,20 @@ Note:
 - `hello.*` still has some legacy dependencies on them, so cleanup is not fully complete
 
 ## Current Priority Order
-1. finish Review Cut zoomed track-head drag/playhead polish
-2. harden Review Cut accessibility and keyboard ownership
-3. stabilize Audio Controls behavior
-4. finish active cue UI polish
-5. validate guest audio behavior against the real mix path
-6. validate recording output against live behavior
-7. remove or isolate legacy page dependencies from `hello`
+1. validate end-to-end save/export reliability live after R2 RW credential fix
+2. clean up control-room/export redundancy now that `Episodes` owns export better
+3. decide draft versioning / overwrite semantics for `Post-Production`
+4. stabilize Audio Controls behavior
+5. finish active cue UI polish
+6. validate guest audio behavior against the real mix path
+7. validate recording output against live behavior
+8. remove or isolate legacy page dependencies from `hello`
+9. add video Review Cut / audio+video episode workflow later
 
 ## Current Biggest Gaps
-- Review Cut track-head drag/zoom behavior still needs final smoothing
-- Review Cut modal accessibility is not enterprise-ready yet
+- save/export workflow now exists but still needs live validation with working shared-storage credentials
+- `Episodes` and `Post-Production` are meaningful now, but still shallow editorial shelves
+- Review Cut still needs final finish polish, but it is no longer the main blocker
 - guest slider behavior still needs full live/recording validation
 - recording/compositor still centers on one remote stream
 - live UI capabilities are ahead of recording fidelity in some areas

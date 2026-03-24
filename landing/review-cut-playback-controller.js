@@ -190,6 +190,33 @@
               : false;
             cfg.pushDiagnostic?.("play_preflight", "step=after_schedule | scheduled=" + String(!!didSchedule) + " | session=" + String(sessionId));
             if (!didSchedule) {
+              if (media && media.src) {
+                cfg.pushDiagnostic?.("play_clip_fallback", "reason=schedule-failed");
+                cfg.resetSession?.({ silentDiagnostic: true });
+                cfg.setClipPlaybackLoopActive?.(false);
+                cfg.setLoopSelectionActive?.(false);
+                cfg.setPlaybackAnchor?.(performance.now(), playbackStart);
+                cfg.beginPlaybackSession?.("native-fallback");
+                const position = cfg.getTimelinePosition ? cfg.getTimelinePosition(playbackStart) : null;
+                if (position && position.segment && position.segment.type === "media") {
+                  const targetSourceTime = Math.max(0, Number(position.sourceTime) || 0);
+                  try {
+                    if (Math.abs(Number(media.currentTime || 0) - targetSourceTime) > 0.06) {
+                      media.currentTime = targetSourceTime;
+                    }
+                  } catch (error) {
+                    // Ignore currentTime races and still attempt playback.
+                  }
+                  cfg.seekEditedTime?.(playbackStart, { silentDiagnostic: true });
+                  media.play().catch(() => {});
+                } else {
+                  media.pause();
+                }
+                cfg.startVisualLoop?.("native");
+                cfg.pushDiagnostic?.("play_started", "mode=native-fallback");
+                cfg.updatePlayState?.();
+                return null;
+              }
               cfg.pushDiagnostic?.("play_rejected", "reason=schedule-failed");
               cfg.resetSession?.({ silentDiagnostic: true });
               cfg.updatePlayState?.();

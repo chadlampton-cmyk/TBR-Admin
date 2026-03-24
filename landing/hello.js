@@ -168,7 +168,10 @@ const onAirReviewVideo = document.getElementById("onair-review-video");
 const onAirReviewAudio = document.getElementById("onair-review-audio");
 const onAirReviewModal = document.getElementById("onair-review-modal");
 const onAirReviewBackdrop = document.getElementById("onair-review-backdrop");
+const onAirReviewWindow = document.getElementById("onair-review-window");
 const onAirReviewWindowStatus = document.getElementById("onair-review-window-status");
+const onAirReviewSaveDraftBtn = document.getElementById("onair-review-save-draft-btn");
+const onAirReviewSaveEpisodeBtn = document.getElementById("onair-review-save-episode-btn");
 const onAirReviewPlayer = document.getElementById("onair-review-player");
 const onAirReviewPlayBtn = document.getElementById("onair-review-play-btn");
 const onAirReviewTime = document.getElementById("onair-review-time");
@@ -681,6 +684,7 @@ let recordingAssetDurationProbeToken = 0;
 let onAirActiveReviewMedia = null;
 let onAirReviewScrubInFlight = false;
 let onAirReviewModalOpen = false;
+let onAirReviewLastFocusedElement = null;
 let onAirReviewWaveContext = null;
 let onAirReviewWavePeaks = [];
 let onAirReviewNoiseFloorMap = [];
@@ -711,6 +715,7 @@ let onAirReviewOverlapMode = "blend";
 let onAirReviewFadeCurveMode = "soft";
 let onAirReviewCleanupPreviewMode = "auto";
 let onAirReviewTimelineSourceToken = "";
+let onAirReviewTimelinePinned = false;
 let onAirReviewEditedDuration = 0;
 let onAirReviewTimelineExplicitDuration = 0;
 let onAirReviewEditedTime = 0;
@@ -799,6 +804,7 @@ let recordingSplitInProgress = false;
 let recordingStartInProgress = false;
 let recordingWorkflowState = "ready";
 let recordingProcessingTimerId = null;
+let onAirReviewAppendFinishedRecordingToTimeline = false;
 let chatMediaPreviewPayload = null;
 let onAirMusicQueue = [];
 let onAirMusicLibrary = [];
@@ -888,11 +894,21 @@ function getOnAirReviewTransportState() {
 }
 
 function setOnAirReviewTransportState(value) {
+  const normalizedValue = String(value || "").toLowerCase();
   if (typeof onAirReviewPlaybackController.setTransportState === "function") {
-    if (String(value || "").toLowerCase() === "playing") {
+    if (normalizedValue === "playing") {
       pushReviewCutDiagnostic("transport_playing_attempt", "");
     }
     onAirReviewPlaybackController.setTransportState(value);
+  }
+  if (normalizedValue === "playing") {
+    onAirReviewViewportFocusTime = null;
+    if (onAirReviewViewportController && typeof onAirReviewViewportController.clearExplicitFocusTime === "function") {
+      onAirReviewViewportController.clearExplicitFocusTime();
+    }
+    if (onAirReviewPlayheadController && typeof onAirReviewPlayheadController.setPlaybackViewportAnchorTime === "function") {
+      onAirReviewPlayheadController.setPlaybackViewportAnchorTime(onAirReviewEditedTime);
+    }
   }
   if (onAirReviewPlayheadController && typeof onAirReviewPlayheadController.setTransportState === "function") {
     onAirReviewPlayheadController.setTransportState(value, onAirReviewEditedTime);
@@ -968,6 +984,9 @@ let onAirLibraryOpen = false;
 let onAirLibraryView = "music";
 let onAirLibraryPreviewAssetId = "";
 let onAirLibraryPreviewObjectUrl = "";
+let onAirPostProductionSaveInFlight = false;
+let onAirReviewSaveInFlight = false;
+let onAirReviewSourceAsset = null;
 let onAirAudioOpen = false;
 let onAirActiveCueRenderSignature = "";
 let onAirAudioControlsRenderQueued = false;
@@ -1173,6 +1192,38 @@ function pushMusicDiagnostic(label, details) {
   }
 }
 
+function setOnAirReviewStatusMessage(message, isError) {
+  const text = String(message || "").trim();
+  if (!text) {
+    return;
+  }
+  if (onAirReviewWindowStatus) {
+    onAirReviewWindowStatus.textContent = text;
+    onAirReviewWindowStatus.classList.toggle("error", !!isError);
+  }
+  if (onAirMediaStatus) {
+    onAirMediaStatus.textContent = text;
+  }
+}
+
+function focusOnAirReviewPrimaryTarget() {
+  if (!onAirReviewModalOpen) {
+    return;
+  }
+  (onAirReviewPlayBtn || onAirReviewWindow || onAirReviewCloseBtn)?.focus?.({ preventScroll: true });
+}
+
+function getOnAirReviewFocusableElements() {
+  if (!onAirReviewWindow) {
+    return [];
+  }
+  return Array.from(
+    onAirReviewWindow.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => !element.hasAttribute("hidden") && !element.closest(".hidden"));
+}
+
 function describeMediaError(error) {
   if (!error) {
     return "none";
@@ -1216,6 +1267,9 @@ function logReviewAudioState(label) {
 }
 
 function pushReviewCutDiagnostic(label, details) {
+  if (!mediaDebugEnabled && /^visual_tick_/.test(String(label || ""))) {
+    return;
+  }
   const media = getActiveOnAirReviewMediaElement();
   const playbackSnapshot = onAirReviewPlaybackController.snapshot();
   const diagnosticDetails = [
@@ -3650,6 +3704,18 @@ async function refreshRecordingAssetDurations() {
   syncReviewPanelUI();
 }
 
+function updateOnAirReviewSaveButtons() {
+  const hasTimelineAudio = !!(getOnAirReviewMediaClips().length && getOnAirReviewTimelineDuration() > 0);
+  if (onAirReviewSaveDraftBtn) {
+    onAirReviewSaveDraftBtn.disabled = onAirReviewSaveInFlight || !hasTimelineAudio;
+    onAirReviewSaveDraftBtn.textContent = onAirReviewSaveInFlight ? "Saving..." : "Save Draft";
+  }
+  if (onAirReviewSaveEpisodeBtn) {
+    onAirReviewSaveEpisodeBtn.disabled = onAirReviewSaveInFlight || !hasTimelineAudio;
+    onAirReviewSaveEpisodeBtn.textContent = onAirReviewSaveInFlight ? "Saving..." : "Save to Episodes";
+  }
+}
+
 function syncReviewPanelUI() {
   const hasVideo = !!(recordingMediaBlob && recordingMediaUrl);
   const hasAudio = !!(recordingAudioBlob && recordingAudioUrl);
@@ -3713,19 +3779,28 @@ function syncReviewPanelUI() {
     onAirReviewNoiseFloorMap = [];
     onAirReviewNoiseOverlayProfile = "off";
     if (onAirReviewWaveNote) {
-      onAirReviewWaveNote.textContent = "No review file loaded yet. Use Load Recording to import a saved audio or video file.";
+      onAirReviewWaveNote.textContent = getOnAirReviewMediaClips().length
+        ? "Review Cut is using timeline clips only. You can scrub, play, and keep building the edit."
+        : "No source loaded yet. Use Import Source for audio/video or insert a Music Library track to seed T1.";
     }
   }
   updateOnAirReviewTime();
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
+  updateOnAirReviewSaveButtons();
 }
 
 function setOnAirReviewModalOpen(open) {
   onAirReviewModalOpen = !!open;
+  if (onAirReviewModalOpen) {
+    onAirReviewLastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
   if (onAirReviewModal) {
     onAirReviewModal.classList.toggle("hidden", !onAirReviewModalOpen);
     onAirReviewModal.setAttribute("aria-hidden", onAirReviewModalOpen ? "false" : "true");
+  }
+  if (onAirReviewWindow) {
+    onAirReviewWindow.setAttribute("aria-hidden", onAirReviewModalOpen ? "false" : "true");
   }
   if (!onAirReviewModalOpen) {
     resetReviewCutPlaybackSession({ reason: "modal_closed" });
@@ -3739,12 +3814,18 @@ function setOnAirReviewModalOpen(open) {
         // Ignore pause races.
       }
     });
+    const focusTarget = onAirReviewLastFocusedElement;
+    onAirReviewLastFocusedElement = null;
+    focusTarget?.focus?.({ preventScroll: true });
   }
   if (onAirReviewModalOpen) {
     renderOnAirReviewLibraryList();
     refreshOnAirReviewWaveform().catch(() => {
       // Keep review playback usable even if waveform analysis fails.
     });
+    window.setTimeout(() => {
+      focusOnAirReviewPrimaryTarget();
+    }, 0);
   }
   queueOnAirReviewWaveRender();
 }
@@ -3866,6 +3947,7 @@ function buildDefaultOnAirReviewTimeline(durationSeconds) {
   onAirReviewTimelineSegments = duration > 0
     ? [{ type: "media", clipId: onAirReviewClipIdCounter++, sourceStart: 0, sourceEnd: duration, duration, timelineStart: 0, lane: 0, sourceKind: "recording", sourceAssetId: "", sourceAssetLabel: getOnAirReviewRecordingDefaultLabel() }]
     : [];
+  onAirReviewTimelinePinned = false;
   onAirReviewGainAdjustments = [];
   onAirReviewFadeRegions = [];
   onAirReviewMarkers = [];
@@ -3939,6 +4021,91 @@ function getOnAirReviewRecordingDefaultLabel() {
     recordingMediaBlob && recordingMediaBlob.name
   ].map((value) => String(value || "").trim()).filter(Boolean);
   return candidates[0] || "Show Recording";
+}
+
+function normalizeOnAirRecordingNameSegment(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
+function getOnAirRecordingDateTag() {
+  const value = new Date();
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function getOnAirConfiguredRecordingNameStem() {
+  const baseName = normalizeOnAirRecordingNameSegment(getOnAirReviewRecordingDefaultLabel()) || "show-recording";
+  const pattern = String(studioSettings && studioSettings.recordingNamePattern || "show-date").trim().toLowerCase();
+  if (pattern === "show-date") {
+    return baseName + "-" + getOnAirRecordingDateTag();
+  }
+  return baseName;
+}
+
+function getOnAirPostProductionBaseTitle() {
+  return getOnAirConfiguredRecordingNameStem();
+}
+
+function getOnAirPostProductionAssetTitle() {
+  return getOnAirPostProductionBaseTitle();
+}
+
+function getOnAirEpisodesAssetTitle() {
+  const sourceTitle = normalizeOnAirRecordingNameSegment(onAirReviewSourceAsset && onAirReviewSourceAsset.title || "");
+  const base = sourceTitle || getOnAirPostProductionBaseTitle();
+  return base + "-episode";
+}
+
+function getFilenameExtensionFromMimeType(mimeType, fallback) {
+  const normalized = String(mimeType || "").trim().toLowerCase();
+  if (normalized.includes("mpeg")) {
+    return "mp3";
+  }
+  if (normalized.includes("wav")) {
+    return "wav";
+  }
+  if (normalized.includes("mp4")) {
+    return "mp4";
+  }
+  if (normalized.includes("webm")) {
+    return "webm";
+  }
+  if (normalized.includes("ogg")) {
+    return "ogg";
+  }
+  return String(fallback || "bin").trim() || "bin";
+}
+
+function createNamedUploadBlob(blob, filename, mimeType) {
+  if (!blob) {
+    return null;
+  }
+  const safeName = String(filename || "upload.bin").trim() || "upload.bin";
+  const safeType = String(mimeType || blob.type || "application/octet-stream").trim() || "application/octet-stream";
+  if (typeof File === "function") {
+    return new File([blob], safeName, { type: safeType });
+  }
+  const copy = blob.slice(0, blob.size, safeType);
+  copy.name = safeName;
+  return copy;
+}
+
+function getLibraryAssetDownloadFilename(asset, fallbackExtension) {
+  const existing = String(asset && asset.originalFilename || "").trim();
+  if (existing) {
+    return existing;
+  }
+  const title = String(asset && asset.title || "asset").trim().replace(/[^\w.-]+/g, "-") || "asset";
+  const extension = getFilenameExtensionFromMimeType(asset && asset.mimeType, fallbackExtension || "bin");
+  return title + "." + extension;
 }
 
 function getOnAirReviewClipDisplayLabel(clip) {
@@ -4069,6 +4236,7 @@ function rebuildOnAirReviewTimelineFromMediaClips(clips, totalDuration) {
     })
     .filter(Boolean)
     .sort((left, right) => (left.timelineStart - right.timelineStart) || ((left.clipId || 0) - (right.clipId || 0)));
+  onAirReviewTimelinePinned = true;
   onAirReviewClipIdCounter = onAirReviewTimelineSegments.reduce((maxId, segment) => Math.max(maxId, Number(segment && segment.clipId) || 0), 0) + 1;
   onAirReviewTimelineExplicitDuration = safeTotalDuration;
   recalculateOnAirReviewTimelineDuration();
@@ -4244,6 +4412,9 @@ function getOnAirReviewViewportAnchorTime(currentSeconds) {
   const playbackAnchorTime = onAirReviewPlayheadController && typeof onAirReviewPlayheadController.snapshot === "function"
     ? Number(onAirReviewPlayheadController.snapshot().playbackViewportAnchorTime)
     : null;
+  if (isOnAirReviewPlaying() && Number.isFinite(playbackAnchorTime)) {
+    return Math.max(0, Number(playbackAnchorTime) || 0);
+  }
   if (onAirReviewViewportController && typeof onAirReviewViewportController.getViewportAnchor === "function") {
     return onAirReviewViewportController.getViewportAnchor(currentSeconds, playbackAnchorTime);
   }
@@ -4362,6 +4533,36 @@ function getOnAirReviewGainAdjustmentTargetClip() {
   return getOnAirReviewSelectionTargetClip() || getOnAirReviewSelectedClip() || null;
 }
 
+function upsertOnAirReviewGainAdjustment(startSeconds, endSeconds, deltaDb, clip) {
+  const start = Math.max(0, Number(startSeconds) || 0);
+  const end = Math.max(start, Number(endSeconds) || start);
+  const delta = clampOnAirReviewGainDb(deltaDb);
+  const clipId = Math.max(0, Number(clip && clip.clipId) || Number(clip) || 0);
+  if (end - start <= 0.01 || Math.abs(delta) < 0.05) {
+    return false;
+  }
+  const existing = onAirReviewGainAdjustments.find((adjustment) => {
+    if (!adjustment) {
+      return false;
+    }
+    const adjustmentClipId = Math.max(0, Number(adjustment.clipId) || 0);
+    if (adjustmentClipId !== clipId) {
+      return false;
+    }
+    return (
+      Math.abs((Number(adjustment.start) || 0) - start) < 0.01 &&
+      Math.abs((Math.max(Number(adjustment.start) || 0, Number(adjustment.end) || 0)) - end) < 0.01
+    );
+  });
+  if (existing) {
+    existing.db = clampOnAirReviewGainDb((Number(existing.db) || 0) + delta);
+  } else {
+    onAirReviewGainAdjustments.push({ start, end, db: delta, clipId });
+  }
+  normalizeOnAirReviewGainAdjustments();
+  return true;
+}
+
 function getOnAirReviewGainDbAt(seconds, clip) {
   const target = Math.max(0, Number(seconds) || 0);
   const clipId = Math.max(0, Number(clip && clip.clipId) || Number(clip) || 0);
@@ -4398,6 +4599,49 @@ function getOnAirReviewSelectionAverageGainDb() {
     total += getOnAirReviewGainDbAt(start + (end - start) * progress, targetClip);
   }
   return clampOnAirReviewGainDb(total / sampleCount);
+}
+
+function getOnAirReviewWholeSelectionClip() {
+  if (!hasOnAirReviewSelection()) {
+    return null;
+  }
+  const targetClip = getOnAirReviewGainAdjustmentTargetClip();
+  if (!targetClip) {
+    return null;
+  }
+  const start = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  const end = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
+  if (Math.abs(start - targetClip.start) > 0.02 || Math.abs(end - targetClip.end) > 0.02) {
+    return null;
+  }
+  return targetClip;
+}
+
+function applyOnAirReviewWholeClipGainDelta(clip, deltaDb) {
+  if (!clip) {
+    return false;
+  }
+  const nextClips = getOnAirReviewMediaClips().map((entry) => {
+    const descriptor = {
+      ...createOnAirReviewClipDescriptor(entry),
+      start: entry.start
+    };
+    if (entry.clipId !== clip.clipId) {
+      return descriptor;
+    }
+    descriptor.clipGainDb = clampOnAirReviewGainDb((entry.clipGainDb || 0) + (Number(deltaDb) || 0));
+    return descriptor;
+  });
+  const updatedClip = nextClips.find((entry) => entry.clipId === clip.clipId);
+  if (!updatedClip || Math.abs(Number(updatedClip.clipGainDb || 0) - Number(clip.clipGainDb || 0)) < 0.001) {
+    return false;
+  }
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+  setOnAirReviewSelectedClipIndex(clip.clipId);
+  setOnAirReviewSelection(clip.start, clip.end);
+  updateOnAirReviewUi({ render: true, applyGain: true, syncFromMedia: false });
+  scheduleOnAirReviewPlaybackRefresh();
+  return true;
 }
 
 function formatOnAirReviewGainDb(dbValue) {
@@ -4612,21 +4856,41 @@ function applyOnAirReviewSelectionGain(deltaDb) {
     return false;
   }
   pushOnAirReviewHistorySnapshot("gain");
-  onAirReviewGainAdjustments.push({
-    start,
-    end,
-    db: clampOnAirReviewGainDb(deltaDb),
-    clipId: Math.max(0, Number(targetClip && targetClip.clipId) || 0)
-  });
-  normalizeOnAirReviewGainAdjustments();
-  updateOnAirReviewSelectionControls();
-  applyOnAirReviewPlaybackGain();
+  const wholeClip = getOnAirReviewWholeSelectionClip();
+  if (wholeClip) {
+    if (!applyOnAirReviewWholeClipGainDelta(wholeClip, deltaDb)) {
+      if (onAirReviewUndoStack.length) {
+        const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
+        if (lastSnapshot && lastSnapshot.label === "gain") {
+          onAirReviewUndoStack.pop();
+          updateOnAirReviewHistoryControls();
+        }
+      }
+      return false;
+    }
+    if (onAirReviewWaveNote) {
+      const refreshedClip = getOnAirReviewSelectedClip() || wholeClip;
+      onAirReviewWaveNote.textContent =
+        "Clip gain updated to " + formatOnAirReviewGainDb(refreshedClip.clipGainDb) + ".";
+    }
+    return true;
+  }
+  if (!upsertOnAirReviewGainAdjustment(start, end, deltaDb, targetClip)) {
+    if (onAirReviewUndoStack.length) {
+      const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
+      if (lastSnapshot && lastSnapshot.label === "gain") {
+        onAirReviewUndoStack.pop();
+        updateOnAirReviewHistoryControls();
+      }
+    }
+    return false;
+  }
+  updateOnAirReviewUi({ render: true, applyGain: true, syncFromMedia: false });
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
     const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
     setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
-  queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent =
       "Selection gain updated to " + formatOnAirReviewGainDb(getOnAirReviewSelectionAverageGainDb()) + ".";
@@ -4697,20 +4961,22 @@ function normalizeOnAirReviewSelectionGain() {
     return false;
   }
   pushOnAirReviewHistorySnapshot("gain-normalize");
-  onAirReviewGainAdjustments.push({
-    start,
-    end,
-    db: normalizeDeltaDb
-  });
-  normalizeOnAirReviewGainAdjustments();
-  updateOnAirReviewSelectionControls();
-  applyOnAirReviewPlaybackGain(true);
+  if (!upsertOnAirReviewGainAdjustment(start, end, normalizeDeltaDb, getOnAirReviewGainAdjustmentTargetClip())) {
+    if (onAirReviewUndoStack.length) {
+      const lastSnapshot = onAirReviewUndoStack[onAirReviewUndoStack.length - 1];
+      if (lastSnapshot && lastSnapshot.label === "gain-normalize") {
+        onAirReviewUndoStack.pop();
+        updateOnAirReviewHistoryControls();
+      }
+    }
+    return false;
+  }
+  updateOnAirReviewUi({ render: true, applyGain: true, syncFromMedia: false });
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
     const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
     setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
-  queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent =
       "Selection normalized to a peak target of -3 dB using " + formatOnAirReviewGainDb(normalizeDeltaDb) + ".";
@@ -4728,6 +4994,27 @@ function resetOnAirReviewSelectionGain() {
   if (end - start <= 0.01) {
     return false;
   }
+  const wholeClip = getOnAirReviewWholeSelectionClip();
+  if (wholeClip) {
+    if (Math.abs(Number(wholeClip.clipGainDb || 0)) < 0.05) {
+      return false;
+    }
+    pushOnAirReviewHistorySnapshot("gain-reset");
+    const nextClips = getOnAirReviewMediaClips().map((entry) => ({
+      ...createOnAirReviewClipDescriptor(entry),
+      start: entry.start,
+      clipGainDb: entry.clipId === wholeClip.clipId ? 0 : entry.clipGainDb
+    }));
+    rebuildOnAirReviewTimelineFromMediaClips(nextClips, getOnAirReviewTimelineDuration());
+    setOnAirReviewSelectedClipIndex(wholeClip.clipId);
+    setOnAirReviewSelection(wholeClip.start, wholeClip.end);
+    updateOnAirReviewUi({ render: true, applyGain: true, syncFromMedia: false });
+    scheduleOnAirReviewPlaybackRefresh();
+    if (onAirReviewWaveNote) {
+      onAirReviewWaveNote.textContent = "Clip gain reset to 0 dB.";
+    }
+    return true;
+  }
   const beforeCount = onAirReviewGainAdjustments.length;
   pushOnAirReviewHistorySnapshot("gain-reset");
   removeOnAirReviewGainAdjustmentsInRange(start, end, targetClip);
@@ -4741,14 +5028,12 @@ function resetOnAirReviewSelectionGain() {
     }
     return false;
   }
-  updateOnAirReviewSelectionControls();
-  applyOnAirReviewPlaybackGain(true);
+  updateOnAirReviewUi({ render: true, applyGain: true, syncFromMedia: false });
   if (canUseOnAirReviewClipPlayback() && isOnAirReviewPlaying()) {
     const activeLoopBounds = isOnAirReviewLoopSelectionPlaybackActive() ? getOnAirReviewLoopBounds() : null;
     scheduleOnAirReviewClipPlayback(onAirReviewEditedTime, activeLoopBounds ? activeLoopBounds.end : undefined);
     setOnAirReviewPlaybackAnchor(performance.now(), onAirReviewEditedTime);
   }
-  queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     onAirReviewWaveNote.textContent = "Selection gain reset to 0 dB.";
   }
@@ -4758,7 +5043,18 @@ function resetOnAirReviewSelectionGain() {
 function ensureOnAirReviewTimeline() {
   const token = getOnAirReviewTimelineSourceToken();
   const duration = getOnAirReviewAssetDuration();
+  if (onAirReviewTimelinePinned && (onAirReviewTimelineSegments.length || onAirReviewTimelineExplicitDuration > 0)) {
+    recalculateOnAirReviewTimelineDuration();
+    updateOnAirReviewSelectionControls();
+    return;
+  }
   if (!token || !(duration > 0)) {
+    if (onAirReviewTimelineSegments.length || onAirReviewTimelineExplicitDuration > 0) {
+      recalculateOnAirReviewTimelineDuration();
+      updateOnAirReviewSelectionControls();
+      return;
+    }
+    onAirReviewTimelinePinned = false;
     onAirReviewTimelineSourceToken = "";
     onAirReviewTimelineSegments = [];
     onAirReviewMarkers = [];
@@ -5226,7 +5522,7 @@ function getOnAirReviewViewport(durationSeconds, currentSeconds) {
 
 function ensureOnAirReviewPlaybackViewportVisibility() {
   const duration = getOnAirReviewTimelineDuration();
-  if (!(duration > 0) || !(onAirReviewZoomLevel > 1)) {
+  if (!(duration > 0) || !(onAirReviewZoomLevel > 1) || !isOnAirReviewPlaying()) {
     return;
   }
   const current = Math.max(0, Math.min(duration, Number(onAirReviewEditedTime) || 0));
@@ -5238,21 +5534,21 @@ function ensureOnAirReviewPlaybackViewportVisibility() {
   const windowStart = Math.max(0, Number(viewport.windowStart) || 0);
   const currentProgress = Math.max(0, Math.min(1, current / duration));
   const visibleProgress = Math.max(0, Math.min(1, (currentProgress - windowStart) / windowSize));
-  const followTrigger = 0.8;
-  if (visibleProgress < followTrigger) {
+  const targetVisibleProgress = 0.72;
+  const followDeadband = 0.035;
+  if (Math.abs(visibleProgress - targetVisibleProgress) <= followDeadband) {
     return;
   }
-  const targetVisibleProgress = 0.78;
   const targetFocus = current - ((targetVisibleProgress - 0.5) * windowSize * duration);
   const currentFocus = Number.isFinite(onAirReviewViewportFocusTime)
     ? Math.max(0, Math.min(duration, Number(onAirReviewViewportFocusTime) || 0))
     : ((windowStart + windowSize / 2) * duration);
   const focusDelta = targetFocus - currentFocus;
-  if (focusDelta <= 0.015) {
+  if (Math.abs(focusDelta) <= 0.012) {
     return;
   }
-  const maxStep = Math.max(0.04, duration * windowSize * 0.035);
-  const nextFocus = currentFocus + Math.min(focusDelta, maxStep);
+  const maxStep = Math.max(0.05, duration * windowSize * 0.05);
+  const nextFocus = currentFocus + Math.max(-maxStep, Math.min(maxStep, focusDelta));
   setOnAirReviewViewportFocusTime(nextFocus);
   queueOnAirReviewWaveRender();
   updateOnAirReviewPanControl();
@@ -6049,7 +6345,6 @@ function getOnAirReviewReplaceSelectionState() {
   if (!hasOnAirReviewSelection()) {
     return { allowed: false, reason: "Select a range first.", clip: null, start: 0, end: 0 };
   }
-  ensureOnAirReviewTimeline();
   const selectionStart = Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   const selectionEnd = Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd);
   if (selectionEnd - selectionStart <= 0.01) {
@@ -6998,23 +7293,17 @@ function getOnAirReviewInsertGainCandidateClip() {
 }
 
 function getOnAirReviewClipRemoveCandidate() {
-  return getOnAirReviewSelectedClip() || null;
+  return getOnAirReviewSelectedClip() || getOnAirReviewTrackCandidateClip() || null;
 }
 
 function getOnAirReviewSmartInsertLane(insertAt) {
-  const targetTime = Math.max(0, Number(insertAt) || 0);
   const selectedClip = getOnAirReviewSelectedClip();
-  if (selectedClip && String(selectedClip.sourceKind || "recording") === "library") {
-    return Math.max(0, Math.min(ON_AIR_REVIEW_MAX_LANE_INDEX, Number(selectedClip.lane) || 0));
-  }
   const clips = getOnAirReviewMediaClips();
   if (!clips.length) {
     return 0;
   }
-  const hasRecordingClip = clips.some((clip) => String(clip && clip.sourceKind || "recording") === "recording");
   const insertPreferredLanes = [];
-  const laneStart = hasRecordingClip ? 1 : 0;
-  for (let lane = laneStart; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
+  for (let lane = 0; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
     insertPreferredLanes.push(lane);
   }
   if (selectedClip) {
@@ -7023,16 +7312,13 @@ function getOnAirReviewSmartInsertLane(insertAt) {
       insertPreferredLanes.unshift(selectedLane);
     }
   }
-  if (hasRecordingClip && !insertPreferredLanes.includes(0)) {
-    insertPreferredLanes.push(0);
-  }
   for (const lane of insertPreferredLanes) {
-    const occupied = clips.some((clip) => clip.lane === lane && targetTime >= clip.start - 0.005 && targetTime <= clip.end + 0.005);
+    const occupied = clips.some((clip) => clip.lane === lane);
     if (!occupied) {
       return lane;
     }
   }
-  return 1 <= ON_AIR_REVIEW_MAX_LANE_INDEX ? 1 : 0;
+  return 0;
 }
 
 function removeOnAirReviewClip(clipId) {
@@ -7061,8 +7347,18 @@ function removeOnAirReviewClip(clipId) {
     }
   }
   setOnAirReviewSelectedClipIndex(-1);
-  seekOnAirReviewEditedTime(Math.max(0, Math.min(getOnAirReviewTimelineDuration(), targetClip.start)));
-  scheduleOnAirReviewPlaybackRefresh();
+  const nextDuration = getOnAirReviewTimelineDuration();
+  if (nextDuration > 0) {
+    seekOnAirReviewEditedTime(Math.max(0, Math.min(nextDuration, targetClip.start)));
+    scheduleOnAirReviewPlaybackRefresh();
+  } else {
+    resetReviewCutPlaybackSession({ reason: "clip_removed_empty" });
+    onAirReviewEditedTime = 0;
+    setOnAirReviewViewportFocusTime(0);
+    updateOnAirReviewUi({ render: false, applyGain: true, syncFromMedia: false });
+    updateOnAirReviewPlayState();
+    syncOnAirReviewPlayheadNow();
+  }
   queueOnAirReviewWaveRender();
   if (onAirReviewWaveNote) {
     const clipLabel = String(
@@ -7248,14 +7544,23 @@ function updateOnAirReviewZoomControls() {
 
 function setOnAirReviewZoomLevel(nextLevel) {
   const duration = getOnAirReviewTimelineDuration();
+  const nextZoomLevel = clampOnAirReviewZoomLevel(nextLevel);
+  onAirReviewZoomLevel = nextZoomLevel;
   if (duration > 0) {
-    const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
-    const currentFocus = Number.isFinite(onAirReviewViewportFocusTime)
-      ? Number(onAirReviewViewportFocusTime)
-      : ((Math.max(0, Number(viewport.windowStart) || 0) + (Math.max(0.08, Math.min(1, Number(viewport.windowSize) || 1)) / 2)) * duration);
-    setOnAirReviewViewportFocusTime(currentFocus);
+    if (isOnAirReviewPlaying() && nextZoomLevel > 1) {
+      const playbackViewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+      const windowSize = Math.max(0.000001, Number(playbackViewport && playbackViewport.windowSize) || 1);
+      const targetVisibleProgress = 0.72;
+      const targetFocus = onAirReviewEditedTime - ((targetVisibleProgress - 0.5) * windowSize * duration);
+      setOnAirReviewViewportFocusTime(targetFocus);
+    } else {
+      const viewport = getOnAirReviewViewport(duration, onAirReviewEditedTime);
+      const currentFocus = Number.isFinite(onAirReviewViewportFocusTime)
+        ? Number(onAirReviewViewportFocusTime)
+        : ((Math.max(0, Number(viewport.windowStart) || 0) + (Math.max(0.08, Math.min(1, Number(viewport.windowSize) || 1)) / 2)) * duration);
+      setOnAirReviewViewportFocusTime(currentFocus);
+    }
   }
-  onAirReviewZoomLevel = clampOnAirReviewZoomLevel(nextLevel);
   updateOnAirReviewZoomControls();
   queueOnAirReviewWaveRender();
 }
@@ -8515,9 +8820,26 @@ function getOnAirReviewClipHitAtClient(clientX, clientY) {
   if (!layout) {
     return null;
   }
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
   const localY = ((clientY - layout.rect.top) / Math.max(1, layout.rect.height)) * layout.height;
+  if (
+    localX < layout.timelineX ||
+    localX > layout.timelineX + layout.timelineWidth ||
+    localY < layout.meterY ||
+    localY > layout.meterY + layout.meterHeight
+  ) {
+    return null;
+  }
   const laneSpan = layout.laneHeight + layout.laneGap;
-  const laneIndex = Math.max(0, Math.min(layout.laneCount - 1, Math.floor((localY - layout.meterY) / Math.max(1, laneSpan))));
+  const laneProgress = (localY - layout.meterY) / Math.max(1, laneSpan);
+  const laneIndex = Math.floor(laneProgress);
+  if (laneIndex < 0 || laneIndex >= layout.laneCount) {
+    return null;
+  }
+  const laneY = layout.meterY + laneIndex * laneSpan;
+  if (localY > laneY + layout.laneHeight) {
+    return null;
+  }
   const seconds = getOnAirReviewSecondsFromClientX(clientX);
   const laneClips = getOnAirReviewMediaClips().filter((clip) => clip.lane === laneIndex && seconds >= clip.start && seconds <= clip.end);
   if (!laneClips.length) {
@@ -8542,9 +8864,21 @@ function getOnAirReviewFadeHandleHitAtClient(clientX, clientY) {
   if (!(duration > 0) || !target || !target.clip) {
     return null;
   }
+  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
   const localY = ((clientY - layout.rect.top) / Math.max(1, layout.rect.height)) * layout.height;
+  if (
+    localX < layout.timelineX ||
+    localX > layout.timelineX + layout.timelineWidth ||
+    localY < layout.meterY ||
+    localY > layout.meterY + layout.meterHeight
+  ) {
+    return null;
+  }
   const laneSpan = layout.laneHeight + layout.laneGap;
-  const laneIndex = Math.max(0, Math.min(layout.laneCount - 1, Math.floor((localY - layout.meterY) / Math.max(1, laneSpan))));
+  const laneIndex = Math.floor((localY - layout.meterY) / Math.max(1, laneSpan));
+  if (laneIndex < 0 || laneIndex >= layout.laneCount) {
+    return null;
+  }
   if (laneIndex !== target.clip.lane) {
     return null;
   }
@@ -8567,7 +8901,6 @@ function getOnAirReviewFadeHandleHitAtClient(clientX, clientY) {
   if (regionWidth <= 6) {
     return null;
   }
-  const localX = ((clientX - layout.rect.left) / Math.max(1, layout.rect.width)) * layout.width;
   const pair = normalizeOnAirReviewClipFadePair(target.fadeIn, target.fadeOut, target.end - target.start);
   const fadeInX = regionX + Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, pair.fadeIn / Math.max(0.02, target.end - target.start)))));
   const fadeOutX = regionX + regionWidth - Math.max(0, Math.min(regionWidth, regionWidth * Math.max(0, Math.min(1, pair.fadeOut / Math.max(0.02, target.end - target.start)))));
@@ -8629,6 +8962,59 @@ function downloadBlobObject(blob, filename) {
       // Ignore object URL cleanup failures.
     }
   }, 4000);
+}
+
+async function uploadBlobToSharedLibrary(libraryKind, blob, options) {
+  if (!blob) {
+    throw new Error("Upload blob is unavailable.");
+  }
+  if (!window.TBRAuth || typeof window.TBRAuth.requestMediaUpload !== "function" || typeof window.TBRAuth.completeMediaUpload !== "function") {
+    throw new Error("Shared media storage is unavailable right now.");
+  }
+  const uploadTitle = String(options && options.title || "Untitled Asset").trim() || "Untitled Asset";
+  const mimeType = String(options && options.mimeType || blob.type || "application/octet-stream").trim() || "application/octet-stream";
+  const filenameBase = String(options && options.filenameBase || uploadTitle).trim() || "asset";
+  const filename = String(options && options.filename || "").trim() || (filenameBase + "." + getFilenameExtensionFromMimeType(mimeType, "bin"));
+  const uploadBody = createNamedUploadBlob(blob, filename, mimeType);
+  const uploadTicket = await window.TBRAuth.requestMediaUpload({
+    libraryKind,
+    assetRole: String(options && options.assetRole || "").trim(),
+    title: uploadTitle,
+    filename,
+    mimeType,
+    byteSize: Math.max(0, Number(blob.size || 0) || 0)
+  });
+  if (!uploadTicket || !uploadTicket.ok || !uploadTicket.asset) {
+    throw new Error((uploadTicket && uploadTicket.error) || "Unable to request shared upload ticket.");
+  }
+  let uploadResult = null;
+  if (typeof window.TBRAuth.uploadMediaBytes === "function") {
+    uploadResult = await window.TBRAuth.uploadMediaBytes(uploadTicket.asset.id, uploadBody);
+    if (!uploadResult || !uploadResult.ok) {
+      throw new Error((uploadResult && uploadResult.error) || "Shared upload failed.");
+    }
+  } else if (uploadTicket.uploadUrl) {
+    const uploadResponse = await fetch(uploadTicket.uploadUrl, {
+      method: uploadTicket.uploadMethod || "PUT",
+      headers: uploadTicket.uploadHeaders || { "Content-Type": mimeType },
+      body: uploadBody
+    });
+    if (!uploadResponse.ok) {
+      throw new Error("Shared upload failed with status " + uploadResponse.status + ".");
+    }
+  } else {
+    throw new Error("Shared upload URL was not returned.");
+  }
+  const completed = await window.TBRAuth.completeMediaUpload(uploadTicket.asset.id, {
+    title: uploadTitle,
+    byteSize: Math.max(0, Number(blob.size || 0) || 0),
+    durationSeconds: Number.isFinite(Number(options && options.durationSeconds)) ? Number(options.durationSeconds) : null,
+    metadata: options && options.metadata && typeof options.metadata === "object" ? options.metadata : {}
+  });
+  if (!completed || !completed.ok || !completed.asset) {
+    throw new Error((completed && completed.error) || "Shared upload metadata could not be finalized.");
+  }
+  return completed.asset;
 }
 
 function encodeAudioBufferToWavBlob(audioBuffer) {
@@ -9144,6 +9530,129 @@ function clearLocalRecordingAsset() {
   syncReviewPanelUI();
 }
 
+async function cacheOnAirReviewBlobAsLibraryAsset(blob, assetLabel, assetIdPrefix) {
+  if (!blob || typeof blob.arrayBuffer !== "function") {
+    return null;
+  }
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) {
+    return null;
+  }
+  const decodeContext = new AudioContextCtor();
+  try {
+    const audioData = await blob.arrayBuffer();
+    const decoded = await decodeContext.decodeAudioData(audioData.slice(0));
+    const assetId = String(assetIdPrefix || "recording_take") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    onAirReviewLibraryBufferCache.set(assetId, decoded);
+    onAirReviewLibraryWaveCache.set(assetId, sampleWaveformPeaksFromAudioBuffer(decoded, 900));
+    return {
+      assetId,
+      assetLabel: String(assetLabel || "Recorded Take"),
+      duration: Math.max(0, Number(decoded.duration) || 0)
+    };
+  } finally {
+    decodeContext.close().catch(() => {});
+  }
+}
+
+function getOnAirReviewLowestFreeLaneForRange(startSeconds, endSeconds) {
+  const safeStart = Math.max(0, Number(startSeconds) || 0);
+  const safeEnd = Math.max(safeStart, Number(endSeconds) || safeStart);
+  const clips = getOnAirReviewMediaClips();
+  for (let lane = 0; lane <= ON_AIR_REVIEW_MAX_LANE_INDEX; lane += 1) {
+    const occupied = clips.some((clip) =>
+      clip.lane === lane &&
+      safeEnd > clip.start + 0.005 &&
+      safeStart < clip.end - 0.005
+    );
+    if (!occupied) {
+      return lane;
+    }
+  }
+  return 0;
+}
+
+async function convertCurrentRecordingAssetToOnAirReviewClipAsset() {
+  const sourceBlob = recordingAudioBlob || recordingMediaBlob || null;
+  if (!sourceBlob) {
+    return null;
+  }
+  ensureOnAirReviewTimeline();
+  const clips = getOnAirReviewMediaClips();
+  const recordingClips = clips.filter((clip) => String(clip && clip.sourceKind || "recording") === "recording");
+  if (!recordingClips.length) {
+    return null;
+  }
+  const cachedAsset = await cacheOnAirReviewBlobAsLibraryAsset(
+    sourceBlob,
+    getOnAirReviewRecordingDefaultLabel(),
+    "recording_preserved"
+  );
+  if (!cachedAsset) {
+    return null;
+  }
+  const nextClips = clips.map((clip) => {
+    const descriptor = {
+      ...createOnAirReviewClipDescriptor(clip),
+      start: clip.start
+    };
+    if (String(clip.sourceKind || "recording") !== "recording") {
+      return descriptor;
+    }
+    descriptor.sourceKind = "library";
+    descriptor.sourceAssetId = cachedAsset.assetId;
+    descriptor.sourceAssetLabel = cachedAsset.assetLabel;
+    return descriptor;
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(nextClips, Math.max(getOnAirReviewTimelineDuration(), cachedAsset.duration));
+  return cachedAsset;
+}
+
+async function appendLatestRecordingAssetToOnAirReviewTimeline() {
+  const sourceBlob = recordingAudioBlob || recordingMediaBlob || null;
+  if (!sourceBlob) {
+    return false;
+  }
+  const cachedAsset = await cacheOnAirReviewBlobAsLibraryAsset(
+    sourceBlob,
+    getOnAirReviewRecordingDefaultLabel(),
+    "recording_take"
+  );
+  if (!cachedAsset || !(cachedAsset.duration > 0)) {
+    return false;
+  }
+  ensureOnAirReviewTimeline();
+  const nextClips = getOnAirReviewMediaClips().map((clip) => ({
+    ...createOnAirReviewClipDescriptor(clip),
+    start: clip.start
+  }));
+  const targetLane = getOnAirReviewLowestFreeLaneForRange(0, cachedAsset.duration);
+  nextClips.push({
+    start: 0,
+    duration: cachedAsset.duration,
+    sourceStart: 0,
+    sourceEnd: cachedAsset.duration,
+    lane: targetLane,
+    sourceKind: "library",
+    sourceAssetId: cachedAsset.assetId,
+    sourceAssetLabel: cachedAsset.assetLabel
+  });
+  rebuildOnAirReviewTimelineFromMediaClips(
+    nextClips,
+    Math.max(getOnAirReviewTimelineDuration(), cachedAsset.duration)
+  );
+  const insertedClip = getOnAirReviewMediaClips().find((clip) =>
+    clip.sourceKind === "library" &&
+    clip.sourceAssetId === cachedAsset.assetId &&
+    clip.lane === targetLane &&
+    Math.abs(clip.start) < 0.01
+  );
+  setOnAirReviewSelectedClipIndex(insertedClip ? insertedClip.clipId : -1);
+  seekOnAirReviewEditedTime(0);
+  queueOnAirReviewWaveRender();
+  return true;
+}
+
 async function importOnAirReviewFile(file) {
   if (!file) {
     return false;
@@ -9152,9 +9661,7 @@ async function importOnAirReviewFile(file) {
   const isAudio = type.startsWith("audio/");
   const isVideo = type.startsWith("video/");
   if (!isAudio && !isVideo) {
-    if (onAirReviewWindowStatus) {
-      onAirReviewWindowStatus.textContent = "Choose an audio or video recording file.";
-    }
+    setOnAirReviewStatusMessage("Choose an audio or video source file.", true);
     return false;
   }
   const hasExistingReviewContent = !!(
@@ -9167,15 +9674,23 @@ async function importOnAirReviewFile(file) {
     const inserted = await insertOnAirReviewImportedAudioFileAtPlayhead(file);
     if (inserted) {
       setOnAirReviewModalOpen(true);
-      if (onAirReviewWindowStatus) {
-        onAirReviewWindowStatus.textContent = String(file.name || "Imported audio") + " inserted into Review Cut.";
-      }
+      setOnAirReviewStatusMessage(String(file.name || "Imported audio") + " inserted into Review Cut.");
       updateOnAirReviewUi({ render: false, applyGain: false, syncFromMedia: false });
       updateOnAirReviewPlayState();
       updateOnAirReviewMuteState();
       return true;
     }
+    setOnAirReviewStatusMessage("Audio import could not be inserted right now.", true);
+    return false;
   }
+  if (isVideo && hasExistingReviewContent) {
+    setOnAirReviewStatusMessage("Video import is blocked while a draft is open so Review Cut stays non-destructive. Open an empty Review Cut first if you want a new source.", true);
+    return false;
+  }
+  if (hasLocalRecordingAsset() && getOnAirReviewMediaClips().length) {
+    await convertCurrentRecordingAssetToOnAirReviewClipAsset().catch(() => null);
+  }
+  onAirReviewSourceAsset = null;
   clearLocalRecordingAsset();
   if (isAudio) {
     recordingAudioBlob = file;
@@ -9192,9 +9707,7 @@ async function importOnAirReviewFile(file) {
   syncReviewPanelUI();
   const preferredKind = getPreferredOnAirReviewKind() || (isVideo ? "video" : "audio");
   openOnAirReviewPlayback(preferredKind);
-  if (onAirReviewWindowStatus) {
-    onAirReviewWindowStatus.textContent = String(file.name || "Recording") + " loaded into Review Cut.";
-  }
+  setOnAirReviewStatusMessage(String(file.name || "Source") + " loaded into Review Cut.");
   return true;
 }
 
@@ -12932,6 +13445,120 @@ async function resolveMusicTrackForPlayback(trackOrAsset) {
   return trackOrAsset;
 }
 
+async function loadSharedLibraryAssetAsFile(asset) {
+  if (!asset || !window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
+    throw new Error("Shared library asset is unavailable.");
+  }
+  const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
+  if (!ticket || !ticket.ok || !ticket.downloadUrl) {
+    throw new Error((ticket && ticket.error) || "Unable to open this library asset right now.");
+  }
+  const response = await fetch(ticket.downloadUrl, { method: "GET" });
+  if (!response.ok) {
+    throw new Error("Library asset download failed with status " + response.status + ".");
+  }
+  const blob = await response.blob();
+  const fallbackExtension = String(asset.libraryKind || "").trim().toLowerCase() === "episodes" ? "wav" : "webm";
+  const filename =
+    String(asset.originalFilename || "").trim() ||
+    (String(asset.title || "asset").trim().replace(/[^\w.-]+/g, "-") || "asset") + "." + getFilenameExtensionFromMimeType(asset.mimeType, fallbackExtension);
+  return createNamedUploadBlob(blob, filename, String(asset.mimeType || blob.type || "application/octet-stream").trim());
+}
+
+async function openPostProductionAssetInReviewCut(asset) {
+  const file = await loadSharedLibraryAssetAsFile(asset);
+  const imported = await importOnAirReviewFile(file);
+  if (!imported) {
+    throw new Error("Review Cut could not load this post-production asset.");
+  }
+  onAirReviewSourceAsset = asset && typeof asset === "object" ? { ...asset } : null;
+  setRecordingWorkflowState("review");
+  syncReviewPanelUI();
+  setOnAirReviewModalOpen(true);
+  setOnAirReviewStatusMessage("Editing post-production draft: " + String(asset.title || file.name || "Untitled Asset") + ".");
+}
+
+async function exportLibraryAssetAudio(asset) {
+  const file = await loadSharedLibraryAssetAsFile(asset);
+  downloadBlobObject(file, getLibraryAssetDownloadFilename(asset, "wav"));
+}
+
+async function saveCurrentRecordingToPostProduction() {
+  if (onAirPostProductionSaveInFlight) {
+    return null;
+  }
+  const sourceBlob = recordingAudioBlob || null;
+  const sourceMimeType = String(recordingAudioMimeType || (sourceBlob && sourceBlob.type) || "audio/webm").trim() || "audio/webm";
+  const sourceDuration = Math.max(0, Number(recordingAudioDurationSeconds || 0) || 0);
+  if (!sourceBlob || !(sourceBlob.size > 0)) {
+    return null;
+  }
+  onAirPostProductionSaveInFlight = true;
+  try {
+    const title = getOnAirPostProductionAssetTitle();
+    const asset = await uploadBlobToSharedLibrary("post-production", sourceBlob, {
+      assetRole: "raw-recording",
+      title,
+      filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
+      mimeType: sourceMimeType,
+      durationSeconds: sourceDuration > 0 ? sourceDuration : null,
+      metadata: {
+        reviewKind: "audio",
+        hasAudio: true,
+        hasVideo: !!(recordingMediaBlob && recordingMediaBlob.size > 0),
+        sourceTakeId: "take_" + Date.now(),
+        savedFromReviewCut: false
+      }
+    });
+    onAirLibraryAssets["post-production"] = [];
+    await loadOnAirLibraryKind("post-production", true);
+    return asset;
+  } finally {
+    onAirPostProductionSaveInFlight = false;
+  }
+}
+
+async function saveOnAirReviewRenderToLibrary(libraryKind) {
+  if (onAirReviewSaveInFlight) {
+    return null;
+  }
+  onAirReviewSaveInFlight = true;
+  try {
+    const editedBlob = await renderOnAirReviewEditedAudioBlob();
+    const sourceAssetId = String(onAirReviewSourceAsset && onAirReviewSourceAsset.id || "").trim();
+    const sourceTakeId =
+      String(onAirReviewSourceAsset && onAirReviewSourceAsset.metadata && onAirReviewSourceAsset.metadata.sourceTakeId || "").trim() ||
+      sourceAssetId ||
+      "take_" + Date.now();
+    const title = libraryKind === "episodes" ? getOnAirEpisodesAssetTitle() : getOnAirPostProductionAssetTitle() + "-draft";
+    const assetRole = libraryKind === "episodes" ? "episode-audio" : "post-draft-audio";
+    const asset = await uploadBlobToSharedLibrary(libraryKind, editedBlob, {
+      assetRole,
+      title,
+      filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
+      mimeType: "audio/wav",
+      durationSeconds: getOnAirReviewTimelineDuration(),
+      metadata: {
+        reviewKind: "audio",
+        hasAudio: true,
+        hasVideo: false,
+        sourceTakeId,
+        sourceAssetId,
+        savedFromReviewCut: true,
+        episodeKey: libraryKind === "episodes" ? "episode_" + Date.now() : ""
+      }
+    });
+    onAirLibraryAssets[libraryKind] = [];
+    await loadOnAirLibraryKind(libraryKind, true);
+    if (libraryKind === "post-production") {
+      onAirReviewSourceAsset = asset && typeof asset === "object" ? { ...asset } : onAirReviewSourceAsset;
+    }
+    return asset;
+  } finally {
+    onAirReviewSaveInFlight = false;
+  }
+}
+
 async function filterPlayableSharedMusicAssets(sharedAssets) {
   const assets = Array.isArray(sharedAssets) ? sharedAssets : [];
   const playable = [];
@@ -13025,7 +13652,11 @@ function getLibraryDisplayLabel(libraryKind) {
 }
 
 function setOnAirLibraryOpen(open) {
-  onAirLibraryOpen = !!open;
+  const nextOpen = !!open;
+  if (nextOpen && onAirAudioOpen) {
+    setOnAirAudioOpen(false);
+  }
+  onAirLibraryOpen = nextOpen;
   if (!onAirLibraryOpen) {
     closeOnAirLibraryPreview();
   }
@@ -13038,7 +13669,11 @@ function setOnAirLibraryOpen(open) {
 }
 
 function setOnAirAudioOpen(open) {
-  onAirAudioOpen = !!open;
+  const nextOpen = !!open;
+  if (nextOpen && onAirLibraryOpen) {
+    setOnAirLibraryOpen(false);
+  }
+  onAirAudioOpen = nextOpen;
   if (onAirAudioDrawer) {
     onAirAudioDrawer.classList.toggle("open", onAirAudioOpen);
   }
@@ -13898,17 +14533,25 @@ function getActiveOnAirReviewMediaElement() {
   return onAirActiveReviewMedia && onAirActiveReviewMedia.src ? onAirActiveReviewMedia : null;
 }
 
+function hasOnAirReviewBufferedClipPlaybackSource() {
+  const clips = getOnAirReviewMediaClips();
+  if (!clips.length) {
+    return false;
+  }
+  return clips.some((clip) => {
+    if (String(clip && clip.sourceKind || "recording") === "library") {
+      return !!getOnAirReviewBufferForClip(clip);
+    }
+    return !!onAirReviewDecodedAudioBuffer;
+  });
+}
+
 function canUseOnAirReviewClipPlayback() {
-  return getActiveOnAirReviewMediaElement() === onAirReviewAudio && !!onAirReviewDecodedAudioBuffer;
+  return hasOnAirReviewBufferedClipPlaybackSource();
 }
 
 function canStartOnAirReviewClipPlayback() {
-  return !!(
-    onAirReviewDecodedAudioBuffer &&
-    onAirReviewAudio &&
-    onAirReviewAudio.src &&
-    (!onAirReviewVideo || !onAirReviewVideo.src || onAirActiveReviewMedia === onAirReviewAudio)
-  );
+  return hasOnAirReviewBufferedClipPlaybackSource();
 }
 
 function ensureOnAirReviewAudioGraph() {
@@ -14203,8 +14846,8 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime, sessionI
     return false;
   }
   const context = ensureOnAirReviewAudioGraph();
-  const buffer = onAirReviewDecodedAudioBuffer;
-  if (!context || !buffer || !onAirReviewClipMixGainNode) {
+  const recordingBuffer = onAirReviewDecodedAudioBuffer;
+  if (!context || !onAirReviewClipMixGainNode) {
     return false;
   }
   const activeSessionId = Number(sessionId) || getOnAirReviewPlaybackSessionId() || 0;
@@ -14215,6 +14858,7 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime, sessionI
     : getOnAirReviewTimelineDuration();
   const clockStart = context.currentTime + 0.02;
   const clips = getOnAirReviewMediaClips();
+  let scheduledCount = 0;
   clips.forEach((clip) => {
     if (clip.end <= playbackStart || clip.start >= playbackEnd) {
       return;
@@ -14230,7 +14874,7 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime, sessionI
       }
       const midpoint = chunkStart + Math.max(0.005, chunkDuration / 2);
       const clipBuffer = String(clip.sourceKind || "recording") === "recording"
-        ? (shouldUseOnAirReviewCleanedBufferAt(midpoint) ? onAirReviewCleanedAudioBuffer : buffer)
+        ? (shouldUseOnAirReviewCleanedBufferAt(midpoint) ? onAirReviewCleanedAudioBuffer : recordingBuffer)
         : getOnAirReviewBufferForClip(clip);
       if (!clipBuffer) {
         continue;
@@ -14288,23 +14932,27 @@ function scheduleOnAirReviewClipPlayback(fromEditedTime, endEditedTime, sessionI
         }
       };
       onAirReviewScheduledClipNodes.push(scheduledEntry);
+      scheduledCount += 1;
     }
   });
-  return true;
+  return scheduledCount > 0;
 }
 
 function applyOnAirReviewPlaybackGain(immediate) {
   const media = getActiveOnAirReviewMediaElement();
-  if (!media) {
-    return;
-  }
   const gainNode = onAirReviewAudioGraphUnavailable ? null : getOnAirReviewActiveGainNode();
-  const targetDb = getOnAirReviewGainDbAt(onAirReviewEditedTime);
+  const timelinePosition = getOnAirReviewTimelinePosition(onAirReviewEditedTime);
+  const activeClipGainDb = timelinePosition && timelinePosition.segment && timelinePosition.segment.type === "media"
+    ? Number(timelinePosition.segment.clipGainDb) || 0
+    : 0;
+  const targetDb = getOnAirReviewGainDbAt(onAirReviewEditedTime) + (canUseOnAirReviewClipPlayback() ? 0 : activeClipGainDb);
   const targetGain = onAirReviewMuted ? 0 : (canUseOnAirReviewClipPlayback() ? 1 : dbToGainMultiplier(targetDb));
-  media.muted = false;
-  media.volume = canUseOnAirReviewClipPlayback()
-    ? 0
-    : Math.max(0, Math.min(1, onAirReviewMuted ? 0 : Math.min(1, targetGain)));
+  if (media) {
+    media.muted = false;
+    media.volume = canUseOnAirReviewClipPlayback()
+      ? 0
+      : Math.max(0, Math.min(1, onAirReviewMuted ? 0 : Math.min(1, targetGain)));
+  }
   const context = onAirReviewAudioContext;
   if (gainNode && context) {
     const now = context.currentTime;
@@ -14453,13 +15101,24 @@ function openOnAirReviewEditorEmpty() {
     }
   });
   onAirActiveReviewMedia = null;
+  onAirReviewTimelineSourceToken = "";
+  onAirReviewTimelineSegments = [];
+  onAirReviewMarkers = [];
+  onAirReviewCleanupRanges = [];
+  onAirReviewGainAdjustments = [];
+  onAirReviewFadeRegions = [];
+  onAirReviewUndoStack = [];
+  onAirReviewRedoStack = [];
+  onAirReviewTimelineExplicitDuration = 0;
+  onAirReviewEditedDuration = 0;
+  onAirReviewSourceAsset = null;
+  onAirReviewSelectedClipIndex = -1;
+  clearOnAirReviewSelection();
   ensureOnAirReviewTimeline();
   resetOnAirReviewZoomToFit(0);
   resetOnAirReviewPlayheadToStart();
   setOnAirReviewModalOpen(true);
-  if (onAirReviewWindowStatus) {
-    onAirReviewWindowStatus.textContent = "Review Cut is open. Load a saved audio or video recording to start editing.";
-  }
+  setOnAirReviewStatusMessage("Review Cut is open. Import a source file or insert a Music Library track to start editing.");
   updateOnAirReviewUi({ render: false, applyGain: false, syncFromMedia: false });
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
@@ -14478,6 +15137,7 @@ function openOnAirReviewPlayback(kind) {
     }
   }
   resetReviewCutPlaybackSession({ reason: "open_playback" });
+  onAirReviewSourceAsset = null;
   onAirActiveReviewMedia = target && target.src ? target : null;
   if (onAirActiveReviewMedia) {
     ensureOnAirReviewAudioGraph();
@@ -14486,11 +15146,11 @@ function openOnAirReviewPlayback(kind) {
   resetOnAirReviewZoomToFit(0);
   resetOnAirReviewPlayheadToStart();
   setOnAirReviewModalOpen(true);
-  if (onAirReviewWindowStatus) {
-    onAirReviewWindowStatus.textContent = onAirActiveReviewMedia
-      ? ((isVideo ? "Video" : "Audio") + " review loaded. Click anywhere in the waveform strip to scrub through the show.")
-      : "Review Cut is open. Load a saved audio or video recording to start editing.";
-  }
+  setOnAirReviewStatusMessage(
+    onAirActiveReviewMedia
+      ? ((isVideo ? "Video" : "Audio") + " source loaded. Click anywhere in the waveform strip to scrub through the show.")
+      : "Review Cut is open. Import a source file or insert a Music Library track to start editing."
+  );
   updateOnAirReviewUi({ render: false, applyGain: false });
   updateOnAirReviewPlayState();
   updateOnAirReviewMuteState();
@@ -14910,9 +15570,19 @@ function renderOnAirLibraryList() {
         : [];
   onAirLibraryList.innerHTML = "";
   if (onAirLibraryNote) {
-    onAirLibraryNote.textContent = assets.length
-      ? getLibraryDisplayLabel(onAirLibraryView) + " Library"
-      : "No assets in " + getLibraryDisplayLabel(onAirLibraryView) + " yet.";
+    if (onAirLibraryView === "post-production") {
+      onAirLibraryNote.textContent = assets.length
+        ? "Post-Production holds raw takes and in-progress drafts. Open a draft in Review Cut or delete a bad take."
+        : "No post-production takes yet. Stopped recordings will appear here automatically.";
+    } else if (onAirLibraryView === "episodes") {
+      onAirLibraryNote.textContent = assets.length
+        ? "Episodes holds approved saved shows and exports."
+        : "No saved episodes yet.";
+    } else {
+      onAirLibraryNote.textContent = assets.length
+        ? getLibraryDisplayLabel(onAirLibraryView) + " Library"
+        : "No assets in " + getLibraryDisplayLabel(onAirLibraryView) + " yet.";
+    }
   }
   if (!assets.length) {
     const empty = document.createElement("p");
@@ -14924,6 +15594,7 @@ function renderOnAirLibraryList() {
   assets.forEach((asset) => {
     const row = document.createElement("div");
     row.className = "onair-library-row";
+    row.dataset.libraryKind = onAirLibraryView;
     const meta = document.createElement("div");
     meta.className = "onair-library-meta";
     const title = document.createElement("p");
@@ -15007,22 +15678,91 @@ function renderOnAirLibraryList() {
       actions.appendChild(deleteAction);
       row.appendChild(actions);
     } else {
-      const action = document.createElement("button");
-      action.type = "button";
-      action.className = "btn sso onair-library-action";
-      action.textContent = "Open Asset";
-      action.addEventListener("click", async () => {
-        if (!window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
-          return;
-        }
-        const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
-        if (!ticket || !ticket.ok || !ticket.downloadUrl) {
-          onAirMediaStatus.textContent = "Unable to open this library asset right now.";
-          return;
-        }
-        window.open(ticket.downloadUrl, "_blank", "noopener");
-      });
-      row.appendChild(action);
+      const actions = document.createElement("div");
+      actions.className = "onair-library-actions";
+      if (onAirLibraryView === "post-production") {
+        const reviewAction = document.createElement("button");
+        reviewAction.type = "button";
+        reviewAction.className = "btn sso onair-library-action";
+        reviewAction.textContent = "Review Cut";
+        reviewAction.addEventListener("click", async () => {
+          try {
+            await openPostProductionAssetInReviewCut(asset);
+            onAirMediaStatus.textContent = "Opened " + String(asset.title || "draft") + " in Review Cut.";
+          } catch (error) {
+            onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to open this post-production asset right now.";
+          }
+        });
+        actions.appendChild(reviewAction);
+        const deleteAction = document.createElement("button");
+        deleteAction.type = "button";
+        deleteAction.className = "btn sso onair-library-action";
+        deleteAction.textContent = "Delete";
+        deleteAction.addEventListener("click", async () => {
+          if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
+            onAirMediaStatus.textContent = "Delete is unavailable right now.";
+            return;
+          }
+          const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
+          if (!deleted || !deleted.ok) {
+            onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this post-production asset right now.";
+            return;
+          }
+          await setOnAirLibraryView("post-production", true);
+          onAirMediaStatus.textContent = "Deleted " + String(asset.title || "post-production draft") + ".";
+        });
+        actions.appendChild(deleteAction);
+      } else if (onAirLibraryView === "episodes") {
+        const exportAudioAction = document.createElement("button");
+        exportAudioAction.type = "button";
+        exportAudioAction.className = "btn sso onair-library-action";
+        exportAudioAction.textContent = "Export Audio";
+        exportAudioAction.addEventListener("click", async () => {
+          try {
+            await exportLibraryAssetAudio(asset);
+            onAirMediaStatus.textContent = "Audio export started for " + String(asset.title || "episode") + ".";
+          } catch (error) {
+            onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to export this episode right now.";
+          }
+        });
+        actions.appendChild(exportAudioAction);
+        const deleteAction = document.createElement("button");
+        deleteAction.type = "button";
+        deleteAction.className = "btn sso onair-library-action";
+        deleteAction.textContent = "Delete";
+        deleteAction.addEventListener("click", async () => {
+          if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
+            onAirMediaStatus.textContent = "Delete is unavailable right now.";
+            return;
+          }
+          const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
+          if (!deleted || !deleted.ok) {
+            onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this episode right now.";
+            return;
+          }
+          await setOnAirLibraryView("episodes", true);
+          onAirMediaStatus.textContent = "Deleted " + String(asset.title || "episode") + ".";
+        });
+        actions.appendChild(deleteAction);
+      } else {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "btn sso onair-library-action";
+        action.textContent = "Open Asset";
+        action.addEventListener("click", async () => {
+          if (!window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
+            return;
+          }
+          const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
+          if (!ticket || !ticket.ok || !ticket.downloadUrl) {
+            onAirMediaStatus.textContent = "Unable to open this library asset right now.";
+            return;
+          }
+          window.open(ticket.downloadUrl, "_blank", "noopener");
+        });
+        actions.appendChild(action);
+      }
+      row.appendChild(actions);
     }
     onAirLibraryList.appendChild(row);
   });
@@ -15961,13 +16701,32 @@ async function stopHostRecordingWithReason(reasonText) {
   } else {
     const blob = await stopLocalRecordingCaptureAndFinalize().catch(() => null);
     ready = !!((blob && blob.size > 0) || (recordingAudioBlob && recordingAudioBlob.size > 0));
+    if (ready && onAirReviewAppendFinishedRecordingToTimeline) {
+      await appendLatestRecordingAssetToOnAirReviewTimeline().catch(() => false);
+    }
   }
+  onAirReviewAppendFinishedRecordingToTimeline = false;
   clearRecordingAutomationTimers();
   recordingStartInProgress = false;
   setOnAirCountdownPopoutOpen(false);
   setRecordingState(false, ready, session.username);
   if (ready) {
     beginRecordingProcessingPhase();
+    saveCurrentRecordingToPostProduction()
+      .then((asset) => {
+        if (!asset) {
+          return;
+        }
+        onAirMediaStatus.textContent = "Recording saved to Post-Production as " + String(asset.title || "draft") + ".";
+        if (onAirReviewStatus && recordingWorkflowState !== "processing") {
+          onAirReviewStatus.textContent = "Recording saved to Post-Production. Open Review Cut to polish the draft or return to the library later.";
+        }
+      })
+      .catch((error) => {
+        onAirMediaStatus.textContent =
+          (error && error.message ? error.message : "Recording saved locally but could not be pushed to Post-Production.") +
+          " The local review asset is still available in this browser.";
+      });
   } else {
     setRecordingWorkflowState("ready");
   }
@@ -16051,6 +16810,12 @@ async function startHostRecordingFlow() {
   clearRecordingProcessingTimer();
   clearRecordingAutomationTimers();
   if (!RECORDING_DEMO_MODE) {
+    ensureOnAirReviewTimeline();
+    onAirReviewAppendFinishedRecordingToTimeline = false;
+    if (hasLocalRecordingAsset()) {
+      await convertCurrentRecordingAssetToOnAirReviewClipAsset().catch(() => null);
+    }
+    onAirReviewAppendFinishedRecordingToTimeline = getOnAirReviewMediaClips().length > 0;
     clearLocalRecordingAsset();
   }
   const countdown = getRecordingCountdownSeconds();
@@ -18084,6 +18849,11 @@ document.addEventListener(
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (onAirReviewModalOpen) {
+      event.preventDefault();
+      closeOnAirReviewPlayback();
+      return;
+    }
     setLoungeHelpModalOpen(false);
     setLoungeSettingsModalOpen(false);
     setLoungeProfileDeleteModalOpen(false);
@@ -18102,6 +18872,32 @@ document.addEventListener("keydown", (event) => {
         // Ignore transient close failures.
       });
     }
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!onAirReviewModalOpen || event.key !== "Tab") {
+    return;
+  }
+  const focusable = getOnAirReviewFocusableElements();
+  if (!focusable.length) {
+    event.preventDefault();
+    onAirReviewWindow?.focus?.({ preventScroll: true });
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if (event.shiftKey) {
+    if (active === first || !onAirReviewWindow?.contains(active)) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+    }
+    return;
+  }
+  if (active === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
   }
 });
 
@@ -19058,7 +19854,7 @@ onAirReviewLaunchBtn?.addEventListener("click", () => {
     return;
   }
   openOnAirReviewEditorEmpty();
-  onAirMediaStatus.textContent = "Review Cut opened. Load a saved recording to start editing.";
+  onAirMediaStatus.textContent = "Review Cut opened. Import a source file or insert a Music Library track to start editing.";
 });
 
 onAirExportVideoBtn?.addEventListener("click", () => {
@@ -19066,8 +19862,7 @@ onAirExportVideoBtn?.addEventListener("click", () => {
     return;
   }
   const extension = getVideoExportExtension();
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  downloadBlobAsset(recordingMediaUrl, "doggfather-show-video-" + stamp + "." + extension);
+  downloadBlobAsset(recordingMediaUrl, getOnAirConfiguredRecordingNameStem() + "-video." + extension);
   if (getOnAirReviewExportAffectsAudio()) {
     onAirMediaStatus.textContent = "Source video download started. Review Cut edits currently render through Audio Only export.";
     if (onAirExportNote) {
@@ -19079,8 +19874,7 @@ onAirExportVideoBtn?.addEventListener("click", () => {
 });
 
 onAirExportAudioBtn?.addEventListener("click", async () => {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = "doggfather-show-audio-" + stamp + ".wav";
+  const filename = getOnAirConfiguredRecordingNameStem() + "-audio.wav";
   if (onAirExportAudioBtn) {
     onAirExportAudioBtn.disabled = true;
   }
@@ -19103,7 +19897,7 @@ onAirExportAudioBtn?.addEventListener("click", async () => {
       return;
     }
     const extension = getAudioExportExtension();
-    downloadBlobAsset(recordingAudioUrl, "doggfather-show-audio-" + stamp + "." + extension);
+    downloadBlobAsset(recordingAudioUrl, getOnAirConfiguredRecordingNameStem() + "-audio." + extension);
     if (onAirMediaStatus) {
       onAirMediaStatus.textContent = "Audio-only download started.";
     }
@@ -19137,17 +19931,23 @@ onAirMusicUploadBtn?.addEventListener("click", () => {
 });
 
 onAirLibraryOpenBtn?.addEventListener("click", async () => {
-  setOnAirLibraryOpen(true);
-  await setOnAirLibraryView(onAirLibraryView || "music", true);
+  const nextOpen = !onAirLibraryOpen;
+  setOnAirLibraryOpen(nextOpen);
+  if (nextOpen) {
+    await setOnAirLibraryView(onAirLibraryView || "music", true);
+  }
 });
 
 onAirLibrarySideTab?.addEventListener("click", async () => {
-  setOnAirLibraryOpen(true);
-  await setOnAirLibraryView(onAirLibraryView || "music", true);
+  const nextOpen = !onAirLibraryOpen;
+  setOnAirLibraryOpen(nextOpen);
+  if (nextOpen) {
+    await setOnAirLibraryView(onAirLibraryView || "music", true);
+  }
 });
 
 onAirAudioSideTab?.addEventListener("click", () => {
-  setOnAirAudioOpen(true);
+  setOnAirAudioOpen(!onAirAudioOpen);
 });
 
 onAirAudioCloseBtn?.addEventListener("click", () => {
@@ -19880,9 +20680,57 @@ onAirReviewRedoBtn?.addEventListener("click", () => {
   }
 });
 
+onAirReviewSaveDraftBtn?.addEventListener("click", async () => {
+  try {
+    updateOnAirReviewSaveButtons();
+    onAirMediaStatus.textContent = "Saving draft to Post-Production...";
+    setOnAirReviewStatusMessage("Saving draft to Post-Production...");
+    const asset = await saveOnAirReviewRenderToLibrary("post-production");
+    if (!asset) {
+      onAirMediaStatus.textContent = "Nothing is ready to save as a draft yet.";
+      setOnAirReviewStatusMessage("Nothing is ready to save as a draft yet.", true);
+      return;
+    }
+    setOnAirLibraryOpen(true);
+    await setOnAirLibraryView("post-production", true);
+    onAirMediaStatus.textContent = "Review Cut draft saved to Post-Production.";
+    setOnAirReviewStatusMessage("Draft saved to Post-Production as " + String(asset.title || "draft") + ".");
+  } catch (error) {
+    const message = error && error.message ? error.message : "Unable to save this draft right now.";
+    onAirMediaStatus.textContent = message;
+    setOnAirReviewStatusMessage(message, true);
+  } finally {
+    updateOnAirReviewSaveButtons();
+  }
+});
+
+onAirReviewSaveEpisodeBtn?.addEventListener("click", async () => {
+  try {
+    updateOnAirReviewSaveButtons();
+    onAirMediaStatus.textContent = "Saving episode to Episodes...";
+    setOnAirReviewStatusMessage("Saving episode to Episodes...");
+    const asset = await saveOnAirReviewRenderToLibrary("episodes");
+    if (!asset) {
+      onAirMediaStatus.textContent = "Nothing is ready to save to Episodes yet.";
+      setOnAirReviewStatusMessage("Nothing is ready to save to Episodes yet.", true);
+      return;
+    }
+    setOnAirLibraryOpen(true);
+    await setOnAirLibraryView("episodes", true);
+    onAirMediaStatus.textContent = "Review Cut saved to Episodes.";
+    setOnAirReviewStatusMessage("Saved to Episodes as " + String(asset.title || "episode") + ".");
+  } catch (error) {
+    const message = error && error.message ? error.message : "Unable to save this episode right now.";
+    onAirMediaStatus.textContent = message;
+    setOnAirReviewStatusMessage(message, true);
+  } finally {
+    updateOnAirReviewSaveButtons();
+  }
+});
+
 onAirReviewMuteBtn?.addEventListener("click", () => {
   const media = getActiveOnAirReviewMediaElement();
-  if (!media || !media.src) {
+  if ((!media || !media.src) && !canUseOnAirReviewClipPlayback()) {
     return;
   }
   onAirReviewMuted = !onAirReviewMuted;
@@ -20171,6 +21019,16 @@ if (typeof reviewCutInteractionControllerApi.bind === "function") {
           onPause: pauseOnAirReviewPlaybackLoop,
           onStart: startOnAirReviewPlaybackLoop,
           onRestartAfterFinished: restartOnAirReviewPlaybackLoopAfterFinished,
+          onRejected() {
+            setOnAirReviewStatusMessage("Nothing is ready to play yet. Import a source file or insert a Music Library track first.", true);
+          },
+          onStartFailed(error) {
+            setOnAirReviewStatusMessage(
+              "Playback could not start right now" +
+                (((error && error.message) || "").trim() ? ": " + String(error.message).trim() : "."),
+              true
+            );
+          },
           pushDiagnostic: pushReviewCutDiagnostic,
           onAfterToggle: updateOnAirReviewPlayState
         });
@@ -20194,10 +21052,14 @@ if (typeof reviewCutInteractionControllerApi.bind === "function") {
         closeOnAirReviewPlayback();
       },
       onLoadRequest() {
+        setOnAirReviewStatusMessage("Choose an audio or video file to import into Review Cut.");
         onAirReviewFileInput?.click();
       },
       async onFileChosen(file) {
-        await importOnAirReviewFile(file);
+        const imported = await importOnAirReviewFile(file);
+        if (!imported) {
+          setOnAirReviewStatusMessage("Import did not complete. The current draft was left unchanged.", true);
+        }
       },
       onWavePointerDown(event) {
         onAirReviewWavePointerDown = true;
@@ -20297,7 +21159,16 @@ if (typeof reviewCutInteractionControllerApi.bind === "function") {
         onAirReviewSelectionHandleOffset = 0;
         updateOnAirReviewUi({ render: true, applyGain: false });
       },
-      onWavePointerLeave() {
+      onWavePointerLeave(event) {
+        if (
+          event &&
+          Number.isFinite(event.pointerId) &&
+          event.currentTarget &&
+          typeof event.currentTarget.hasPointerCapture === "function" &&
+          event.currentTarget.hasPointerCapture(event.pointerId)
+        ) {
+          return;
+        }
         if (!onAirReviewSelectMode) {
           onAirReviewWavePointerDown = false;
           endOnAirReviewClipDrag();
@@ -20306,9 +21177,15 @@ if (typeof reviewCutInteractionControllerApi.bind === "function") {
           onAirReviewSelectionHandleOffset = 0;
         }
       },
-      onWavePointerCancel() {
+      onWavePointerCancel(event) {
         onAirReviewWavePointerDown = false;
         stopOnAirReviewSelectionAutoPan();
+        if (onAirReviewSelectionPointerId !== null) {
+          onAirReviewWaveCanvas.releasePointerCapture?.(onAirReviewSelectionPointerId);
+          onAirReviewPlayhead?.releasePointerCapture?.(onAirReviewSelectionPointerId);
+        } else if (event && Number.isFinite(event.pointerId)) {
+          event.currentTarget?.releasePointerCapture?.(event.pointerId);
+        }
         onAirReviewSelectionPointerId = null;
         endOnAirReviewClipDrag();
         onAirReviewFadeDragState = null;
@@ -20379,7 +21256,7 @@ if (typeof reviewCutMediaControllerApi.bind === "function") {
           return;
         }
         syncOnAirReviewEditedTimeFromActiveMedia();
-        updateOnAirReviewTimelineIndicators({ render: true });
+        updateOnAirReviewTimelineIndicators({ render: getOnAirReviewVisualPlaybackMode() !== "native" });
         if (!onAirReviewAudio || onAirReviewAudio.currentTime < 0.9) {
           return;
         }
@@ -20410,7 +21287,7 @@ if (typeof reviewCutMediaControllerApi.bind === "function") {
       },
       onVideoTimeUpdate() {
         syncOnAirReviewEditedTimeFromActiveMedia();
-        updateOnAirReviewTimelineIndicators({ render: true });
+        updateOnAirReviewTimelineIndicators({ render: getOnAirReviewVisualPlaybackMode() !== "native" });
       }
     }
   });

@@ -9,7 +9,11 @@
     const waveCanvas = elements.waveCanvas || null;
     const state = {
       transportState: "idle",
-      playbackViewportAnchorTime: null
+      playbackViewportAnchorTime: null,
+      isVisible: false,
+      cssLeft: null,
+      cssTop: null,
+      cssHeight: null
     };
 
     function setTransportState(nextState, currentSeconds) {
@@ -52,7 +56,11 @@
       if (!root) {
         return;
       }
+      if (!state.isVisible) {
+        return;
+      }
       root.style.opacity = "0";
+      state.isVisible = false;
     }
 
     function render(renderConfig) {
@@ -75,18 +83,37 @@
         ? Math.max(0, Math.min(1, (currentProgress - windowStart) / windowSize))
         : currentProgress;
       const playheadX = Number(layout.timelineX || 0) + Number(layout.timelineWidth || 0) * windowProgress;
-      const rect = waveCanvas.getBoundingClientRect();
-      const scaleX = rect.width > 0 && waveCanvas.width > 0 ? rect.width / waveCanvas.width : 1;
-      const scaleY = rect.height > 0 && waveCanvas.height > 0 ? rect.height / waveCanvas.height : 1;
-      const cssLeft = Math.round(playheadX * scaleX);
-      const cssTop = Math.max(0, (Number(layout.meterY || 0) - 4) * scaleY);
+      const canvasRect = waveCanvas.getBoundingClientRect();
+      const parentRect = root.parentElement && typeof root.parentElement.getBoundingClientRect === "function"
+        ? root.parentElement.getBoundingClientRect()
+        : canvasRect;
+      const scaleX = canvasRect.width > 0 && waveCanvas.width > 0 ? canvasRect.width / waveCanvas.width : 1;
+      const scaleY = canvasRect.height > 0 && waveCanvas.height > 0 ? canvasRect.height / waveCanvas.height : 1;
+      const offsetLeft = Math.max(0, canvasRect.left - parentRect.left);
+      const offsetTop = Math.max(0, canvasRect.top - parentRect.top);
+      const cssLeft = offsetLeft + playheadX * scaleX;
+      const cssTop = offsetTop + Math.max(0, (Number(layout.meterY || 0) - 4) * scaleY);
       const cssHeight = Math.max(0, (Number(layout.meterHeight || 0) + 8) * scaleY);
-      root.style.opacity = "1";
-      root.style.left = cssLeft + "px";
-      root.style.top = cssTop + "px";
-      root.style.height = cssHeight + "px";
-      line.style.height = cssHeight + "px";
-      cap.style.top = "0px";
+      if (!state.isVisible) {
+        root.style.opacity = "1";
+        state.isVisible = true;
+      }
+      if (state.cssLeft !== cssLeft) {
+        root.style.left = cssLeft.toFixed(3) + "px";
+        state.cssLeft = cssLeft;
+      }
+      if (state.cssTop !== cssTop) {
+        root.style.top = cssTop.toFixed(3) + "px";
+        state.cssTop = cssTop;
+      }
+      if (state.cssHeight !== cssHeight) {
+        root.style.height = cssHeight.toFixed(3) + "px";
+        line.style.height = cssHeight.toFixed(3) + "px";
+        state.cssHeight = cssHeight;
+      }
+      if (cap.style.top !== "0px") {
+        cap.style.top = "0px";
+      }
       return true;
     }
 
