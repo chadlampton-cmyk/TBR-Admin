@@ -766,6 +766,19 @@ async function runDbBootstrap(pool) {
   `);
   await pool.query("create index if not exists idx_studio_audit_created_at on studio_audit_log(created_at desc)");
   await pool.query(`
+    create table if not exists studio_show_libraries (
+      id text primary key,
+      title text not null,
+      slug text not null unique,
+      created_by text references studio_users(username) on delete set null,
+      updated_by text references studio_users(username) on delete set null,
+      archived boolean not null default false,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+  `);
+  await pool.query("create index if not exists idx_studio_show_libraries_active on studio_show_libraries(archived, title asc)");
+  await pool.query(`
     create table if not exists studio_library_assets (
       id text primary key,
       library_kind text not null,
@@ -915,6 +928,7 @@ async function listAuditLog(limit) {
 async function listLibraryAssetsDb(options) {
   const libraryKind = normalizeLibraryKind(options && options.libraryKind);
   const safeLimit = Math.max(10, Math.min(250, Number((options && options.limit) || 50) || 50));
+  const showLibraryId = String((options && options.showLibraryId) || "").trim();
   if (!hasDb()) {
     return [];
   }
@@ -941,12 +955,100 @@ async function listLibraryAssetsDb(options) {
       from studio_library_assets
       where library_kind = $1
         and status = 'uploaded'
+        and ($3::text = '' or coalesce(metadata->>'showLibraryId', '') = $3)
       order by created_at desc
       limit $2
     `,
-    [libraryKind, safeLimit]
+    [libraryKind, safeLimit, showLibraryId]
   );
   return Array.isArray(result && result.rows) ? result.rows : [];
+}
+
+function sanitizeShowLibraryTitle(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 120);
+}
+
+function createShowLibrarySlug(value) {
+  const normalized = sanitizeShowLibraryTitle(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || "show-library";
+}
+
+async function listShowLibrariesDb() {
+  if (!hasDb()) {
+    return [];
+  }
+  const result = await dbQuery(
+    `
+      select
+        id,
+        title,
+        slug,
+        created_by as "createdBy",
+        updated_by as "updatedBy",
+        archived,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      from studio_show_libraries
+      where archived = false
+      order by title asc, created_at asc
+    `,
+    []
+  );
+  return Array.isArray(result && result.rows) ? result.rows : [];
+}
+
+async function createShowLibraryDb(actorUsername, payload) {
+  if (!hasDb()) {
+    return { ok: false, error: "Show library storage is unavailable right now." };
+  }
+  const title = sanitizeShowLibraryTitle(payload && payload.title);
+  if (!title) {
+    return { ok: false, error: "Show library name is required." };
+  }
+  const slugBase = createShowLibrarySlug(title);
+  let slug = slugBase;
+  let attempt = 1;
+  // Keep the collision logic local and deterministic.
+  while (attempt < 50) {
+    const existing = await dbQuery(
+      "select id, title, slug from studio_show_libraries where lower(slug) = lower($1) limit 1",
+      [slug]
+    );
+    const row = existing && existing.rows && existing.rows[0] ? existing.rows[0] : null;
+    if (!row) {
+      break;
+    }
+    if (String(row.title || "").trim().toLowerCase() === title.toLowerCase()) {
+      return { ok: true, showLibrary: row };
+    }
+    attempt += 1;
+    slug = slugBase + "-" + String(attempt);
+  }
+  const showLibrary = {
+    id: "show_" + crypto.randomBytes(8).toString("hex"),
+    title,
+    slug
+  };
+  await dbQuery(
+    `
+      insert into studio_show_libraries (
+        id,
+        title,
+        slug,
+        created_by,
+        updated_by,
+        archived,
+        created_at,
+        updated_at
+      )
+      values ($1,$2,$3,$4,$4,false,now(),now())
+    `,
+    [showLibrary.id, showLibrary.title, showLibrary.slug, normalizeUsername(actorUsername || "") || null]
+  );
+  return { ok: true, showLibrary };
 }
 
 async function createLibraryAssetMetadataDb(actorUsername, payload) {
@@ -4141,8 +4243,39 @@ const server = http.createServer(async (req, res) => {
       }
       const libraryKind = normalizeLibraryKind(url.searchParams.get("library") || "");
       const limit = Number(url.searchParams.get("limit") || 100);
-      const assets = await listLibraryAssetsDb({ libraryKind, limit });
-      json(res, 200, { ok: true, libraryKind, assets });
+      const showLibraryId = String(url.searchParams.get("showLibraryId") || "").trim();
+      const assets = await listLibraryAssetsDb({ libraryKind, limit, showLibraryId });
+      json(res, 200, { ok: true, libraryKind, showLibraryId, assets });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/show-libraries") {
+      const authUser = await requireAuth(req, res, false);
+      if (!authUser) {
+        return;
+      }
+      const showLibraries = await listShowLibrariesDb();
+      json(res, 200, { ok: true, showLibraries });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/show-libraries") {
+      const authUser = await requireAuth(req, res, false);
+      if (!authUser) {
+        return;
+      }
+      const body = await parseBody(req);
+      const created = await createShowLibraryDb(authUser.username, body);
+      if (!created.ok) {
+        json(res, 400, created);
+        return;
+      }
+      await writeAuditLog("show_library.create", authUser.username, "", {
+        showLibraryId: created.showLibrary.id,
+        title: created.showLibrary.title,
+        slug: created.showLibrary.slug
+      });
+      json(res, 200, created);
       return;
     }
 

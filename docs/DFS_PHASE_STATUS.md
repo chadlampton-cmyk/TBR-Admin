@@ -1,6 +1,6 @@
 # DFS Phase Status
 
-Last updated: 2026-03-24 (late)
+Last updated: 2026-03-26
 
 ## Purpose
 Track the current build state of the active DFS prototype.
@@ -26,6 +26,10 @@ Implemented:
 - readiness/preflight summary
 - chat access from active page
 
+Current caution:
+- a recent `hello.js` extraction caused a full-page startup regression before being fixed
+- browser verification is now required after each refactor pass, not just syntax checks
+
 ### On-Air Control Room
 Status:
 - usable baseline
@@ -38,6 +42,12 @@ Implemented:
 - music library drawer
 - audio controls drawer
 - library/audio drawers now behave as mutually exclusive panels
+- active show-library selector shell
+- library show filter shell
+
+Current caveats:
+- show-library flow needs browser validation end to end
+- show creation currently uses prompt-based UI and still needs polish
 
 ### Recording / Review / Export
 Status:
@@ -114,15 +124,16 @@ Note:
 - `hello.*` still has some legacy dependencies on them, so cleanup is not fully complete
 
 ## Current Priority Order
-1. validate end-to-end save/export reliability live after R2 RW credential fix
-2. clean up control-room/export redundancy now that `Episodes` owns export better
-3. decide draft versioning / overwrite semantics for `Post-Production`
-4. stabilize Audio Controls behavior
-5. finish active cue UI polish
-6. validate guest audio behavior against the real mix path
-7. validate recording output against live behavior
-8. remove or isolate legacy page dependencies from `hello`
-9. add video Review Cut / audio+video episode workflow later
+1. validate show-library create/select/filter flow live
+2. validate end-to-end save/export reliability live after R2 RW credential fix
+3. clean up control-room/export redundancy now that `Episodes` owns export better
+4. decide draft versioning / overwrite semantics for `Post-Production`
+5. stabilize Audio Controls behavior
+6. finish active cue UI polish
+7. validate guest audio behavior against the real mix path
+8. validate recording output against live behavior
+9. remove or isolate legacy page dependencies from `hello`
+10. add video Review Cut / audio+video episode workflow later
 
 ## Current Biggest Gaps
 - save/export workflow now exists but still needs live validation with working shared-storage credentials
@@ -131,3 +142,24 @@ Note:
 - guest slider behavior still needs full live/recording validation
 - recording/compositor still centers on one remote stream
 - live UI capabilities are ahead of recording fidelity in some areas
+
+## Codebase Protection Direction
+- do not attempt a broad rewrite of `landing/hello.js` or `realtime/server.js`
+- use gradual feature extraction around active workflows instead
+- treat [DFS_REFACTOR_PROTECTION_PLAN.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_REFACTOR_PROTECTION_PLAN.md) as the working outline for safe modularization
+
+## Current Refactor State
+Completed enough to count as active:
+- `onair-library-*`
+- `recording-*`
+- early `realtime/chat-*` transport extraction
+
+Still pending:
+- remaining chat UI-side helpers
+- remaining host/participant UI-side helpers
+- `onair-audio-*`
+- final cleanup in `landing/hello.js`
+
+Pause rule:
+- if a refactor causes the page to feel globally dead, treat it as a startup failure first
+- check browser Console for the first runtime exception before continuing extraction

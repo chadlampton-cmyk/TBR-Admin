@@ -1,11 +1,13 @@
 # Review Cut Editor Handoff
 
-Last updated: 2026-03-23
+Last updated: 2026-03-26
 
 ## Purpose
-This doc captures the actual current state of `Review Cut` in the active `landing/hello.*` build.
+This doc captures the Review Cut handoff context for the active `landing/hello.*` build.
 
-This is the restart note for the browser-based post-record editor.
+It should be read together with [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md), which is the current restart note for the latest stabilization pass and storage-backed workflow wiring.
+
+This file is now best treated as the Review Cut capability map and guardrail note, not the newest session checkpoint.
 
 ## Active Files
 - `landing/hello.html`
@@ -32,7 +34,7 @@ It is not a full DAW, but it is no longer a simple review widget.
 - `Review Cut` opens as a near full-screen editor over the control room
 - can open anytime from the control room
 - can open before any recording exists
-- can load a saved local audio or video file with `Load Recording`
+- can load a saved local audio or video file with `Import Source`
 - transport, timeline, library, and inspector are all inside the editor shell
 
 ### Playback and timeline
@@ -146,7 +148,7 @@ It is not a full DAW, but it is no longer a simple review widget.
   - let viewport auto-pan continuously near edges
   - keep motion readable before and during playback
 
-## Critical Known Issues
+## Current Open Gaps
 
 ### Product / behavior risks
 1. Track-head drag while zoomed is still not fully premium.
@@ -155,26 +157,23 @@ It is not a full DAW, but it is no longer a simple review widget.
 2. Edited export is only solved for audio.
    `Download Audio Only` renders the edited Review Cut timeline, but `Download Video Show` still exports the source video, not an edited rendered video.
 
-3. `Load Recording` still replaces the active local review source.
-   Imported insert behavior is improved, but full project/session safety is not done.
+3. Import/session safety is improved, not fully solved.
+   `Import Source` is safer than the earlier replacement flow, but full project/session management is still not done.
 
 ### Editor / enterprise gaps
-4. The modal is not a proper dialog yet.
-   It still needs `role="dialog"`, `aria-modal="true"`, and focus trapping.
+4. Keyboard ownership is still not editor-grade.
+   Global shortcuts and transport ownership still need final hardening while Review Cut is open.
 
-5. Keyboard ownership is not editor-grade yet.
-   Spacebar push-to-talk still exists globally and Review Cut does not fully own transport shortcuts while open.
-
-6. Clip identity in the timeline is improving but still not yet at mature DAW quality.
+5. Clip identity in the timeline is improving but still not yet at mature DAW quality.
    Track blocks need stronger labels and source identity to read more like a serious editor.
 
-7. Review Cut still depends on `hello.js` wrappers.
+6. Review Cut still depends on `hello.js` wrappers.
    The architecture is much better, but it is not yet a fully independent editor subsystem.
 
 ## Priority Order
 1. Finish track-head drag smoothing and zoom-follow behavior
 2. Make import/session behavior non-destructive
-3. Bring Review Cut modal/accessibility up to enterprise standards
+3. Finish keyboard ownership hardening and remaining accessibility polish
 4. Finish timeline visual identity and inspector polish
 5. Add project persistence
 6. Add a true past recordings/archive system
@@ -184,14 +183,13 @@ It is not a full DAW, but it is no longer a simple review widget.
 1. Finish playhead drag so it feels smooth before and during playback at any zoom level.
 2. Keep zoomed viewport auto-pan smooth and predictable during manual scrub.
 3. Make Review Cut file import/session handling non-destructive.
-4. Add dialog/focus/keyboard ownership so Review Cut behaves like a true editor workspace.
+4. Harden keyboard shortcut ownership so Review Cut behaves like a true editor workspace.
 5. Continue visual polish with typography/spacing refinement after interaction trust is locked.
 
 ## Enterprise Standards Still Missing
 - fully hardened track-head drag behavior
 - edited video output
 - project save/load for edit state
-- proper dialog accessibility
 - keyboard shortcut ownership while editor is open
 - stronger clip metadata and labeling
 - more intentional track targeting
@@ -218,6 +216,8 @@ Preferred architecture remains:
 
 ## Resume Target
 Resume with the highest-value product gap, not another speculative feature.
+
+For the current repo-wide restart order, use [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md) first. This file should support that note, not override it.
 
 Recommended order:
 1. finish track-head drag smoothness while zoomed

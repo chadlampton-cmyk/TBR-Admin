@@ -1300,7 +1300,7 @@
     }
   }
 
-  async function listLibraryAssets(libraryKind, limit) {
+  async function listLibraryAssets(libraryKind, limit, showLibraryId) {
     const session = getSession();
     if (!session) {
       return { ok: false, error: "Not signed in.", assets: [] };
@@ -1308,13 +1308,21 @@
     try {
       const kind = String(libraryKind || "music").trim().toLowerCase() || "music";
       const safeLimit = Math.max(10, Math.min(250, Number(limit || 100) || 100));
+      const showFilter = String(showLibraryId || "").trim();
+      const params = new URLSearchParams();
+      params.set("library", kind);
+      params.set("limit", String(safeLimit));
+      if (showFilter) {
+        params.set("showLibraryId", showFilter);
+      }
       const payload = await apiRequest(
-        "/library/assets?library=" + encodeURIComponent(kind) + "&limit=" + encodeURIComponent(String(safeLimit)),
+        "/library/assets?" + params.toString(),
         { method: "GET" }
       );
       return {
         ok: !!(payload && payload.ok),
         libraryKind: String((payload && payload.libraryKind) || kind),
+        showLibraryId: String((payload && payload.showLibraryId) || showFilter),
         assets: Array.isArray(payload && payload.assets) ? payload.assets : []
       };
     } catch (error) {
@@ -1322,6 +1330,50 @@
         ok: false,
         error: (error && error.payload && error.payload.error) || error.message || "Unable to load library assets.",
         assets: []
+      };
+    }
+  }
+
+  async function listShowLibraries() {
+    const session = getSession();
+    if (!session) {
+      return { ok: false, error: "Not signed in.", showLibraries: [] };
+    }
+    try {
+      const payload = await apiRequest("/show-libraries", { method: "GET" });
+      return {
+        ok: !!(payload && payload.ok),
+        showLibraries: Array.isArray(payload && payload.showLibraries) ? payload.showLibraries : []
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: (error && error.payload && error.payload.error) || error.message || "Unable to load show libraries.",
+        showLibraries: []
+      };
+    }
+  }
+
+  async function createShowLibrary(title) {
+    const session = getSession();
+    if (!session) {
+      return { ok: false, error: "Not signed in." };
+    }
+    try {
+      const payload = await apiRequest("/show-libraries", {
+        method: "POST",
+        body: {
+          title: String(title || "").trim()
+        }
+      });
+      return {
+        ok: !!(payload && payload.ok),
+        showLibrary: payload && payload.showLibrary ? payload.showLibrary : null
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: (error && error.payload && error.payload.error) || error.message || "Unable to create show library."
       };
     }
   }
@@ -1728,6 +1780,8 @@
     listAuditEvents,
     exportChatForAdmin,
     runStudioAdminAction,
+    listShowLibraries,
+    createShowLibrary,
     listLibraryAssets,
     createLibraryAssetMeta,
     renameLibraryAsset,

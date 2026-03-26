@@ -3,9 +3,11 @@
 Last updated: 2026-03-18
 
 ## Purpose
-This note captures the most recent hands-on work, current verified state, and the exact place where implementation stopped.
+This is an archived session note from the pre-Review-Cut-storage workflow stage.
 
-Use this as the first session note for a restart.
+Do not use this as the main restart path.
+
+Use [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md) for the current restart note.
 
 ## Current Active Files
 - `landing/hello.html`

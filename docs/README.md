@@ -1,6 +1,6 @@
 # DFS Docs Index
 
-Last updated: 2026-03-23
+Last updated: 2026-03-26
 
 ## Purpose
 This folder is the current handoff layer for the live DFS build.
@@ -12,6 +12,11 @@ It should answer:
 - what is locked
 - where work should resume
 
+Canonical rule:
+- this file is the only docs entry point
+- the newest session restart note is [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md)
+- older session notes are archive context only
+
 ## Read First
 For a clean restart, read these in order:
 
@@ -20,7 +25,8 @@ For a clean restart, read these in order:
 3. [DFS_PHASE_STATUS.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_PHASE_STATUS.md)
 4. [DFS_LOCKED_DECISIONS.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_LOCKED_DECISIONS.md)
 5. [REVIEW_CUT_EDITOR_HANDOFF.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/REVIEW_CUT_EDITOR_HANDOFF.md)
-6. [SESSION_NOTES_2026-03-23.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-23.md)
+6. [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md)
+7. [DFS_REFACTOR_PROTECTION_PLAN.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_REFACTOR_PROTECTION_PLAN.md)
 
 ## Canonical Active Files
 - [hello.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/hello.html)
@@ -47,10 +53,10 @@ What is done:
 - empty `Review Cut` can now open without a recording and be seeded with inserted audio starting on `T1`
 
 What is next:
-- finish smoothing Review Cut track-head dragging while zoomed
-- harden Review Cut modal accessibility and keyboard ownership
-- make Review Cut import/session handling non-destructive
-- continue Review Cut UI polish after interaction trust is stable
+- validate the storage-backed workflow live after the R2 RW credential fix
+- decide draft overwrite/version semantics for `Post-Production`
+- clean up control-room/export redundancy now that `Episodes` owns export better
+- continue Review Cut polish where it materially improves trust
 - continue `Active Cues` fit and polish
 - validate guest audio behavior against live and recorded output
 
@@ -61,12 +67,16 @@ What is next:
 - [RAILWAY_GODADDY_SETUP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/RAILWAY_GODADDY_SETUP.md)
 - [CLOUDFLARE_R2_SETUP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/CLOUDFLARE_R2_SETUP.md)
 - [REVIEW_CUT_EDITOR_HANDOFF.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/REVIEW_CUT_EDITOR_HANDOFF.md)
-- [SESSION_NOTES_2026-03-23.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-23.md)
+- [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md)
+- [DFS_REFACTOR_PROTECTION_PLAN.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_REFACTOR_PROTECTION_PLAN.md)
 - [STUDIO_V1_PLAN.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/STUDIO_V1_PLAN.md)
 
-## Historical Notes
-These are historical context, not the main restart path:
+## Archived Session Notes
+These are archived context only.
+
+Do not use them as the main restart path unless a current doc explicitly sends you there:
 - [SESSION_NOTES_2026-03-07.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-07.md)
 - [SESSION_NOTES_2026-03-08.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-08.md)
 - [SESSION_NOTES_2026-03-09.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-09.md)
 - [SESSION_NOTES_2026-03-18.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-18.md)
+- [SESSION_NOTES_2026-03-23.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-23.md)

@@ -438,6 +438,19 @@
               <button type="button" class="btn sso host-btn" id="host-mute-all-btn">Mute All</button>
               <button type="button" class="btn sso host-btn" id="host-clear-spotlight-btn">Clear Spotlight</button>
             </div>
+            <div class="host-record-row">
+              <button type="button" class="btn primary host-btn host-record-btn" id="onair-record-btn">
+                <span class="host-record-btn-icon record" id="onair-record-btn-icon" aria-hidden="true"></span>
+                <span class="host-record-btn-label" id="onair-record-btn-label">Record</span>
+              </button>
+            </div>
+            <div class="host-spotlight-row">
+              <label class="settings-field" for="host-show-library-select">Active show library</label>
+              <select id="host-show-library-select" class="settings-select">
+                <option value="">All Shows</option>
+              </select>
+              <button type="button" class="btn sso host-btn" id="host-show-library-create-btn">New Show</button>
+            </div>
             <div class="host-spotlight-row">
               <label class="settings-field" for="host-spotlight-select">Spotlight speaker</label>
               <select id="host-spotlight-select" class="settings-select"></select>
@@ -452,12 +465,10 @@
           </section>
 
           <section class="onair-panel onair-media-panel">
-            <h3 class="studio-heading">Media Actions</h3>
-            <div class="host-controls onair-media-buttons">
-              <button type="button" class="btn sso host-btn" id="onair-playback-btn">Playback</button>
-              <button type="button" class="btn primary host-btn" id="onair-record-btn">Record</button>
-              <button type="button" class="btn sso host-btn onair-download-btn" id="onair-download-btn">Download</button>
-            </div>
+            <h3 class="studio-heading">Episode Build</h3>
+            <p class="camera-status onair-media-summary">
+              Choose music here, record from Host Controls, then polish the take in Review Cut and export from `Episodes`.
+            </p>
             <section class="onair-music-cues" aria-label="Music cues">
               <div class="onair-music-cues-head">
                 <p class="onair-music-cues-title">Music Library</p>
@@ -465,28 +476,26 @@
               </div>
               <div class="onair-music-cues-grid">
                 <div class="onair-music-cues-field">
-                  <label class="settings-field" for="onair-music-track-select">Track Library</label>
+                  <label class="settings-field" for="onair-music-track-select">Current Cue Source</label>
                   <select id="onair-music-track-select" class="settings-select" aria-label="Choose a music track">
                     <option value="">No uploaded tracks yet</option>
                   </select>
                 </div>
                 <div class="onair-music-cues-field">
-                  <label class="settings-field" for="onair-music-slot-select">Cue Slot</label>
-                  <select id="onair-music-slot-select" class="settings-select" aria-label="Choose cue slot">
-                    <option value="intro">Intro</option>
-                    <option value="ad-break">Ad Break</option>
-                    <option value="segment-bed">Segment Bed</option>
-                    <option value="outro">Outro</option>
+                  <label class="settings-field" for="onair-music-next-track-select">Next Up Source</label>
+                  <select id="onair-music-next-track-select" class="settings-select" aria-label="Choose the next music track">
+                    <option value="">No uploaded tracks yet</option>
                   </select>
                 </div>
               </div>
               <div class="onair-music-cues-actions">
                 <button type="button" class="btn sso host-btn" id="onair-music-upload-btn">Upload Track</button>
                 <button type="button" class="btn sso host-btn" id="onair-library-open-btn">Open Library</button>
-                <button type="button" class="btn primary host-btn" id="onair-music-queue-btn">Queue Next</button>
-                <button type="button" class="btn sso host-btn" id="onair-music-play-btn">Play Now</button>
+                <button type="button" class="btn primary host-btn" id="onair-music-play-btn">Start Current</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-queue-btn">Stage Next</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-layer-btn">Add Layer</button>
                 <button type="button" class="btn sso host-btn" id="onair-music-stop-btn">Stop Cue</button>
-                <button type="button" class="btn sso host-btn" id="onair-music-clear-btn">Clear Queue</button>
+                <button type="button" class="btn sso host-btn" id="onair-music-clear-btn">Clear Next</button>
               </div>
               <input
                 id="onair-music-upload-input"
@@ -496,15 +505,16 @@
                 aria-label="Upload music track"
               />
               <audio id="onair-music-player" class="hidden" preload="auto" aria-label="Music cue playback"></audio>
-              <p class="camera-status" id="onair-music-next">Up Next: nothing queued.</p>
+              <p class="camera-status" id="onair-music-current">Current Cue: nothing live.</p>
+              <p class="camera-status" id="onair-music-next">Next Up: nothing staged.</p>
               <p class="camera-status onair-music-cues-note" id="onair-music-cues-note">
-                Upload and queue production music from your track library.
+                Start a primary cue here, stage one `Next Up`, and use `Add Layer` for simultaneous playback.
               </p>
               <div class="onair-review-launch-row">
                 <button type="button" class="btn sso host-btn" id="onair-review-launch-btn">Review Cut</button>
               </div>
             </section>
-            <p class="camera-status" id="onair-media-status">Recording and export actions will run from this On-Air area.</p>
+            <p class="camera-status" id="onair-media-status">Record from Host Controls. Edit in Post-Production. Export from Episodes.</p>
             <section class="onair-review-panel" id="onair-review-panel" aria-label="Review cut">
               <div class="onair-review-head">
                 <div>
@@ -664,10 +674,15 @@
                           <div class="onair-review-library-head">
                             <div>
                               <p class="onair-review-panel-title">Review Library</p>
-                              <p class="camera-status onair-review-library-note" id="onair-review-library-note">Use the Music Library to preview or insert sounds into the review cut.</p>
+                              <p class="camera-status onair-review-library-note" id="onair-review-library-note">Open shared Music, Episodes, or Post-Production assets and place them directly on the review timeline.</p>
                             </div>
                           </div>
                         </summary>
+                        <div class="onair-review-library-tabs" role="tablist" aria-label="Review library categories">
+                          <button type="button" class="onair-library-tab" id="onair-review-library-tab-music" data-review-library-view="music" role="tab" aria-selected="false">Music</button>
+                          <button type="button" class="onair-library-tab" id="onair-review-library-tab-episodes" data-review-library-view="episodes" role="tab" aria-selected="false">Episodes</button>
+                          <button type="button" class="onair-library-tab active" id="onair-review-library-tab-post" data-review-library-view="post-production" role="tab" aria-selected="true">Post-Production</button>
+                        </div>
                         <div class="onair-review-library-list" id="onair-review-library-list"></div>
                       </details>
                     </aside>
@@ -906,6 +921,12 @@
               <button type="button" class="onair-library-tab active" id="onair-library-tab-music" data-library-view="music">Music</button>
               <button type="button" class="onair-library-tab" id="onair-library-tab-episodes" data-library-view="episodes">Episodes</button>
               <button type="button" class="onair-library-tab" id="onair-library-tab-post" data-library-view="post-production">Post-Production</button>
+            </div>
+            <div class="onair-library-filter-row">
+              <label class="settings-field" for="onair-library-show-filter-select">Show Filter</label>
+              <select id="onair-library-show-filter-select" class="settings-select">
+                <option value="">All Shows</option>
+              </select>
             </div>
             <p class="camera-status onair-library-note" id="onair-library-note">Loading library assets.</p>
             <section class="onair-library-preview hidden" id="onair-library-preview" aria-label="Track preview player">
@@ -1347,6 +1368,21 @@
       </div>
     </div>
 
+    <div id="show-library-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="show-library-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card show-library-card" role="dialog" aria-modal="true" aria-labelledby="show-library-title">
+        <p id="show-library-title" class="chat-confirm-title">Create Show Library</p>
+        <p class="chat-confirm-text">Create a reusable show library name for recordings, drafts, and library filtering.</p>
+        <label class="settings-field settings-subfield" for="show-library-name-input">Show library name</label>
+        <input id="show-library-name-input" type="text" maxlength="120" placeholder="Example: Turnbuckle Report" />
+        <p id="show-library-message" class="form-message hidden" role="status"></p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="show-library-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn primary" id="show-library-create-confirm-btn">Create</button>
+        </div>
+      </div>
+    </div>
+
     <div id="lounge-settings-modal" class="lounge-page-modal hidden" aria-hidden="true">
       <div class="lounge-page-backdrop" id="lounge-settings-backdrop"></div>
       <section
@@ -1397,6 +1433,14 @@
     <script src="./review-cut-interaction-controller.js?v=20260323-002"></script>
     <script src="./review-cut-media-controller.js?v=20260323-002"></script>
     <script src="./review-cut-session-controller.js?v=20260323-002"></script>
-    <script src="./hello.js?v=20260324-432"></script>
+    <script src="./onair-library-storage.js?v=20260326-001"></script>
+    <script src="./onair-library-render.js?v=20260326-001"></script>
+    <script src="./onair-library-controller.js?v=20260326-001"></script>
+    <script src="./onair-library-bridge.js?v=20260326-001"></script>
+    <script src="./recording-capture.js?v=20260326-001"></script>
+    <script src="./recording-controller.js?v=20260326-001"></script>
+    <script src="./realtime-controller.js?v=20260326-001"></script>
+    <script src="./chat-controller.js?v=20260326-001"></script>
+    <script src="./hello.js?v=20260326-437"></script>
   </body>
 </html>

@@ -1,5 +1,9 @@
 # Session Notes - 2026-03-07
 
+Archived note.
+
+Use [docs/README.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/README.md) and [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md) for the current restart path.
+
 ## Summary
 Consolidated notes of the current TBR Admin + Doggfather Studio prototype decisions and implementation state.
 

@@ -30,4 +30,5 @@ Use these instead:
 3. `docs/DFS_ARCHITECTURE.md`
 4. `docs/DFS_PHASE_STATUS.md`
 5. `docs/DFS_LOCKED_DECISIONS.md`
-6. `docs/SESSION_NOTES_2026-03-10.md`
+6. `docs/REVIEW_CUT_EDITOR_HANDOFF.md`
+7. `docs/SESSION_NOTES_2026-03-24.md`

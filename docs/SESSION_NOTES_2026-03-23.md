@@ -3,9 +3,11 @@
 Last updated: 2026-03-23
 
 ## Purpose
-This is the current restart note for the latest Review Cut rewrite and handoff state.
+This is an archived session note for the Review Cut rewrite handoff state.
 
-Use this as the newest implementation handoff.
+Do not use this as the newest implementation handoff.
+
+Use [SESSION_NOTES_2026-03-24.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/SESSION_NOTES_2026-03-24.md) for the current restart note.
 
 ## Current Active Files
 - `landing/hello.html`

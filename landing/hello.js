@@ -100,6 +100,12 @@ const chatScheduleMinutesInput = document.getElementById("chat-schedule-minutes-
 const chatScheduleWarning = document.getElementById("chat-schedule-warning");
 const chatScheduleCancelBtn = document.getElementById("chat-schedule-cancel-btn");
 const chatScheduleOkBtn = document.getElementById("chat-schedule-ok-btn");
+const showLibraryModal = document.getElementById("show-library-modal");
+const showLibraryBackdrop = document.getElementById("show-library-backdrop");
+const showLibraryNameInput = document.getElementById("show-library-name-input");
+const showLibraryMessage = document.getElementById("show-library-message");
+const showLibraryCancelBtn = document.getElementById("show-library-cancel-btn");
+const showLibraryCreateConfirmBtn = document.getElementById("show-library-create-confirm-btn");
 const chatSendBtn = chatForm ? chatForm.querySelector(".chat-send") : null;
 const quickNoteButtons = Array.from(document.querySelectorAll(".quick-note-btn"));
 const cameraVideo = document.getElementById("camera-video");
@@ -143,6 +149,8 @@ const onAirCameraStatus = document.getElementById("onair-camera-status");
 const onAirLivePill = document.getElementById("onair-live-pill");
 const onAirPlaybackBtn = document.getElementById("onair-playback-btn");
 const onAirRecordBtn = document.getElementById("onair-record-btn");
+const onAirRecordBtnIcon = document.getElementById("onair-record-btn-icon");
+const onAirRecordBtnLabel = document.getElementById("onair-record-btn-label");
 const onAirDownloadBtn = document.getElementById("onair-download-btn");
 const onAirRecordPill = document.getElementById("onair-record-pill");
 const onAirStatusLine = document.getElementById("onair-status-line");
@@ -152,6 +160,8 @@ const onAirRecordTimer = document.getElementById("onair-record-timer");
 const onAirRecordLevelBadge = document.getElementById("onair-record-level-badge");
 const onAirRecordWave = document.getElementById("onair-record-wave");
 const onAirMediaStatus = document.getElementById("onair-media-status");
+const hostShowLibrarySelect = document.getElementById("host-show-library-select");
+const hostShowLibraryCreateBtn = document.getElementById("host-show-library-create-btn");
 const workflowReadyPill = document.getElementById("workflow-ready-pill");
 const workflowCountdownPill = document.getElementById("workflow-countdown-pill");
 const workflowRecordingPill = document.getElementById("workflow-recording-pill");
@@ -185,6 +195,9 @@ const onAirReviewPlayheadCap = onAirReviewPlayhead?.querySelector(".onair-review
 const onAirReviewWaveNote = document.getElementById("onair-review-wave-note");
 const onAirReviewLibraryNote = document.getElementById("onair-review-library-note");
 const onAirReviewLibraryList = document.getElementById("onair-review-library-list");
+const onAirReviewLibraryTabMusic = document.getElementById("onair-review-library-tab-music");
+const onAirReviewLibraryTabEpisodes = document.getElementById("onair-review-library-tab-episodes");
+const onAirReviewLibraryTabPost = document.getElementById("onair-review-library-tab-post");
 const onAirReviewUndoBtn = document.getElementById("onair-review-undo-btn");
 const onAirReviewRedoBtn = document.getElementById("onair-review-redo-btn");
 const onAirReviewMoveModeBtn = document.getElementById("onair-review-move-mode-btn");
@@ -244,11 +257,12 @@ const onAirExportVideoBtn = document.getElementById("onair-export-video-btn");
 const onAirExportAudioBtn = document.getElementById("onair-export-audio-btn");
 const onAirMusicCuesBadge = document.getElementById("onair-music-cues-badge");
 const onAirMusicTrackSelect = document.getElementById("onair-music-track-select");
-const onAirMusicSlotSelect = document.getElementById("onair-music-slot-select");
+const onAirMusicNextTrackSelect = document.getElementById("onair-music-next-track-select");
 const onAirMusicUploadBtn = document.getElementById("onair-music-upload-btn");
 const onAirMusicUploadInput = document.getElementById("onair-music-upload-input");
 const onAirMusicQueueBtn = document.getElementById("onair-music-queue-btn");
 const onAirMusicPlayBtn = document.getElementById("onair-music-play-btn");
+const onAirMusicLayerBtn = document.getElementById("onair-music-layer-btn");
 const onAirMusicStopBtn = document.getElementById("onair-music-stop-btn");
 const onAirMusicClearBtn = document.getElementById("onair-music-clear-btn");
 const onAirLibraryOpenBtn = document.getElementById("onair-library-open-btn");
@@ -286,12 +300,14 @@ const onAirLibraryCloseBtn = document.getElementById("onair-library-close-btn");
 const onAirLibraryPanel = document.getElementById("onair-library-panel");
 const onAirLibraryList = document.getElementById("onair-library-list");
 const onAirLibraryNote = document.getElementById("onair-library-note");
+const onAirLibraryShowFilterSelect = document.getElementById("onair-library-show-filter-select");
 const onAirLibraryPreview = document.getElementById("onair-library-preview");
 const onAirLibraryPreviewPlayBtn = document.getElementById("onair-library-preview-play-btn");
 const onAirLibraryPreviewCloseBtn = document.getElementById("onair-library-preview-close-btn");
 const onAirLibraryPreviewMuteBtn = document.getElementById("onair-library-preview-mute-btn");
 const onAirLibraryPreviewTime = document.getElementById("onair-library-preview-time");
 const onAirLibraryPreviewAudio = document.getElementById("onair-library-preview-audio");
+const onAirMusicCurrent = document.getElementById("onair-music-current");
 const onAirMusicNext = document.getElementById("onair-music-next");
 const onAirMusicCuesNote = document.getElementById("onair-music-cues-note");
 const onAirMusicPlayer = document.getElementById("onair-music-player");
@@ -719,6 +735,7 @@ let onAirReviewTimelinePinned = false;
 let onAirReviewEditedDuration = 0;
 let onAirReviewTimelineExplicitDuration = 0;
 let onAirReviewEditedTime = 0;
+const RECORDING_DEMO_MODE = false;
 const reviewCutViewportControllerFactory = window.ReviewCutViewportController || {};
 const onAirReviewViewportController = typeof reviewCutViewportControllerFactory.create === "function"
   ? reviewCutViewportControllerFactory.create()
@@ -734,6 +751,14 @@ const onAirReviewPlayheadController = typeof reviewCutPlayheadControllerFactory.
   : null;
 const reviewCutSessionControllerApi = window.ReviewCutSessionController || {};
 const reviewCutPlaybackControllerFactory = window.ReviewCutPlaybackController || {};
+const onAirLibraryStorageApi = window.OnAirLibraryStorage || {};
+const onAirLibraryRenderApi = window.OnAirLibraryRender || {};
+const onAirLibraryControllerFactory = window.OnAirLibraryController || {};
+const onAirLibraryBridgeFactory = window.OnAirLibraryBridge || {};
+const recordingCaptureFactory = window.RecordingCapture || {};
+const recordingControllerFactory = window.RecordingController || {};
+const realtimeControllerFactory = window.RealtimeController || {};
+const chatControllerFactory = window.ChatController || {};
 const boundRequestAnimationFrame = typeof window.requestAnimationFrame === "function"
   ? window.requestAnimationFrame.bind(window)
   : null;
@@ -982,6 +1007,11 @@ let currentMicMeterLevel = 0;
 let onAirGuestVolumePercent = 100;
 let onAirLibraryOpen = false;
 let onAirLibraryView = "music";
+let onAirReviewLibraryView = "post-production";
+let showLibraries = [];
+let activeShowLibraryId = String((studioSettings && studioSettings.activeShowLibraryId) || "").trim();
+let onAirLibraryShowFilterId = String((studioSettings && studioSettings.libraryShowFilterId) || activeShowLibraryId || "").trim();
+let showLibraryCreateInFlight = false;
 let onAirLibraryPreviewAssetId = "";
 let onAirLibraryPreviewObjectUrl = "";
 let onAirPostProductionSaveInFlight = false;
@@ -995,6 +1025,533 @@ const onAirLibraryAssets = {
   episodes: [],
   "post-production": []
 };
+const onAirLibraryController = typeof onAirLibraryControllerFactory.create === "function"
+  ? onAirLibraryControllerFactory.create({
+      authApi: window.TBRAuth || null,
+      elements: {
+        libraryDrawer: onAirLibraryDrawer,
+        libraryPanel: onAirLibraryPanel,
+        audioDrawer: onAirAudioDrawer,
+        audioPanel: onAirAudioPanel,
+        libraryList: onAirLibraryList,
+        libraryNote: onAirLibraryNote,
+        reviewLibraryList: onAirReviewLibraryList,
+        reviewLibraryNote: onAirReviewLibraryNote,
+        reviewLibraryTabMusic: onAirReviewLibraryTabMusic,
+        reviewLibraryTabEpisodes: onAirReviewLibraryTabEpisodes,
+        reviewLibraryTabPost: onAirReviewLibraryTabPost,
+        musicTrackSelect: onAirMusicTrackSelect,
+        musicNextTrackSelect: onAirMusicNextTrackSelect,
+        musicCuesNote: onAirMusicCuesNote
+      },
+      isLibraryOpen: () => onAirLibraryOpen,
+      setLibraryOpenState(value) {
+        onAirLibraryOpen = !!value;
+      },
+      isAudioOpen: () => onAirAudioOpen,
+      setAudioOpenState(value) {
+        onAirAudioOpen = !!value;
+      },
+      closePreview: () => closeOnAirLibraryPreview(),
+      onAudioOpened() {
+        onAirActiveCueRenderSignature = "";
+        queueOnAirAudioControlsRefresh();
+      },
+      getLibraryView: () => onAirLibraryView,
+      setLibraryViewState(value) {
+        onAirLibraryView = value;
+      },
+      getShowLibraryFilterId: () => onAirLibraryShowFilterId,
+      getReviewLibraryView: () => onAirReviewLibraryView,
+      setReviewLibraryViewState(value) {
+        onAirReviewLibraryView = value;
+      },
+      getLibraryAssets: () => onAirLibraryAssets,
+      setLibraryAssetsForKind(kind, assets) {
+        onAirLibraryAssets[kind] = assets;
+      },
+      getMusicLibrary: () => onAirMusicLibrary,
+      setMusicLibrary(value) {
+        onAirMusicLibrary = Array.isArray(value) ? value : [];
+      },
+      setMusicCatalogStatus(value) {
+        onAirMusicCatalogStatus = value;
+      },
+      getAllMusicLibraryTracks: () => getAllMusicLibraryTracks(),
+      isBrowserLocalSharedAsset: (asset) => isBrowserLocalSharedAsset(asset),
+      getLocalTrackIdForAsset: (asset) => getLocalTrackIdForAsset(asset),
+      hasBrowserLocalMusicTrack: (id) => hasBrowserLocalMusicTrack(id),
+      updateMusicCuesUi: () => updateOnAirMusicCuesUI(),
+      formatLibraryAssetStatus: (status) => formatLibraryAssetStatus(status),
+      formatLibraryAssetSize: (size) => formatLibraryAssetSize(size),
+      createMusicPreviewAction: (asset) => createOnAirMusicPreviewAction(asset),
+      createMusicUseAction: (asset) => createOnAirMusicUseAction(asset),
+      createMusicDeleteAction: (asset) => createOnAirMusicDeleteAction(asset),
+      createPostProductionReviewAction: (asset) => createOnAirPostProductionReviewAction(asset),
+      createPostProductionDeleteAction: (asset) => createOnAirPostProductionDeleteAction(asset),
+      createEpisodeExportAction: (asset) => createOnAirEpisodeExportAction(asset),
+      createEpisodeDeleteAction: (asset) => createOnAirEpisodeDeleteAction(asset),
+      createDefaultOpenAction: (asset) => createOnAirDefaultOpenAction(asset),
+      createReviewPreviewAction: (asset) => createOnAirReviewPreviewAction(asset),
+      createReviewInsertAction: (asset) => createOnAirReviewInsertAction(asset),
+      createReviewReplaceAction: (asset) => createOnAirReviewReplaceAction(asset)
+    })
+  : null;
+const onAirLibraryBridge = typeof onAirLibraryBridgeFactory.create === "function"
+  ? onAirLibraryBridgeFactory.create({
+      authApi: window.TBRAuth || null,
+      getFilenameExtensionFromMimeType,
+      createNamedUploadBlob,
+      importOnAirReviewFile,
+      setRecordingWorkflowState,
+      syncReviewPanelUi: () => syncReviewPanelUI(),
+      setReviewLibraryView: (value, forceRefresh) => setOnAirReviewLibraryView(value, forceRefresh),
+      setOnAirReviewModalOpen,
+      setOnAirReviewStatusMessage,
+      downloadBlobObject,
+      getLibraryAssetDownloadFilename,
+      uploadBlobToSharedLibrary,
+      loadOnAirLibraryKind,
+      setLibraryAssetsForKind(kind, assets) {
+        onAirLibraryAssets[kind] = assets;
+      },
+      getOnAirPostProductionAssetTitle,
+      getOnAirEpisodesAssetTitle,
+      getOnAirReviewTimelineDuration,
+      renderOnAirReviewEditedAudioBlob,
+      getRecordingAudioBlob: () => recordingAudioBlob,
+      getRecordingAudioMimeType: () => recordingAudioMimeType,
+      getRecordingAudioDurationSeconds: () => recordingAudioDurationSeconds,
+      getRecordingMediaBlob: () => recordingMediaBlob,
+      isPostProductionSaveInFlight: () => onAirPostProductionSaveInFlight,
+      setPostProductionSaveInFlight(value) {
+        onAirPostProductionSaveInFlight = !!value;
+      },
+      isReviewSaveInFlight: () => onAirReviewSaveInFlight,
+      setReviewSaveInFlight(value) {
+        onAirReviewSaveInFlight = !!value;
+      },
+      getOnAirReviewSourceAsset: () => onAirReviewSourceAsset,
+      setOnAirReviewSourceAsset(value) {
+        onAirReviewSourceAsset = value;
+      }
+    })
+  : null;
+const recordingController = typeof recordingControllerFactory.create === "function"
+  ? recordingControllerFactory.create({
+      recordingDemoMode: RECORDING_DEMO_MODE,
+      sessionUsername: session.username,
+      sessionDisplayName: sessionIdentity.displayName || session.username,
+      canCurrentUserControlRecording: () => canCurrentUserControlRecording(),
+      isCurrentUserHost: () => isCurrentUserHost(),
+      isRecording: () => isRecording,
+      isRecordingSplitInProgress: () => recordingSplitInProgress,
+      setRecordingSplitInProgress(value) {
+        recordingSplitInProgress = !!value;
+      },
+      setRecordingStartInProgress(value) {
+        recordingStartInProgress = !!value;
+      },
+      setOnAirCountdownPopoutOpen,
+      setOnAirMediaStatus(message) {
+        onAirMediaStatus.textContent = message;
+      },
+      setOnAirReviewStatus(message) {
+        if (onAirReviewStatus) {
+          onAirReviewStatus.textContent = message;
+        }
+      },
+      setRecordingWorkflowState,
+      getRecordingWorkflowState: () => recordingWorkflowState,
+      clearRecordingProcessingTimer,
+      clearRecordingAutomationTimers,
+      ensureOnAirReviewTimeline,
+      hasLocalRecordingAsset,
+      convertCurrentRecordingAssetToOnAirReviewClipAsset,
+      getOnAirReviewMediaClipCount: () => getOnAirReviewMediaClips().length,
+      setAppendFinishedRecordingToTimeline(value) {
+        onAirReviewAppendFinishedRecordingToTimeline = !!value;
+      },
+      getAppendFinishedRecordingToTimeline: () => onAirReviewAppendFinishedRecordingToTimeline,
+      clearLocalRecordingAsset,
+      getRecordingCountdownSeconds,
+      primeOnAirMusicCueForRecordingStart,
+      sendChat: (...args) => sendChat(...args),
+      runRecordingCountdown,
+      startLocalRecordingCapture,
+      setRecordingState,
+      startQueuedOnAirMusicForRecording,
+      sendHostSignalToAll: (...args) => sendHostSignalToAll(...args),
+      stopOnAirMusicCue,
+      abortLocalRecordingCapture,
+      stopLocalRecordingCaptureAndFinalize,
+      getRecordingAudioBlob: () => recordingAudioBlob,
+      appendLatestRecordingAssetToOnAirReviewTimeline,
+      beginRecordingProcessingPhase,
+      saveCurrentRecordingToPostProduction,
+      getAdminRecordingMaxMinutes: () => adminSettings.recordingMaxMinutes,
+      getRecordingAutoStopMinutes,
+      setRecordingAutoStopTimerId(value) {
+        recordingAutoStopTimerId = value;
+      },
+      getRecordingAutoSplitMinutes,
+      setRecordingAutoSplitTimerId(value) {
+        recordingAutoSplitTimerId = value;
+      }
+    })
+  : null;
+const recordingCaptureController = typeof recordingCaptureFactory.create === "function"
+  ? recordingCaptureFactory.create({
+      clearLocalRecordingAsset,
+      disconnectOnAirMusicRecordingStream,
+      pushRecordingDiagnostic,
+      setRecordingDiagnosticState,
+      formatDiagnosticBytes,
+      refreshRecordingAssetDurations,
+      syncReviewPanelUI: () => syncReviewPanelUI(),
+      getSupportedRecordingMimeType,
+      getAudioOnlyRecordingMimeType,
+      drawRecordingCompositeFrame,
+      setMediaDebugEnabled,
+      isMediaDebugEnabled: () => mediaDebugEnabled,
+      pushMediaDebug,
+      getMicProcessedStream: () => micProcessedStream,
+      getMicStream: () => micStream,
+      getOnAirRemoteVideoStream: () => (onAirRemoteVideo && onAirRemoteVideo.srcObject) || null,
+      getRemoteVideoStream: () => (remoteVideo && remoteVideo.srcObject) || null,
+      getOnAirMixerDestinationStream: () => (onAirMixerDestinationNode && onAirMixerDestinationNode.stream) || null,
+      getOnAirCameraVideoStream: () => (onAirCameraVideo && onAirCameraVideo.srcObject) || null,
+      getCameraVideoStream: () => (cameraVideo && cameraVideo.srcObject) || null,
+      getCameraStream: () => cameraStream,
+      getOnAirCameraVideo: () => onAirCameraVideo,
+      getCameraVideo: () => cameraVideo,
+      getOnAirRemoteVideo: () => onAirRemoteVideo,
+      getRemoteVideo: () => remoteVideo,
+      getRecordingMediaRecorder: () => recordingMediaRecorder,
+      setRecordingMediaRecorder(value) {
+        recordingMediaRecorder = value || null;
+      },
+      getRecordingAudioMediaRecorder: () => recordingAudioMediaRecorder,
+      setRecordingAudioMediaRecorder(value) {
+        recordingAudioMediaRecorder = value || null;
+      },
+      getRecordingStopResolve: () => recordingStopResolve,
+      setRecordingStopResolve(value) {
+        recordingStopResolve = value || null;
+      },
+      getRecordingStopPromise: () => recordingStopPromise,
+      setRecordingStopPromise(value) {
+        recordingStopPromise = value || null;
+      },
+      getRecordingMediaCanvas: () => recordingMediaCanvas,
+      setRecordingMediaCanvas(value) {
+        recordingMediaCanvas = value || null;
+      },
+      getRecordingMediaCanvasContext: () => recordingMediaCanvasContext,
+      setRecordingMediaCanvasContext(value) {
+        recordingMediaCanvasContext = value || null;
+      },
+      getRecordingMediaCanvasFrameId: () => recordingMediaCanvasFrameId,
+      setRecordingMediaCanvasFrameId(value) {
+        recordingMediaCanvasFrameId = value || null;
+      },
+      getRecordingMediaAudioContext: () => recordingMediaAudioContext,
+      setRecordingMediaAudioContext(value) {
+        recordingMediaAudioContext = value || null;
+      },
+      getRecordingMediaAudioDestination: () => recordingMediaAudioDestination,
+      setRecordingMediaAudioDestination(value) {
+        recordingMediaAudioDestination = value || null;
+      },
+      getRecordingMediaAudioSources: () => recordingMediaAudioSources,
+      setRecordingMediaAudioSources(value) {
+        recordingMediaAudioSources = Array.isArray(value) ? value : [];
+      },
+      getRecordingMediaStream: () => recordingMediaStream,
+      setRecordingMediaStream(value) {
+        recordingMediaStream = value || null;
+      },
+      getRecordingMediaChunks: () => recordingMediaChunks,
+      setRecordingMediaChunks(value) {
+        recordingMediaChunks = Array.isArray(value) ? value : [];
+      },
+      getRecordingAudioChunks: () => recordingAudioChunks,
+      setRecordingAudioChunks(value) {
+        recordingAudioChunks = Array.isArray(value) ? value : [];
+      },
+      getRecordingMediaBlob: () => recordingMediaBlob,
+      setRecordingMediaBlob(value) {
+        recordingMediaBlob = value || null;
+      },
+      getRecordingMediaUrl: () => recordingMediaUrl,
+      setRecordingMediaUrl(value) {
+        recordingMediaUrl = String(value || "");
+      },
+      getRecordingMediaMimeType: () => recordingMediaMimeType,
+      setRecordingMediaMimeType(value) {
+        recordingMediaMimeType = String(value || "");
+      },
+      getRecordingAudioBlob: () => recordingAudioBlob,
+      setRecordingAudioBlob(value) {
+        recordingAudioBlob = value || null;
+      },
+      getRecordingAudioUrl: () => recordingAudioUrl,
+      setRecordingAudioUrl(value) {
+        recordingAudioUrl = String(value || "");
+      },
+      getRecordingAudioMimeType: () => recordingAudioMimeType,
+      setRecordingAudioMimeType(value) {
+        recordingAudioMimeType = String(value || "");
+      },
+      getRecordingDiagnostics: () => recordingDiagnostics
+    })
+  : null;
+const chatController = typeof chatControllerFactory.create === "function"
+  ? chatControllerFactory.create({
+      api,
+      getRealtimeBaseUrl: () => REALTIME_BASE_URL,
+      getSessionUsername: () => session.username,
+      getSessionDisplayName: () => sessionIdentity.displayName || session.username,
+      readSessionValue,
+      writeSessionValue,
+      removeSessionValue,
+      getChatQueueStorageKey: () => CHAT_QUEUE_KEY,
+      getChatSeenStorageKey: () => CHAT_SEEN_UPTO_KEY,
+      getChatQueueTtlMs: () => CHAT_QUEUE_TTL_MS,
+      getScheduledSendCount: () => scheduledSendCount,
+      getAttachmentUploadXhr: () => attachmentUploadXhr,
+      setAttachmentUploadXhr(value) {
+        attachmentUploadXhr = value || null;
+      },
+      getLastChatId: () => lastChatId,
+      setLastChatId(value) {
+        lastChatId = Number(value) || 0;
+      },
+      getLastSeenUpTo: () => lastSeenUpTo,
+      setLastSeenUpTo(value) {
+        lastSeenUpTo = Number(value) || 0;
+      },
+      setPendingSeenUpTo(value) {
+        pendingSeenUpTo = Number(value) || 0;
+      },
+      getPendingSeenUpTo: () => pendingSeenUpTo,
+      getSeenMessageIdsSize: () => seenMessageIds.size,
+      hasSeenMessageId: (id) => seenMessageIds.has(Number(id) || 0),
+      clearSeenMessageIds() {
+        seenMessageIds.clear();
+      },
+      clearChatEntriesById() {
+        chatEntriesById.clear();
+      },
+      clearChatMessagesUi() {
+        chatMessages.innerHTML = "";
+      },
+      saveSeenUpTo,
+      normalizeServerMessageToEntry,
+      appendEntryToUI,
+      notifyIncomingRemoteMessage,
+      notifyIncomingReaction,
+      applyReactionUpdate,
+      applyMessageEdit,
+      applyMessageDelete,
+      applySeenUpdate,
+      setTypingUsers,
+      setChatStatus,
+      clearEditingMessageStatus,
+      clearReplyingMessage,
+      clearLocalPendingMessages,
+      setChatQueue(value) {
+        chatQueue = Array.isArray(value) ? value : [];
+      },
+      getChatQueue: () => chatQueue,
+      saveChatQueue,
+      isChatFlushInProgress: () => chatFlushInProgress,
+      setChatFlushInProgress(value) {
+        chatFlushInProgress = !!value;
+      },
+      setLockedChatErrorStatus,
+      removeFirstLocalPendingByText,
+      clearChatAttention,
+      renderUnread,
+      setUnreadCount(value) {
+        unreadCount = Math.max(0, Number(value) || 0);
+      },
+      updateChatStatusFromState,
+      refreshMessagePopovers,
+      markChatSeenUpToLatest,
+      flushSeenSyncQueue,
+      isChatPollInFlight: () => chatPollInFlight,
+      setChatPollInFlight(value) {
+        chatPollInFlight = !!value;
+      },
+      setRealtimeEnabled(value) {
+        realtimeEnabled = !!value;
+      },
+      isRealtimeEnabled: () => realtimeEnabled,
+      getChatDrawer: () => chatDrawer,
+      getChatLauncher: () => chatLauncher,
+      getChatAlertsDisabledAll: () => studioSettings.chatAlertsDisabledAll,
+      isChatPulseEnabled: () => studioSettings.chatPulseEnabled !== false,
+      isPendingChatResponse: () => pendingChatResponse,
+      setPendingChatResponse(value) {
+        pendingChatResponse = !!value;
+      },
+      isChatReadAcknowledged: () => chatReadAcknowledged,
+      setChatReadAcknowledged(value) {
+        chatReadAcknowledged = !!value;
+      },
+      getChatEntryIds: () => Array.from(chatEntriesById.keys()),
+      areChatReadReceiptsDisabled: () => studioSettings.chatReadReceiptsEnabled === false,
+      isSeenSyncInFlight: () => seenSyncInFlight,
+      setSeenSyncInFlight(value) {
+        seenSyncInFlight = !!value;
+      },
+      getTypingStopTimer: () => typingStopTimer,
+      setTypingStopTimer(value) {
+        typingStopTimer = value || null;
+      },
+      isTypingActive: () => typingIsActive,
+      setTypingActive(value) {
+        typingIsActive = !!value;
+      },
+      getLastTypingSentAt: () => lastTypingSentAt,
+      setLastTypingSentAt(value) {
+        lastTypingSentAt = Number(value) || 0;
+      },
+      getChatTypingIdleMs: () => CHAT_TYPING_IDLE_MS,
+      getChatTypingThrottleMs: () => CHAT_TYPING_SEND_THROTTLE_MS,
+      areChatAttachmentsDisabled: () => adminSettings.chatAttachmentsEnabled === false,
+      areChatVideoAttachmentsDisabled: () => adminSettings.chatVideoAttachmentsEnabled === false,
+      getReplyingToMessage: () => replyingToMessage,
+      setAttachmentBusy,
+      setAttachmentProgress,
+      setAttachmentRetryVisible,
+      setPendingAttachmentRetry(value) {
+        pendingAttachmentRetry = value || null;
+      },
+      clearPendingAttachment,
+      appendLocalPendingMessage,
+      removeLocalPendingMessage,
+      updateLocalPendingMessage,
+      clearReplyingMessage,
+      normalizeServerMessageToEntry,
+      appendEntryToUI
+    ,
+      getChatStreamRetryTimer: () => chatStreamRetryTimer,
+      setChatStreamRetryTimer(value) {
+        chatStreamRetryTimer = value || null;
+      },
+      getChatStream: () => chatStream,
+      setChatStream(value) {
+        chatStream = value || null;
+      }
+    })
+  : null;
+const realtimeController = typeof realtimeControllerFactory.create === "function"
+  ? realtimeControllerFactory.create({
+      api,
+      getSessionId: () => sessionId,
+      getSessionUsername: () => session.username,
+      getSessionDisplayName: () => sessionIdentity.displayName || session.username,
+      getRealtimeBaseUrl: () => REALTIME_BASE_URL,
+      getHostOwnerStatus: () => hostOwnerStatus,
+      getHostTransferSelect: () => hostTransferSelect,
+      getHostSpotlightSelect: () => hostSpotlightSelect,
+      getOnAirRosterStatus: () => onAirRosterStatus,
+      getParticipantsStatus: () => participantsStatus,
+      getCurrentParticipants: () => currentParticipants,
+      setCurrentHostUsername(value) {
+        currentHostUsername = String(value || "");
+      },
+      getSpotlightUsername: () => spotlightUsername,
+      getDisplayNameForUsername,
+      getDisplayNameForRow,
+      updateHostControlsAvailability,
+      refreshMessagePopovers,
+      setHostStatus,
+      isCurrentUserHost,
+      isRealtimeEnabled: () => realtimeEnabled,
+      setRealtimeEnabled(value) {
+        realtimeEnabled = !!value;
+      },
+      isOnAir: () => isOnAir,
+      mergeAdminSettings(nextSettings) {
+        adminSettings = {
+          ...adminSettings,
+          ...(nextSettings && typeof nextSettings === "object" ? nextSettings : {})
+        };
+      },
+      applyAdminSettingsToUi,
+      showRuntimeWarnings,
+      applyStudioControlState,
+      updateChatStatusFromState,
+      renderParticipants,
+      sendSignal,
+      getLastSignalId: () => lastSignalId,
+      setLastSignalId(value) {
+        lastSignalId = Number(value) || 0;
+      },
+      handleSignal,
+      isVideoRoomEnabled: () => videoRoomEnabled,
+      setChatOnlineState,
+      setVideoRoomStatus,
+      stopTypingTimer,
+      setTypingIsActive(value) {
+        typingIsActive = !!value;
+      },
+      setTypingUsers,
+      updatePreflightSummary,
+      isSessionSyncInFlight: () => sessionSyncInFlight,
+      setSessionSyncInFlight(value) {
+        sessionSyncInFlight = !!value;
+      },
+      getRefreshSessionFromServer: () => window.TBRAuth.refreshSessionFromServer,
+      leaveVideoRoom,
+      stopCameraStream,
+      stopMicLoopback,
+      stopMicStream,
+      clearSession: () => window.TBRAuth.clearSession(),
+      redirectToHome() {
+        window.location.replace("./");
+      },
+      loadRtcIceServers,
+      pollChat: (...args) => pollChat(...args),
+      startChatStream: () => startChatStream(),
+      flushChatQueue: () => flushChatQueue(),
+      getHeartbeatIntervalMs: () => HEARTBEAT_MS,
+      getPresencePollIntervalMs: () => POLL_PRESENCE_MS,
+      getChatPollIntervalMs: () => POLL_CHAT_MS,
+      getSignalPollIntervalMs: () => POLL_WEBRTC_MS,
+      getSessionSyncIntervalMs: () => SESSION_SYNC_MS,
+      getHeartbeatTimer: () => heartbeatTimer,
+      setHeartbeatTimer(value) {
+        heartbeatTimer = value || null;
+      },
+      getChatPollTimer: () => chatPollTimer,
+      setChatPollTimer(value) {
+        chatPollTimer = value || null;
+      },
+      getPresencePollTimer: () => presencePollTimer,
+      setPresencePollTimer(value) {
+        presencePollTimer = value || null;
+      },
+      getSignalPollTimer: () => signalPollTimer,
+      setSignalPollTimer(value) {
+        signalPollTimer = value || null;
+      },
+      getSessionSyncTimer: () => sessionSyncTimer,
+      setSessionSyncTimer(value) {
+        sessionSyncTimer = value || null;
+      },
+      closeChatStream: () => closeChatStream(),
+      stopChatStreamRetry: () => stopChatStreamRetry(),
+      getRealtimeBootstrapRetryTimer: () => realtimeBootstrapRetryTimer,
+      setRealtimeBootstrapRetryTimer(value) {
+        realtimeBootstrapRetryTimer = value || null;
+      },
+      getRealtimeBootstrapRetryIntervalMs: () => REALTIME_BOOTSTRAP_RETRY_MS
+    })
+  : null;
 let cameraPermissionStateValue = "unknown";
 let micPermissionStateValue = "unknown";
 let preflightMicCheckInProgress = false;
@@ -1059,7 +1616,6 @@ const CHAT_QUEUE_TTL_MS = 10 * 60 * 1000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const MAX_VIDEO_SECONDS = 40;
-const RECORDING_DEMO_MODE = false;
 const PRESENCE_NAV_SUPPRESS_KEY = "tbr_presence_nav_suppress_until";
 const PRESENCE_NAV_SUPPRESS_MS = 15000;
 const MUSIC_LIBRARY_DB_NAME = "dfs_music_library";
@@ -7026,15 +7582,26 @@ function updateOnAirReviewLibraryActionStates() {
     return;
   }
   const replaceState = getOnAirReviewReplaceSelectionState();
-  if (onAirReviewLibraryNote && onAirMusicLibrary.length) {
+  const reviewAssets = getOnAirReviewLibraryAssets();
+  if (onAirReviewLibraryNote && reviewAssets.length) {
+    const baseMessage = onAirReviewLibraryView === "music"
+      ? "Preview a music cue, insert it on the selected or next open track,"
+      : "Preview a shared asset, insert it on the selected or next open track,";
     onAirReviewLibraryNote.textContent = replaceState.allowed
-      ? "Preview a library sound, insert it on the selected or next open track, or replace the selected clip range."
-      : "Preview a library sound, insert it on the selected or next open track, or select within one clip to enable Replace.";
+      ? baseMessage + " or replace the selected clip range."
+      : baseMessage + " or select within one clip to enable Replace.";
   }
   onAirReviewLibraryList.querySelectorAll("[data-review-library-replace]").forEach((button) => {
     button.disabled = !replaceState.allowed;
     button.title = replaceState.allowed ? "Replace the selected range inside this clip." : replaceState.reason;
   });
+}
+
+function getOnAirReviewLibraryAssets() {
+  if (onAirReviewLibraryView === "music") {
+    return Array.isArray(onAirMusicLibrary) ? onAirMusicLibrary : [];
+  }
+  return Array.isArray(onAirLibraryAssets[onAirReviewLibraryView]) ? onAirLibraryAssets[onAirReviewLibraryView] : [];
 }
 
 function applyOnAirReviewInsertClipGainDelta(deltaDb) {
@@ -9009,7 +9576,10 @@ async function uploadBlobToSharedLibrary(libraryKind, blob, options) {
     title: uploadTitle,
     byteSize: Math.max(0, Number(blob.size || 0) || 0),
     durationSeconds: Number.isFinite(Number(options && options.durationSeconds)) ? Number(options.durationSeconds) : null,
-    metadata: options && options.metadata && typeof options.metadata === "object" ? options.metadata : {}
+    metadata: {
+      ...buildShowLibraryMetadata(),
+      ...(options && options.metadata && typeof options.metadata === "object" ? options.metadata : {})
+    }
   });
   if (!completed || !completed.ok || !completed.asset) {
     throw new Error((completed && completed.error) || "Shared upload metadata could not be finalized.");
@@ -9450,65 +10020,22 @@ function getSupportedRecordingMimeType() {
 }
 
 function stopRecordingCanvasLoop() {
-  if (recordingMediaCanvasFrameId) {
-    cancelAnimationFrame(recordingMediaCanvasFrameId);
-    recordingMediaCanvasFrameId = null;
+  if (recordingCaptureController && typeof recordingCaptureController.stopRecordingCanvasLoop === "function") {
+    return recordingCaptureController.stopRecordingCanvasLoop();
   }
-}
-
-function disconnectRecordingAudioSources() {
-  recordingMediaAudioSources.forEach((source) => {
-    try {
-      source.disconnect();
-    } catch (error) {
-      // Ignore disconnect races.
-    }
-  });
-  recordingMediaAudioSources = [];
 }
 
 async function refreshRecordingAudioSources() {
-  if (!recordingMediaAudioContext || !recordingMediaAudioDestination) {
+  if (!recordingCaptureController || typeof recordingCaptureController.refreshRecordingAudioSources !== "function") {
     return;
   }
-
-  disconnectRecordingAudioSources();
-
-  const addAudioSource = (stream) => {
-    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
-      return;
-    }
-    const source = recordingMediaAudioContext.createMediaStreamSource(stream);
-    source.connect(recordingMediaAudioDestination);
-    recordingMediaAudioSources.push(source);
-  };
-
-  addAudioSource(micProcessedStream || micStream);
-  addAudioSource(onAirRemoteVideo.srcObject || remoteVideo.srcObject);
-  addAudioSource(onAirMixerDestinationNode && onAirMixerDestinationNode.stream ? onAirMixerDestinationNode.stream : null);
-
-  if (recordingMediaAudioContext.state === "suspended") {
-    await recordingMediaAudioContext.resume();
-  }
+  return recordingCaptureController.refreshRecordingAudioSources();
 }
 
 function stopLocalRecordingCapture() {
-  stopRecordingCanvasLoop();
-  disconnectRecordingAudioSources();
-  disconnectOnAirMusicRecordingStream();
-  if (recordingMediaAudioContext) {
-    recordingMediaAudioContext.close().catch(() => {
-      // Ignore close races.
-    });
-    recordingMediaAudioContext = null;
+  if (recordingCaptureController && typeof recordingCaptureController.stopLocalRecordingCapture === "function") {
+    return recordingCaptureController.stopLocalRecordingCapture();
   }
-  recordingMediaAudioDestination = null;
-  if (recordingMediaStream) {
-    recordingMediaStream.getTracks().forEach((track) => track.stop());
-    recordingMediaStream = null;
-  }
-  recordingMediaCanvas = null;
-  recordingMediaCanvasContext = null;
 }
 
 function clearLocalRecordingAsset() {
@@ -9742,19 +10269,10 @@ function getRecordingAutoSplitMinutes() {
 }
 
 function hasRecordingVideoSources() {
-  const localStream = (onAirCameraVideo && onAirCameraVideo.srcObject) || (cameraVideo && cameraVideo.srcObject) || cameraStream || null;
-  const remoteStream = (onAirRemoteVideo && onAirRemoteVideo.srcObject) || (remoteVideo && remoteVideo.srcObject) || null;
-  const localReady = !!(
-    localStream &&
-    localStream.getVideoTracks &&
-    localStream.getVideoTracks().length
-  );
-  const remoteReady = !!(
-    remoteStream &&
-    remoteStream.getVideoTracks &&
-    remoteStream.getVideoTracks().length
-  );
-  return localReady || remoteReady;
+  if (!recordingCaptureController || typeof recordingCaptureController.hasRecordingVideoSources !== "function") {
+    return false;
+  }
+  return recordingCaptureController.hasRecordingVideoSources();
 }
 
 function drawRecordingCompositeFrame(canvas, context, localElement, remoteElement) {
@@ -9822,345 +10340,43 @@ function drawRecordingCompositeFrame(canvas, context, localElement, remoteElemen
 }
 
 function startRecordingCanvasLoop() {
-  if (!recordingMediaCanvas || !recordingMediaCanvasContext) {
-    return;
+  if (recordingCaptureController && typeof recordingCaptureController.startRecordingCanvasLoop === "function") {
+    return recordingCaptureController.startRecordingCanvasLoop();
   }
-  stopRecordingCanvasLoop();
-  const localElement = onAirCameraVideo || cameraVideo;
-  const remoteElement = onAirRemoteVideo || remoteVideo;
-
-  const render = () => {
-    if (!recordingMediaCanvas || !recordingMediaCanvasContext) {
-      return;
-    }
-    drawRecordingCompositeFrame(recordingMediaCanvas, recordingMediaCanvasContext, localElement, remoteElement);
-    recordingMediaCanvasFrameId = requestAnimationFrame(render);
-  };
-  render();
 }
 
 async function buildLocalRecordingStream() {
-  if (!window.MediaRecorder) {
-    throw new Error("MediaRecorder is not supported in this browser.");
+  if (!recordingCaptureController || typeof recordingCaptureController.buildLocalRecordingStream !== "function") {
+    throw new Error("Recording capture is not available.");
   }
-  const output = new MediaStream();
-  const includeVideo = hasRecordingVideoSources();
-
-  if (includeVideo) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1280;
-    canvas.height = 720;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw new Error("Unable to prepare recording canvas.");
-    }
-    recordingMediaCanvas = canvas;
-    recordingMediaCanvasContext = context;
-    startRecordingCanvasLoop();
-
-    const captureStream = canvas.captureStream(30);
-    const videoTrack = captureStream.getVideoTracks()[0];
-    if (videoTrack) {
-      output.addTrack(videoTrack);
-    }
-  }
-
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  recordingMediaAudioContext = audioContext;
-  recordingMediaAudioDestination = audioContext.createMediaStreamDestination();
-  recordingMediaAudioSources = [];
-  await refreshRecordingAudioSources();
-
-  const mixedTrack = recordingMediaAudioDestination.stream.getAudioTracks()[0];
-  if (mixedTrack) {
-    output.addTrack(mixedTrack);
-  }
-
-  const localMicTracks = (micProcessedStream || micStream)?.getAudioTracks?.().length || 0;
-  const remoteAudioTracks = (onAirRemoteVideo.srcObject || remoteVideo.srcObject)?.getAudioTracks?.().length || 0;
-  const musicBusTracks = (onAirMixerDestinationNode && onAirMixerDestinationNode.stream)?.getAudioTracks?.().length || 0;
-  const mixedAudioTracks = recordingMediaAudioDestination.stream.getAudioTracks().length;
-  pushRecordingDiagnostic(
-    "build_stream",
-    "video=" +
-      (includeVideo ? "on" : "off") +
-      " | localMicTracks=" +
-      localMicTracks +
-      " | remoteAudioTracks=" +
-      remoteAudioTracks +
-      " | musicBusTracks=" +
-      musicBusTracks +
-      " | mixedAudioTracks=" +
-      mixedAudioTracks,
-    {
-      stage: "Preparing",
-      stageNote: includeVideo ? "Building video and audio capture." : "Building audio-only capture.",
-      audio: mixedAudioTracks > 0 ? "Live" : "Missing",
-      audioNote:
-        mixedAudioTracks > 0
-          ? "Recorder sees " + mixedAudioTracks + " mixed audio track" + (mixedAudioTracks === 1 ? "" : "s") + "."
-          : "Recorder did not get a mixed audio track."
-    }
-  );
-
-  if (audioContext.state === "suspended") {
-    await audioContext.resume();
-  }
-  return {
-    stream: output,
-    hasVideo: includeVideo
-  };
+  return recordingCaptureController.buildLocalRecordingStream();
 }
 
 async function startLocalRecordingCapture(resetAsset = true) {
-  if (resetAsset) {
-    clearLocalRecordingAsset();
+  if (!recordingCaptureController || typeof recordingCaptureController.startLocalRecordingCapture !== "function") {
+    throw new Error("Recording capture is not available.");
   }
-  stopLocalRecordingCapture();
-  recordingMediaChunks = [];
-  recordingAudioChunks = [];
-  setMediaDebugEnabled(true);
-  pushRecordingDiagnostic("capture_start", "resetAsset=" + (resetAsset ? "yes" : "no"), {
-    stage: "Starting",
-    stageNote: "Recorder is starting now.",
-    chunkCount: 0,
-    chunkBytes: 0,
-    chunkNote: "Waiting for first chunk.",
-    review: "Recording",
-    reviewNote: "No review file until stop."
-  });
-  const recordingBuild = await buildLocalRecordingStream();
-  recordingMediaStream = recordingBuild.stream;
-  recordingMediaMimeType = recordingBuild.hasVideo ? getSupportedRecordingMimeType() : "";
-
-  recordingStopPromise = new Promise((resolve) => {
-    recordingStopResolve = resolve;
-  });
-
-  if (recordingBuild.hasVideo) {
-    const options = recordingMediaMimeType ? { mimeType: recordingMediaMimeType } : undefined;
-    recordingMediaRecorder = new MediaRecorder(recordingMediaStream, options);
-
-    recordingMediaRecorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        recordingMediaChunks.push(event.data);
-        const totalChunks = recordingMediaChunks.length + recordingAudioChunks.length;
-        const totalBytes = recordingDiagnostics.chunkBytes + event.data.size;
-        setRecordingDiagnosticState({
-          chunkCount: totalChunks,
-          chunkBytes: totalBytes,
-          chunkNote:
-            "Received " +
-            totalChunks +
-            " total chunks. Last size " +
-            formatDiagnosticBytes(event.data.size) +
-            "."
-        });
-        if (mediaDebugEnabled && recordingMediaChunks.length % 10 === 0) {
-          pushMediaDebug("recording.video_chunk", "count=" + recordingMediaChunks.length + " | size=" + event.data.size);
-        }
-      }
-    };
-
-    recordingMediaRecorder.onstop = () => {
-      const type = recordingMediaMimeType || "video/webm";
-      if (recordingMediaChunks.length) {
-        if (recordingMediaUrl) {
-          URL.revokeObjectURL(recordingMediaUrl);
-        }
-        recordingMediaBlob = new Blob(recordingMediaChunks, { type });
-        recordingMediaUrl = URL.createObjectURL(recordingMediaBlob);
-      }
-      refreshRecordingAssetDurations().catch(() => {
-        // Ignore review-duration probe failures.
-      });
-      pushRecordingDiagnostic("video_stop", "chunks=" + recordingMediaChunks.length + " | blob=" + (recordingMediaBlob ? recordingMediaBlob.size : 0), {
-        stage: "Saving",
-        stageNote: "Video recorder stopped and is saving the take."
-      });
-      const resolve = recordingStopResolve;
-      recordingStopResolve = null;
-      if (resolve) {
-        resolve(recordingMediaBlob || recordingAudioBlob || null);
-      }
-    };
-
-    recordingMediaRecorder.onerror = () => {
-      pushRecordingDiagnostic("video_error", "Video recorder error.", {
-        stage: "Problem",
-        stageNote: "Video recorder hit an error."
-      });
-      const resolve = recordingStopResolve;
-      recordingStopResolve = null;
-      if (resolve) {
-        resolve(null);
-      }
-    };
-
-    recordingMediaRecorder.start(1000);
-    pushRecordingDiagnostic("video_start", "mime=" + (recordingMediaMimeType || "default"), {
-      stage: "Recording",
-      stageNote: "Video and audio recording is live."
-    });
-  } else {
-    recordingMediaRecorder = null;
-    pushRecordingDiagnostic("video_skip", "No live camera source, staying audio-only.", {
-      stage: "Recording",
-      stageNote: "Audio-only recording is live."
-    });
-  }
-
-  recordingAudioMimeType = getAudioOnlyRecordingMimeType();
-  const audioOptions = recordingAudioMimeType ? { mimeType: recordingAudioMimeType } : undefined;
-  if (recordingMediaAudioDestination && window.MediaRecorder) {
-    recordingAudioMediaRecorder = new MediaRecorder(recordingMediaAudioDestination.stream, audioOptions);
-    recordingAudioMediaRecorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        recordingAudioChunks.push(event.data);
-        const totalChunks = recordingMediaChunks.length + recordingAudioChunks.length;
-        const totalBytes = recordingDiagnostics.chunkBytes + event.data.size;
-        setRecordingDiagnosticState({
-          chunkCount: totalChunks,
-          chunkBytes: totalBytes,
-          chunkNote:
-            "Received " + totalChunks + " total chunks. Last audio size " + formatDiagnosticBytes(event.data.size) + "."
-        });
-        if (mediaDebugEnabled && recordingAudioChunks.length % 10 === 0) {
-          pushMediaDebug("recording.audio_chunk", "count=" + recordingAudioChunks.length + " | size=" + event.data.size);
-        }
-      }
-    };
-    recordingAudioMediaRecorder.onstop = () => {
-      const type = recordingAudioMimeType || "audio/webm";
-      if (recordingAudioChunks.length) {
-        if (recordingAudioUrl) {
-          URL.revokeObjectURL(recordingAudioUrl);
-        }
-        recordingAudioBlob = new Blob(recordingAudioChunks, { type });
-        recordingAudioUrl = URL.createObjectURL(recordingAudioBlob);
-      }
-      refreshRecordingAssetDurations().catch(() => {
-        // Ignore review-duration probe failures.
-      });
-      pushRecordingDiagnostic("audio_stop", "chunks=" + recordingAudioChunks.length + " | blob=" + (recordingAudioBlob ? recordingAudioBlob.size : 0), {
-        stage: "Saving",
-        stageNote: "Audio recorder stopped and is saving the take."
-      });
-      if (!recordingMediaRecorder && recordingStopResolve) {
-        const resolve = recordingStopResolve;
-        recordingStopResolve = null;
-        resolve(recordingAudioBlob || null);
-      }
-      syncReviewPanelUI();
-    };
-    recordingAudioMediaRecorder.start(1000);
-    pushRecordingDiagnostic("audio_start", "mime=" + (recordingAudioMimeType || "default"), {
-      audio: "Live",
-      audioNote: "Audio recorder started and is listening."
-    });
-  } else {
-    pushRecordingDiagnostic("audio_missing", "Audio recorder did not start.", {
-      audio: "Missing",
-      audioNote: "Audio recorder failed to start."
-    });
-  }
+  return recordingCaptureController.startLocalRecordingCapture(resetAsset);
 }
 
 function waitForMediaRecorderStop(recorder) {
-  return new Promise((resolve) => {
-    if (!recorder || recorder.state === "inactive") {
-      resolve();
-      return;
-    }
-
-    let settled = false;
-    const finalize = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve();
-    };
-
-    recorder.addEventListener("stop", finalize, { once: true });
-    recorder.addEventListener("error", finalize, { once: true });
-
-    try {
-      recorder.requestData();
-    } catch (error) {
-      // Ignore flush timing races before stop.
-    }
-
-    try {
-      recorder.stop();
-    } catch (error) {
-      finalize();
-    }
-  });
+  if (!recordingCaptureController || typeof recordingCaptureController.waitForMediaRecorderStop !== "function") {
+    return Promise.resolve();
+  }
+  return recordingCaptureController.waitForMediaRecorderStop(recorder);
 }
 
 async function stopLocalRecordingCaptureAndFinalize() {
-  const mediaRecorder = recordingMediaRecorder;
-  const audioRecorder = recordingAudioMediaRecorder;
-  recordingMediaRecorder = null;
-  recordingAudioMediaRecorder = null;
-  const stopTasks = [];
-
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    stopTasks.push(waitForMediaRecorderStop(mediaRecorder));
+  if (!recordingCaptureController || typeof recordingCaptureController.stopLocalRecordingCaptureAndFinalize !== "function") {
+    return recordingMediaBlob || recordingAudioBlob || null;
   }
-  if (audioRecorder && audioRecorder.state !== "inactive") {
-    stopTasks.push(waitForMediaRecorderStop(audioRecorder));
-  }
-
-  if (stopTasks.length) {
-    pushRecordingDiagnostic("finalize_wait", "recorders=" + stopTasks.length, {
-      stage: "Saving",
-      stageNote: "Waiting for recorder files to finish saving."
-    });
-    await Promise.allSettled(stopTasks);
-  }
-
-  recordingStopPromise = null;
-  recordingStopResolve = null;
-  stopLocalRecordingCapture();
-  syncReviewPanelUI();
-  pushRecordingDiagnostic(
-    "finalize_done",
-    "videoBlob=" +
-      (recordingMediaBlob ? recordingMediaBlob.size : 0) +
-      " | audioBlob=" +
-      (recordingAudioBlob ? recordingAudioBlob.size : 0),
-    {
-      stage: "Saved",
-      stageNote: "Recorder finished saving review files.",
-      review: recordingMediaBlob || recordingAudioBlob ? "Ready" : "Missing",
-      reviewNote: recordingMediaBlob || recordingAudioBlob ? "Review file saved for playback." : "Recorder stopped without a saved review file."
-    }
-  );
-  return recordingMediaBlob || recordingAudioBlob;
+  return recordingCaptureController.stopLocalRecordingCaptureAndFinalize();
 }
 
 function abortLocalRecordingCapture() {
-  if (recordingMediaRecorder && recordingMediaRecorder.state !== "inactive") {
-    try {
-      recordingMediaRecorder.stop();
-    } catch (error) {
-      // Ignore stop errors on teardown.
-    }
+  if (recordingCaptureController && typeof recordingCaptureController.abortLocalRecordingCapture === "function") {
+    return recordingCaptureController.abortLocalRecordingCapture();
   }
-  recordingMediaRecorder = null;
-  if (recordingAudioMediaRecorder && recordingAudioMediaRecorder.state !== "inactive") {
-    try {
-      recordingAudioMediaRecorder.stop();
-    } catch (error) {
-      // Ignore teardown stop races.
-    }
-  }
-  recordingAudioMediaRecorder = null;
-  recordingStopPromise = null;
-  recordingStopResolve = null;
-  stopLocalRecordingCapture();
 }
 
 function stopMicStream() {
@@ -11567,39 +11783,21 @@ function removeSessionValue(key) {
 }
 
 function loadChatQueue() {
-  const raw = readSessionValue(CHAT_QUEUE_KEY);
-  if (!raw) {
-    chatQueue = [];
-    return;
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    chatQueue = Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    chatQueue = [];
+  if (chatController && typeof chatController.loadChatQueue === "function") {
+    return chatController.loadChatQueue();
   }
 }
 
 function pruneChatQueue() {
-  const now = Date.now();
-  const before = chatQueue.length;
-  chatQueue = chatQueue.filter((item) => {
-    if (!item || item.type !== "message") {
-      return false;
-    }
-    const queuedAt = Number(item.queuedAt || 0);
-    if (!queuedAt || !Number.isFinite(queuedAt)) {
-      return false;
-    }
-    return now - queuedAt <= CHAT_QUEUE_TTL_MS;
-  });
-  if (chatQueue.length !== before) {
-    saveChatQueue();
+  if (chatController && typeof chatController.pruneChatQueue === "function") {
+    return chatController.pruneChatQueue();
   }
 }
 
 function saveChatQueue() {
-  writeSessionValue(CHAT_QUEUE_KEY, JSON.stringify(chatQueue));
+  if (chatController && typeof chatController.saveChatQueue === "function") {
+    return chatController.saveChatQueue();
+  }
 }
 
 function loadReactionCache() {
@@ -11623,12 +11821,9 @@ function loadSeenUpTo() {
 }
 
 function saveSeenUpTo(upto) {
-  const value = Number(upto || 0);
-  if (!value || value <= 0) {
-    removeSessionValue(CHAT_SEEN_UPTO_KEY);
-    return;
+  if (chatController && typeof chatController.saveSeenUpTo === "function") {
+    return chatController.saveSeenUpTo(upto);
   }
-  writeSessionValue(CHAT_SEEN_UPTO_KEY, String(value));
 }
 
 function saveReactionCache() {
@@ -11662,124 +11857,52 @@ function setCachedReactionForEntry(entry, emoji) {
 }
 
 function updateChatStatusFromState() {
-  const scheduledText = scheduledSendCount > 0 ? scheduledSendCount + " scheduled send(s)" : "";
-  if (!realtimeEnabled) {
-    const offline = "Realtime offline. Messages will send when connection returns.";
-    setChatStatus(scheduledText ? offline + " • " + scheduledText : offline, "error");
-    return;
+  if (chatController && typeof chatController.updateChatStatusFromState === "function") {
+    return chatController.updateChatStatusFromState();
   }
-  if (chatQueue.length) {
-    const queue = "Connected. " + chatQueue.length + " queued item(s) retrying...";
-    setChatStatus(scheduledText ? queue + " • " + scheduledText : queue, "warn");
-    return;
-  }
-  setChatStatus(scheduledText, "ok");
 }
 
 function enqueueChatAction(action) {
-  if (!action || typeof action !== "object") {
-    return;
+  if (chatController && typeof chatController.enqueueChatAction === "function") {
+    return chatController.enqueueChatAction(action);
   }
-  if (action.type === "react") {
-    // Reactions are best-effort; do not queue/retry to avoid retry storms.
-    return;
-  }
-  chatQueue.push(action);
-  saveChatQueue();
-  updateChatStatusFromState();
 }
 
 function isRetryableChatError(error) {
-  if (!error) {
+  if (!chatController || typeof chatController.isRetryableChatError !== "function") {
     return false;
   }
-  const status = Number(error.status || 0);
-  if (!status) {
-    return true;
-  }
-  if (status === 408 || status === 425 || status === 429) {
-    return true;
-  }
-  return status >= 500;
+  return chatController.isRetryableChatError(error);
 }
 
 async function flushChatQueue() {
-  if (chatFlushInProgress || !realtimeEnabled || !chatQueue.length) {
-    return;
-  }
-  chatFlushInProgress = true;
-  try {
-    while (chatQueue.length) {
-      const item = chatQueue[0];
-      if (!item || !item.type) {
-        chatQueue.shift();
-        continue;
-      }
-      if (item.type === "message") {
-        try {
-          await sendChat(String(item.text || ""), null, item.replyTo || null);
-        } catch (error) {
-          if (isRetryableChatError(error)) {
-            throw error;
-          }
-          // Non-retryable request (400/401/403/etc): drop this queued item.
-          chatQueue.shift();
-          saveChatQueue();
-          const reason = error && error.message ? error.message : "Unable to send queued message.";
-          setLockedChatErrorStatus("Dropped queued message: " + reason, 7000);
-          continue;
-        }
-        removeFirstLocalPendingByText(String(item.text || ""));
-      } else if (item.type === "react") {
-        // Legacy safeguard: drop any stale queued reactions.
-        chatQueue.shift();
-        saveChatQueue();
-        continue;
-      }
-      chatQueue.shift();
-      saveChatQueue();
-    }
-    await pollChat();
-  } catch (error) {
-    // Keep remaining queue for next reconnect attempt.
-  } finally {
-    chatFlushInProgress = false;
-    updateChatStatusFromState();
+  if (chatController && typeof chatController.flushChatQueue === "function") {
+    return chatController.flushChatQueue();
   }
 }
 
 function setChatAttention(on) {
-  const disableAll = !!studioSettings.chatAlertsDisabledAll;
-  const pulseEnabled = !disableAll && studioSettings.chatPulseEnabled !== false;
-  if (!on || !pulseEnabled) {
-    chatDrawer.classList.remove("chat-attention");
-    chatLauncher.classList.remove("chat-attention");
-    return;
+  if (chatController && typeof chatController.setChatAttention === "function") {
+    return chatController.setChatAttention(on);
   }
-  chatDrawer.classList.add("chat-attention");
-  chatLauncher.classList.add("chat-attention");
 }
 
 function clearChatAttention(force) {
-  if (pendingChatResponse && !force) {
-    return;
+  if (chatController && typeof chatController.clearChatAttention === "function") {
+    return chatController.clearChatAttention(force);
   }
-  setChatAttention(false);
 }
 
 function acknowledgeChatMessages() {
-  chatReadAcknowledged = true;
-  pendingChatResponse = false;
-  clearChatAttention(true);
-  unreadCount = 0;
-  renderUnread();
-  markChatSeenUpToLatest();
+  if (chatController && typeof chatController.acknowledgeChatMessages === "function") {
+    return chatController.acknowledgeChatMessages();
+  }
 }
 
 function acknowledgeChatComposerInteraction() {
-  pendingChatResponse = false;
-  acknowledgeChatMessages();
-  setChatAttention(false);
+  if (chatController && typeof chatController.acknowledgeChatComposerInteraction === "function") {
+    return chatController.acknowledgeChatComposerInteraction();
+  }
 }
 
 function notifyIncomingRemoteMessage(entry) {
@@ -12921,44 +13044,14 @@ function scrollChatToBottom() {
 }
 
 function markChatSeenUpToLatest() {
-  if (!realtimeEnabled || !chatReadAcknowledged) {
-    return;
+  if (chatController && typeof chatController.markChatSeenUpToLatest === "function") {
+    return chatController.markChatSeenUpToLatest();
   }
-  if (studioSettings.chatReadReceiptsEnabled === false) {
-    return;
-  }
-  const ids = Array.from(chatEntriesById.keys());
-  const upto = ids.length ? Math.max(...ids) : 0;
-  if (!upto || upto <= Math.max(lastSeenUpTo, pendingSeenUpTo)) {
-    return;
-  }
-  pendingSeenUpTo = upto;
-  saveSeenUpTo(Math.max(lastSeenUpTo, pendingSeenUpTo));
-  flushSeenSyncQueue();
 }
 
 async function flushSeenSyncQueue() {
-  if (seenSyncInFlight || !realtimeEnabled || studioSettings.chatReadReceiptsEnabled === false) {
-    return;
-  }
-  if (pendingSeenUpTo <= lastSeenUpTo) {
-    return;
-  }
-  seenSyncInFlight = true;
-  try {
-    while (pendingSeenUpTo > lastSeenUpTo) {
-      const target = pendingSeenUpTo;
-      await sendChatSeen(target);
-      lastSeenUpTo = Math.max(lastSeenUpTo, target);
-      if (pendingSeenUpTo <= target) {
-        pendingSeenUpTo = 0;
-      }
-      saveSeenUpTo(lastSeenUpTo);
-    }
-  } catch (error) {
-    // Keep pending seen marker for retry on next poll tick.
-  } finally {
-    seenSyncInFlight = false;
+  if (chatController && typeof chatController.flushSeenSyncQueue === "function") {
+    return chatController.flushSeenSyncQueue();
   }
 }
 
@@ -13266,13 +13359,20 @@ function updateHostControlsAvailability() {
 
 function updateMediaActionsUI() {
   const isHost = isCurrentUserHost();
-  const hasDemoOrAsset = RECORDING_DEMO_MODE || hasLocalRecordingAsset();
   const canRecord = canCurrentUserControlRecording();
-  const canDownload = canCurrentUserDownloadRecording();
-  onAirRecordBtn.disabled = !isHost || !canRecord || recordingStartInProgress || recordingSplitInProgress;
-  onAirRecordBtn.textContent = recordingStartInProgress ? "Starting..." : isRecording ? "Stop Recording" : "Record";
-  onAirPlaybackBtn.disabled = !isHost || isRecording || !recordingReady || !hasDemoOrAsset;
-  onAirDownloadBtn.disabled = isRecording || !recordingReady || !hasDemoOrAsset || !canDownload;
+  if (onAirRecordBtn) {
+    onAirRecordBtn.disabled = !isHost || !canRecord || recordingStartInProgress || recordingSplitInProgress;
+    const nextLabel = recordingStartInProgress ? "Starting..." : isRecording ? "Stop Recording" : "Record";
+    if (onAirRecordBtnLabel) {
+      onAirRecordBtnLabel.textContent = nextLabel;
+    } else {
+      onAirRecordBtn.textContent = nextLabel;
+    }
+    if (onAirRecordBtnIcon) {
+      onAirRecordBtnIcon.classList.remove("record", "stop");
+      onAirRecordBtnIcon.classList.add(isRecording ? "stop" : "record");
+    }
+  }
   updateOnAirMusicCuesUI();
   updatePreflightSummary();
   syncReviewPanelUI();
@@ -13374,32 +13474,15 @@ async function hasBrowserLocalMusicTrack(id) {
 }
 
 function normalizeSharedMusicAsset(asset) {
-  if (!asset || typeof asset !== "object") {
-    return null;
-  }
-  return {
-    id: String(asset.id || "").trim(),
-    name: String(asset.title || asset.originalFilename || "Untitled Track").trim() || "Untitled Track",
-    mimeType: String(asset.mimeType || "audio/mpeg"),
-    size: Math.max(0, Number(asset.byteSize || 0) || 0),
-    createdAt: Date.parse(String(asset.createdAt || "")) || Date.now(),
-    source: "shared",
-    status: String(asset.status || "uploaded"),
-    storageProvider: String(asset.storageProvider || ""),
-    originalFilename: String(asset.originalFilename || ""),
-    metadata: asset.metadata && typeof asset.metadata === "object" ? asset.metadata : {}
-  };
+  return typeof onAirLibraryStorageApi.normalizeSharedMusicAsset === "function"
+    ? onAirLibraryStorageApi.normalizeSharedMusicAsset(asset)
+    : null;
 }
 
 function normalizeLocalMusicTrack(record) {
-  if (!record || typeof record !== "object") {
-    return null;
-  }
-  return {
-    ...record,
-    name: String(record.name || "Untitled Track").trim() || "Untitled Track",
-    source: "browser-local"
-  };
+  return typeof onAirLibraryStorageApi.normalizeLocalMusicTrack === "function"
+    ? onAirLibraryStorageApi.normalizeLocalMusicTrack(record)
+    : null;
 }
 
 function getLocalTrackIdForAsset(assetOrTrack) {
@@ -13446,243 +13529,228 @@ async function resolveMusicTrackForPlayback(trackOrAsset) {
 }
 
 async function loadSharedLibraryAssetAsFile(asset) {
-  if (!asset || !window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
+  if (!onAirLibraryBridge || typeof onAirLibraryBridge.loadSharedLibraryAssetAsFile !== "function") {
     throw new Error("Shared library asset is unavailable.");
   }
-  const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
-  if (!ticket || !ticket.ok || !ticket.downloadUrl) {
-    throw new Error((ticket && ticket.error) || "Unable to open this library asset right now.");
-  }
-  const response = await fetch(ticket.downloadUrl, { method: "GET" });
-  if (!response.ok) {
-    throw new Error("Library asset download failed with status " + response.status + ".");
-  }
-  const blob = await response.blob();
-  const fallbackExtension = String(asset.libraryKind || "").trim().toLowerCase() === "episodes" ? "wav" : "webm";
-  const filename =
-    String(asset.originalFilename || "").trim() ||
-    (String(asset.title || "asset").trim().replace(/[^\w.-]+/g, "-") || "asset") + "." + getFilenameExtensionFromMimeType(asset.mimeType, fallbackExtension);
-  return createNamedUploadBlob(blob, filename, String(asset.mimeType || blob.type || "application/octet-stream").trim());
+  return onAirLibraryBridge.loadSharedLibraryAssetAsFile(asset);
 }
 
 async function openPostProductionAssetInReviewCut(asset) {
-  const file = await loadSharedLibraryAssetAsFile(asset);
-  const imported = await importOnAirReviewFile(file);
-  if (!imported) {
+  if (!onAirLibraryBridge || typeof onAirLibraryBridge.openPostProductionAssetInReviewCut !== "function") {
     throw new Error("Review Cut could not load this post-production asset.");
   }
-  onAirReviewSourceAsset = asset && typeof asset === "object" ? { ...asset } : null;
-  setRecordingWorkflowState("review");
-  syncReviewPanelUI();
-  setOnAirReviewModalOpen(true);
-  setOnAirReviewStatusMessage("Editing post-production draft: " + String(asset.title || file.name || "Untitled Asset") + ".");
+  return onAirLibraryBridge.openPostProductionAssetInReviewCut(asset);
 }
 
 async function exportLibraryAssetAudio(asset) {
-  const file = await loadSharedLibraryAssetAsFile(asset);
-  downloadBlobObject(file, getLibraryAssetDownloadFilename(asset, "wav"));
+  if (!onAirLibraryBridge || typeof onAirLibraryBridge.exportLibraryAssetAudio !== "function") {
+    throw new Error("Unable to export this episode right now.");
+  }
+  return onAirLibraryBridge.exportLibraryAssetAudio(asset);
 }
 
 async function saveCurrentRecordingToPostProduction() {
-  if (onAirPostProductionSaveInFlight) {
+  if (!onAirLibraryBridge || typeof onAirLibraryBridge.saveCurrentRecordingToPostProduction !== "function") {
     return null;
   }
-  const sourceBlob = recordingAudioBlob || null;
-  const sourceMimeType = String(recordingAudioMimeType || (sourceBlob && sourceBlob.type) || "audio/webm").trim() || "audio/webm";
-  const sourceDuration = Math.max(0, Number(recordingAudioDurationSeconds || 0) || 0);
-  if (!sourceBlob || !(sourceBlob.size > 0)) {
-    return null;
-  }
-  onAirPostProductionSaveInFlight = true;
-  try {
-    const title = getOnAirPostProductionAssetTitle();
-    const asset = await uploadBlobToSharedLibrary("post-production", sourceBlob, {
-      assetRole: "raw-recording",
-      title,
-      filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
-      mimeType: sourceMimeType,
-      durationSeconds: sourceDuration > 0 ? sourceDuration : null,
-      metadata: {
-        reviewKind: "audio",
-        hasAudio: true,
-        hasVideo: !!(recordingMediaBlob && recordingMediaBlob.size > 0),
-        sourceTakeId: "take_" + Date.now(),
-        savedFromReviewCut: false
-      }
-    });
-    onAirLibraryAssets["post-production"] = [];
-    await loadOnAirLibraryKind("post-production", true);
-    return asset;
-  } finally {
-    onAirPostProductionSaveInFlight = false;
-  }
+  return onAirLibraryBridge.saveCurrentRecordingToPostProduction();
 }
 
 async function saveOnAirReviewRenderToLibrary(libraryKind) {
-  if (onAirReviewSaveInFlight) {
+  if (!onAirLibraryBridge || typeof onAirLibraryBridge.saveOnAirReviewRenderToLibrary !== "function") {
     return null;
   }
-  onAirReviewSaveInFlight = true;
-  try {
-    const editedBlob = await renderOnAirReviewEditedAudioBlob();
-    const sourceAssetId = String(onAirReviewSourceAsset && onAirReviewSourceAsset.id || "").trim();
-    const sourceTakeId =
-      String(onAirReviewSourceAsset && onAirReviewSourceAsset.metadata && onAirReviewSourceAsset.metadata.sourceTakeId || "").trim() ||
-      sourceAssetId ||
-      "take_" + Date.now();
-    const title = libraryKind === "episodes" ? getOnAirEpisodesAssetTitle() : getOnAirPostProductionAssetTitle() + "-draft";
-    const assetRole = libraryKind === "episodes" ? "episode-audio" : "post-draft-audio";
-    const asset = await uploadBlobToSharedLibrary(libraryKind, editedBlob, {
-      assetRole,
-      title,
-      filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
-      mimeType: "audio/wav",
-      durationSeconds: getOnAirReviewTimelineDuration(),
-      metadata: {
-        reviewKind: "audio",
-        hasAudio: true,
-        hasVideo: false,
-        sourceTakeId,
-        sourceAssetId,
-        savedFromReviewCut: true,
-        episodeKey: libraryKind === "episodes" ? "episode_" + Date.now() : ""
-      }
-    });
-    onAirLibraryAssets[libraryKind] = [];
-    await loadOnAirLibraryKind(libraryKind, true);
-    if (libraryKind === "post-production") {
-      onAirReviewSourceAsset = asset && typeof asset === "object" ? { ...asset } : onAirReviewSourceAsset;
-    }
-    return asset;
-  } finally {
-    onAirReviewSaveInFlight = false;
-  }
+  return onAirLibraryBridge.saveOnAirReviewRenderToLibrary(libraryKind);
 }
 
 async function filterPlayableSharedMusicAssets(sharedAssets) {
-  const assets = Array.isArray(sharedAssets) ? sharedAssets : [];
-  const playable = [];
-  const unavailable = [];
-  for (const asset of assets) {
-    if (!isBrowserLocalSharedAsset(asset)) {
-      playable.push(asset);
-      continue;
-    }
-    const localTrackId = getLocalTrackIdForAsset(asset);
-    if (localTrackId && await hasBrowserLocalMusicTrack(localTrackId)) {
-      playable.push(asset);
-      continue;
-    }
-    unavailable.push(asset);
+  if (typeof onAirLibraryStorageApi.filterPlayableSharedMusicAssets !== "function") {
+    return { playable: [], unavailable: [] };
   }
-  return { playable, unavailable };
+  return onAirLibraryStorageApi.filterPlayableSharedMusicAssets(sharedAssets, {
+    isBrowserLocalSharedAsset,
+    getLocalTrackIdForAsset,
+    hasBrowserLocalMusicTrack
+  });
 }
 
 function mergeOnAirMusicLibraries(localTracks, sharedAssets) {
-  const merged = [];
-  const seen = new Set();
-  (Array.isArray(sharedAssets) ? sharedAssets : []).forEach((asset) => {
-    const normalized = normalizeSharedMusicAsset(asset);
-    if (!normalized || !normalized.id || seen.has(normalized.id)) {
-      return;
-    }
-    seen.add(normalized.id);
-    merged.push(normalized);
-  });
-  (Array.isArray(localTracks) ? localTracks : []).forEach((track) => {
-    const normalized = normalizeLocalMusicTrack(track);
-    if (!normalized || !normalized.id || seen.has(normalized.id)) {
-      return;
-    }
-    seen.add(normalized.id);
-    merged.push(normalized);
-  });
-  return merged.sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  return typeof onAirLibraryStorageApi.mergeOnAirMusicLibraries === "function"
+    ? onAirLibraryStorageApi.mergeOnAirMusicLibraries(localTracks, sharedAssets)
+    : [];
 }
 
 function populateOnAirMusicTrackSelect() {
-  if (!onAirMusicTrackSelect) {
-    return;
-  }
-  const previous = onAirMusicTrackSelect.value;
-  onAirMusicTrackSelect.innerHTML = "";
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = onAirMusicLibrary.length ? "Select an uploaded track" : "No uploaded tracks yet";
-  onAirMusicTrackSelect.appendChild(defaultOption);
-  const sharedTracks = onAirMusicLibrary.filter((track) => track && track.source === "shared");
-  const localTracks = onAirMusicLibrary.filter((track) => !track || track.source !== "shared");
-  if (sharedTracks.length) {
-    const optgroup = document.createElement("optgroup");
-    optgroup.label = "Shared Music Library";
-    sharedTracks.forEach((track) => {
-      const option = document.createElement("option");
-      option.value = track.id;
-      option.textContent = track.name;
-      optgroup.appendChild(option);
-    });
-    onAirMusicTrackSelect.appendChild(optgroup);
-  }
-  if (localTracks.length) {
-    const optgroup = document.createElement("optgroup");
-    optgroup.label = "This Browser";
-    localTracks.forEach((track) => {
-      const option = document.createElement("option");
-      option.value = track.id;
-      option.textContent = track.name;
-      optgroup.appendChild(option);
-    });
-    onAirMusicTrackSelect.appendChild(optgroup);
-  }
-  if (previous && onAirMusicLibrary.some((track) => track.id === previous)) {
-    onAirMusicTrackSelect.value = previous;
-  } else {
-    onAirMusicTrackSelect.value = "";
+  if (onAirLibraryController && typeof onAirLibraryController.populateMusicTrackSelect === "function") {
+    onAirLibraryController.populateMusicTrackSelect();
   }
 }
 
 function getLibraryDisplayLabel(libraryKind) {
-  if (libraryKind === "post-production") {
-    return "Post-Production";
+  return onAirLibraryController && typeof onAirLibraryController.getLibraryDisplayLabel === "function"
+    ? onAirLibraryController.getLibraryDisplayLabel(libraryKind)
+    : (typeof onAirLibraryRenderApi.getLibraryDisplayLabel === "function" ? onAirLibraryRenderApi.getLibraryDisplayLabel(libraryKind) : "Music");
+}
+
+function getActiveShowLibrary() {
+  if (!activeShowLibraryId) {
+    return null;
   }
-  if (libraryKind === "episodes") {
-    return "Episodes";
+  return showLibraries.find((entry) => String(entry && entry.id || "").trim() === activeShowLibraryId) || null;
+}
+
+function getShowLibraryFilterId() {
+  return String(onAirLibraryShowFilterId || "").trim();
+}
+
+function buildShowLibraryMetadata() {
+  const activeShow = getActiveShowLibrary();
+  if (!activeShow) {
+    return {};
   }
-  return "Music";
+  return {
+    showLibraryId: String(activeShow.id || "").trim(),
+    showLibraryTitle: String(activeShow.title || "").trim(),
+    showLibrarySlug: String(activeShow.slug || "").trim()
+  };
+}
+
+function saveShowLibrarySelections() {
+  studioSettings = window.TBRAuth.saveStudioSettings({
+    activeShowLibraryId,
+    libraryShowFilterId: onAirLibraryShowFilterId
+  });
+}
+
+function renderShowLibrarySelectOptions(select, includeAllLabel) {
+  if (!select) {
+    return;
+  }
+  const previous = String(select.value || "").trim();
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = includeAllLabel || "All Shows";
+  select.appendChild(defaultOption);
+  showLibraries.forEach((library) => {
+    const option = document.createElement("option");
+    option.value = String(library && library.id || "").trim();
+    option.textContent = String(library && library.title || "Untitled Show");
+    select.appendChild(option);
+  });
+  const nextValue = previous && showLibraries.some((entry) => String(entry && entry.id || "").trim() === previous)
+    ? previous
+    : "";
+  select.value = nextValue;
+}
+
+function syncShowLibraryUi() {
+  renderShowLibrarySelectOptions(hostShowLibrarySelect, "No Show Selected");
+  if (hostShowLibrarySelect) {
+    hostShowLibrarySelect.value = activeShowLibraryId;
+  }
+  renderShowLibrarySelectOptions(onAirLibraryShowFilterSelect, "All Shows");
+  if (onAirLibraryShowFilterSelect) {
+    onAirLibraryShowFilterSelect.value = onAirLibraryShowFilterId;
+  }
+}
+
+async function refreshShowLibraries() {
+  if (!window.TBRAuth || typeof window.TBRAuth.listShowLibraries !== "function") {
+    showLibraries = [];
+    syncShowLibraryUi();
+    return;
+  }
+  const response = await window.TBRAuth.listShowLibraries();
+  showLibraries = response && response.ok && Array.isArray(response.showLibraries) ? response.showLibraries : [];
+  if (activeShowLibraryId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === activeShowLibraryId)) {
+    activeShowLibraryId = "";
+  }
+  if (onAirLibraryShowFilterId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === onAirLibraryShowFilterId)) {
+    onAirLibraryShowFilterId = activeShowLibraryId;
+  }
+  syncShowLibraryUi();
+  saveShowLibrarySelections();
+}
+
+function setShowLibraryMessage(message, isError) {
+  if (!showLibraryMessage) {
+    return;
+  }
+  const text = String(message || "").trim();
+  showLibraryMessage.textContent = text;
+  showLibraryMessage.classList.toggle("hidden", !text);
+  showLibraryMessage.classList.toggle("error", !!(text && isError));
+}
+
+function setShowLibraryModalOpen(open) {
+  if (!showLibraryModal) {
+    return;
+  }
+  const nextOpen = !!open;
+  showLibraryModal.classList.toggle("hidden", !nextOpen);
+  showLibraryModal.setAttribute("aria-hidden", nextOpen ? "false" : "true");
+  if (nextOpen) {
+    showLibraryNameInput?.focus();
+    showLibraryNameInput?.select();
+  } else {
+    if (showLibraryNameInput) {
+      showLibraryNameInput.value = "";
+    }
+    setShowLibraryMessage("", false);
+  }
+}
+
+async function createShowLibraryFlow() {
+  if (!window.TBRAuth || typeof window.TBRAuth.createShowLibrary !== "function") {
+    onAirMediaStatus.textContent = "Show libraries are unavailable right now.";
+    return;
+  }
+  const title = String((showLibraryNameInput && showLibraryNameInput.value) || "").trim();
+  if (!title) {
+    setShowLibraryMessage("Enter a show library name first.", true);
+    return;
+  }
+  if (showLibraryCreateInFlight) {
+    return;
+  }
+  showLibraryCreateInFlight = true;
+  if (showLibraryCreateConfirmBtn) {
+    showLibraryCreateConfirmBtn.disabled = true;
+    showLibraryCreateConfirmBtn.textContent = "Creating...";
+  }
+  const created = await window.TBRAuth.createShowLibrary(title);
+  showLibraryCreateInFlight = false;
+  if (showLibraryCreateConfirmBtn) {
+    showLibraryCreateConfirmBtn.disabled = false;
+    showLibraryCreateConfirmBtn.textContent = "Create";
+  }
+  if (!created || !created.ok || !created.showLibrary) {
+    setShowLibraryMessage((created && created.error) || "Unable to create this show library right now.", true);
+    return;
+  }
+  await refreshShowLibraries();
+  activeShowLibraryId = String(created.showLibrary.id || "").trim();
+  onAirLibraryShowFilterId = activeShowLibraryId;
+  syncShowLibraryUi();
+  saveShowLibrarySelections();
+  setShowLibraryModalOpen(false);
+  onAirMediaStatus.textContent = "Show library ready: " + String(created.showLibrary.title || "Untitled Show") + ".";
+  await Promise.allSettled([
+    setOnAirLibraryView(onAirLibraryView || "music", true),
+    loadOnAirReviewLibraryKind(onAirReviewLibraryView, true)
+  ]);
 }
 
 function setOnAirLibraryOpen(open) {
-  const nextOpen = !!open;
-  if (nextOpen && onAirAudioOpen) {
-    setOnAirAudioOpen(false);
-  }
-  onAirLibraryOpen = nextOpen;
-  if (!onAirLibraryOpen) {
-    closeOnAirLibraryPreview();
-  }
-  if (onAirLibraryDrawer) {
-    onAirLibraryDrawer.classList.toggle("open", onAirLibraryOpen);
-  }
-  if (onAirLibraryPanel) {
-    onAirLibraryPanel.classList.toggle("hidden", !onAirLibraryOpen);
+  if (onAirLibraryController && typeof onAirLibraryController.setLibraryOpen === "function") {
+    onAirLibraryController.setLibraryOpen(open);
   }
 }
 
 function setOnAirAudioOpen(open) {
-  const nextOpen = !!open;
-  if (nextOpen && onAirLibraryOpen) {
-    setOnAirLibraryOpen(false);
-  }
-  onAirAudioOpen = nextOpen;
-  if (onAirAudioDrawer) {
-    onAirAudioDrawer.classList.toggle("open", onAirAudioOpen);
-  }
-  if (onAirAudioPanel) {
-    onAirAudioPanel.classList.toggle("hidden", !onAirAudioOpen);
-  }
-  if (onAirAudioOpen) {
-    onAirActiveCueRenderSignature = "";
-    queueOnAirAudioControlsRefresh();
+  if (onAirLibraryController && typeof onAirLibraryController.setAudioOpen === "function") {
+    onAirLibraryController.setAudioOpen(open);
   }
 }
 
@@ -15409,7 +15477,7 @@ async function startOnAirEngineCue(cue, options) {
     cleanupOnAirEngineCue(cue);
     if (continueQueue) {
       playNextQueuedOnAirMusicCue().catch(() => {
-        onAirMediaStatus.textContent = "The next queued music cue could not be started.";
+        onAirMediaStatus.textContent = "The staged Next Up cue could not be started.";
       });
     }
   };
@@ -15558,397 +15626,243 @@ async function startOnAirLibraryPreview(asset) {
   updateOnAirLibraryPreviewPlayState();
 }
 
-function renderOnAirLibraryList() {
-  if (!onAirLibraryList) {
-    return;
-  }
-  const assets =
-    onAirLibraryView === "music"
-      ? onAirMusicLibrary.slice()
-      : Array.isArray(onAirLibraryAssets[onAirLibraryView])
-        ? onAirLibraryAssets[onAirLibraryView]
-        : [];
-  onAirLibraryList.innerHTML = "";
-  if (onAirLibraryNote) {
-    if (onAirLibraryView === "post-production") {
-      onAirLibraryNote.textContent = assets.length
-        ? "Post-Production holds raw takes and in-progress drafts. Open a draft in Review Cut or delete a bad take."
-        : "No post-production takes yet. Stopped recordings will appear here automatically.";
-    } else if (onAirLibraryView === "episodes") {
-      onAirLibraryNote.textContent = assets.length
-        ? "Episodes holds approved saved shows and exports."
-        : "No saved episodes yet.";
-    } else {
-      onAirLibraryNote.textContent = assets.length
-        ? getLibraryDisplayLabel(onAirLibraryView) + " Library"
-        : "No assets in " + getLibraryDisplayLabel(onAirLibraryView) + " yet.";
-    }
-  }
-  if (!assets.length) {
-    const empty = document.createElement("p");
-    empty.className = "camera-status onair-library-empty";
-    empty.textContent = "Nothing is stored in this library yet.";
-    onAirLibraryList.appendChild(empty);
-    return;
-  }
-  assets.forEach((asset) => {
-    const row = document.createElement("div");
-    row.className = "onair-library-row";
-    row.dataset.libraryKind = onAirLibraryView;
-    const meta = document.createElement("div");
-    meta.className = "onair-library-meta";
-    const title = document.createElement("p");
-    title.className = "onair-library-title";
-    title.textContent = String(asset.title || asset.name || asset.originalFilename || "Untitled Asset");
-    const detail = document.createElement("p");
-    detail.className = "onair-library-detail";
-    const pieces = [
-      asset && asset.source === "browser-local" ? "This Browser" : formatLibraryAssetStatus(asset.status),
-      formatLibraryAssetSize(asset.byteSize || asset.size)
-    ].filter(Boolean);
-    detail.textContent = pieces.join(" • ");
-    meta.appendChild(title);
-    meta.appendChild(detail);
-    row.appendChild(meta);
-    if (onAirLibraryView === "music") {
-      const actions = document.createElement("div");
-      actions.className = "onair-library-actions";
-      const previewAction = document.createElement("button");
-      previewAction.type = "button";
-      previewAction.className = "btn sso onair-library-action";
-      previewAction.textContent = "Preview";
-      previewAction.addEventListener("click", async () => {
-        await startOnAirLibraryPreview(asset);
-      });
-      actions.appendChild(previewAction);
-      const useAction = document.createElement("button");
-      useAction.type = "button";
-      useAction.className = "btn sso onair-library-action";
-      useAction.textContent = "Use Track";
-      useAction.addEventListener("click", async () => {
-        const playableTrack = await resolveMusicTrackForPlayback(asset);
-        const selectedTrackId = String((playableTrack && playableTrack.id) || asset.id || "").trim();
-        if (onAirMusicTrackSelect) {
-          onAirMusicTrackSelect.value = selectedTrackId;
-        }
-        updateOnAirMusicCuesUI();
-        onAirMediaStatus.textContent =
-          "Selected " +
-          String(asset.title || asset.name || "track") +
-          (asset && asset.source === "browser-local" ? " from this browser." : " from the shared Music Library.");
-      });
-      actions.appendChild(useAction);
-      const deleteAction = document.createElement("button");
-      deleteAction.type = "button";
-      deleteAction.className = "btn sso onair-library-action";
-      deleteAction.textContent = "Delete";
-      deleteAction.addEventListener("click", async () => {
-        if (!isCurrentUserHost()) {
-          setHostStatus("Only the active host can delete music tracks.", true);
-          return;
-        }
-        if (asset && asset.source === "browser-local") {
-          try {
-            await deleteMusicLibraryTrack(asset.id);
-          } catch (error) {
-            onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to delete this local track right now.";
-            return;
-          }
-        } else {
-          if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
-            onAirMediaStatus.textContent = "Delete is unavailable right now.";
-            return;
-          }
-          const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
-          if (!deleted || !deleted.ok) {
-            onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this track right now.";
-            return;
-          }
-        }
-        await refreshOnAirMusicLibrary();
-        await setOnAirLibraryView("music", true);
-        if (onAirMusicTrackSelect && onAirMusicTrackSelect.value === asset.id) {
-          onAirMusicTrackSelect.value = "";
-        }
-        onAirMediaStatus.textContent =
-          "Deleted " +
-          String(asset.title || asset.name || "track") +
-          (asset && asset.source === "browser-local" ? " from this browser." : " from the shared Music Library.");
-      });
-      actions.appendChild(deleteAction);
-      row.appendChild(actions);
-    } else {
-      const actions = document.createElement("div");
-      actions.className = "onair-library-actions";
-      if (onAirLibraryView === "post-production") {
-        const reviewAction = document.createElement("button");
-        reviewAction.type = "button";
-        reviewAction.className = "btn sso onair-library-action";
-        reviewAction.textContent = "Review Cut";
-        reviewAction.addEventListener("click", async () => {
-          try {
-            await openPostProductionAssetInReviewCut(asset);
-            onAirMediaStatus.textContent = "Opened " + String(asset.title || "draft") + " in Review Cut.";
-          } catch (error) {
-            onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to open this post-production asset right now.";
-          }
-        });
-        actions.appendChild(reviewAction);
-        const deleteAction = document.createElement("button");
-        deleteAction.type = "button";
-        deleteAction.className = "btn sso onair-library-action";
-        deleteAction.textContent = "Delete";
-        deleteAction.addEventListener("click", async () => {
-          if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
-            onAirMediaStatus.textContent = "Delete is unavailable right now.";
-            return;
-          }
-          const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
-          if (!deleted || !deleted.ok) {
-            onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this post-production asset right now.";
-            return;
-          }
-          await setOnAirLibraryView("post-production", true);
-          onAirMediaStatus.textContent = "Deleted " + String(asset.title || "post-production draft") + ".";
-        });
-        actions.appendChild(deleteAction);
-      } else if (onAirLibraryView === "episodes") {
-        const exportAudioAction = document.createElement("button");
-        exportAudioAction.type = "button";
-        exportAudioAction.className = "btn sso onair-library-action";
-        exportAudioAction.textContent = "Export Audio";
-        exportAudioAction.addEventListener("click", async () => {
-          try {
-            await exportLibraryAssetAudio(asset);
-            onAirMediaStatus.textContent = "Audio export started for " + String(asset.title || "episode") + ".";
-          } catch (error) {
-            onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to export this episode right now.";
-          }
-        });
-        actions.appendChild(exportAudioAction);
-        const deleteAction = document.createElement("button");
-        deleteAction.type = "button";
-        deleteAction.className = "btn sso onair-library-action";
-        deleteAction.textContent = "Delete";
-        deleteAction.addEventListener("click", async () => {
-          if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
-            onAirMediaStatus.textContent = "Delete is unavailable right now.";
-            return;
-          }
-          const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
-          if (!deleted || !deleted.ok) {
-            onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this episode right now.";
-            return;
-          }
-          await setOnAirLibraryView("episodes", true);
-          onAirMediaStatus.textContent = "Deleted " + String(asset.title || "episode") + ".";
-        });
-        actions.appendChild(deleteAction);
-      } else {
-        const action = document.createElement("button");
-        action.type = "button";
-        action.className = "btn sso onair-library-action";
-        action.textContent = "Open Asset";
-        action.addEventListener("click", async () => {
-          if (!window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
-            return;
-          }
-          const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
-          if (!ticket || !ticket.ok || !ticket.downloadUrl) {
-            onAirMediaStatus.textContent = "Unable to open this library asset right now.";
-            return;
-          }
-          window.open(ticket.downloadUrl, "_blank", "noopener");
-        });
-        actions.appendChild(action);
-      }
-      row.appendChild(actions);
-    }
-    onAirLibraryList.appendChild(row);
+function createOnAirLibraryActionButton(label, onClick, className) {
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = className || "btn sso onair-library-action";
+  action.textContent = label;
+  action.addEventListener("click", () => {
+    Promise.resolve(onClick()).catch(() => {
+      // Individual handlers own their user-facing errors.
+    });
   });
+  return action;
+}
+
+function createOnAirMusicPreviewAction(asset) {
+  return createOnAirLibraryActionButton("Listen", async () => {
+    await startOnAirLibraryPreview(asset);
+  });
+}
+
+function createOnAirMusicUseAction(asset) {
+  return createOnAirLibraryActionButton("Use", async () => {
+    const playableTrack = await resolveMusicTrackForPlayback(asset);
+    const selectedTrackId = String((playableTrack && playableTrack.id) || asset.id || "").trim();
+    if (onAirMusicTrackSelect) {
+      onAirMusicTrackSelect.value = selectedTrackId;
+    }
+    updateOnAirMusicCuesUI();
+    onAirMediaStatus.textContent =
+      "Selected " +
+      String(asset.title || asset.name || "track") +
+      (asset && asset.source === "browser-local" ? " from this browser." : " from the shared Music Library.");
+  });
+}
+
+function createOnAirMusicDeleteAction(asset) {
+  return createOnAirLibraryActionButton("Delete", async () => {
+    if (!isCurrentUserHost()) {
+      setHostStatus("Only the active host can delete music tracks.", true);
+      return;
+    }
+    if (asset && asset.source === "browser-local") {
+      try {
+        await deleteMusicLibraryTrack(asset.id);
+      } catch (error) {
+        onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to delete this local track right now.";
+        return;
+      }
+    } else {
+      if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
+        onAirMediaStatus.textContent = "Delete is unavailable right now.";
+        return;
+      }
+      const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
+      if (!deleted || !deleted.ok) {
+        onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this track right now.";
+        return;
+      }
+    }
+    await refreshOnAirMusicLibrary();
+    await setOnAirLibraryView("music", true);
+    if (onAirMusicTrackSelect && onAirMusicTrackSelect.value === asset.id) {
+      onAirMusicTrackSelect.value = "";
+    }
+    onAirMediaStatus.textContent =
+      "Deleted " +
+      String(asset.title || asset.name || "track") +
+      (asset && asset.source === "browser-local" ? " from this browser." : " from the shared Music Library.");
+  });
+}
+
+function createOnAirPostProductionReviewAction(asset) {
+  return createOnAirLibraryActionButton("Review Cut", async () => {
+    try {
+      await openPostProductionAssetInReviewCut(asset);
+      onAirMediaStatus.textContent = "Opened " + String(asset.title || "draft") + " in Review Cut.";
+    } catch (error) {
+      onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to open this post-production asset right now.";
+    }
+  });
+}
+
+function createOnAirPostProductionDeleteAction(asset) {
+  return createOnAirLibraryActionButton("Delete", async () => {
+    if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
+      onAirMediaStatus.textContent = "Delete is unavailable right now.";
+      return;
+    }
+    const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
+    if (!deleted || !deleted.ok) {
+      onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this post-production asset right now.";
+      return;
+    }
+    await setOnAirLibraryView("post-production", true);
+    onAirMediaStatus.textContent = "Deleted " + String(asset.title || "post-production draft") + ".";
+  });
+}
+
+function createOnAirEpisodeExportAction(asset) {
+  return createOnAirLibraryActionButton("Export Audio", async () => {
+    try {
+      await exportLibraryAssetAudio(asset);
+      onAirMediaStatus.textContent = "Audio export started for " + String(asset.title || "episode") + ".";
+    } catch (error) {
+      onAirMediaStatus.textContent = error && error.message ? error.message : "Unable to export this episode right now.";
+    }
+  });
+}
+
+function createOnAirEpisodeDeleteAction(asset) {
+  return createOnAirLibraryActionButton("Delete", async () => {
+    if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
+      onAirMediaStatus.textContent = "Delete is unavailable right now.";
+      return;
+    }
+    const deleted = await window.TBRAuth.deleteLibraryAsset(asset.id);
+    if (!deleted || !deleted.ok) {
+      onAirMediaStatus.textContent = (deleted && deleted.error) || "Unable to delete this episode right now.";
+      return;
+    }
+    await setOnAirLibraryView("episodes", true);
+    onAirMediaStatus.textContent = "Deleted " + String(asset.title || "episode") + ".";
+  });
+}
+
+function createOnAirDefaultOpenAction(asset) {
+  return createOnAirLibraryActionButton("Open Asset", async () => {
+    if (!window.TBRAuth || typeof window.TBRAuth.requestMediaDownload !== "function") {
+      return;
+    }
+    const ticket = await window.TBRAuth.requestMediaDownload(asset.id);
+    if (!ticket || !ticket.ok || !ticket.downloadUrl) {
+      onAirMediaStatus.textContent = "Unable to open this library asset right now.";
+      return;
+    }
+    window.open(ticket.downloadUrl, "_blank", "noopener");
+  });
+}
+
+function createOnAirReviewPreviewAction(asset) {
+  return createOnAirLibraryActionButton("Preview", async () => {
+    await startOnAirLibraryPreview(asset);
+    if (onAirMediaStatus) {
+      onAirMediaStatus.textContent = "Previewing " + String(asset.title || asset.name || "asset") + ".";
+    }
+  }, "onair-review-toolbar-btn");
+}
+
+function createOnAirReviewInsertAction(asset) {
+  return createOnAirLibraryActionButton("Insert", async () => {
+    if (await insertOnAirReviewLibraryAssetAtPlayhead(asset)) {
+      const insertedClip = getOnAirReviewSelectedClip();
+      onAirMediaStatus.textContent =
+        String(asset.title || asset.name || "Asset") +
+        " inserted into Track " +
+        String(insertedClip ? insertedClip.lane + 1 : 1) +
+        ".";
+    } else {
+      onAirMediaStatus.textContent = "Unable to insert this library asset right now.";
+    }
+    renderOnAirReviewLibraryList();
+  }, "onair-review-toolbar-btn");
+}
+
+function createOnAirReviewReplaceAction(asset) {
+  const action = createOnAirLibraryActionButton("Replace", async () => {
+    const replaceState = getOnAirReviewReplaceSelectionState();
+    if (!replaceState.allowed) {
+      onAirMediaStatus.textContent = replaceState.reason;
+      if (onAirReviewWaveNote) {
+        onAirReviewWaveNote.textContent = replaceState.reason;
+      }
+      return;
+    }
+    if (await replaceOnAirReviewSelectionWithLibraryAsset(asset)) {
+      onAirMediaStatus.textContent = String(asset.title || asset.name || "Track") + " replaced the selected range.";
+    } else {
+      onAirMediaStatus.textContent = "Replace could not be applied right now.";
+    }
+    renderOnAirReviewLibraryList();
+  }, "onair-review-toolbar-btn");
+  action.dataset.reviewLibraryReplace = "1";
+  action.disabled = !hasOnAirReviewSelection();
+  return action;
+}
+
+function renderOnAirLibraryList() {
+  if (onAirLibraryController && typeof onAirLibraryController.renderLibraryList === "function") {
+    onAirLibraryController.renderLibraryList();
+  }
 }
 
 function renderOnAirReviewLibraryList() {
-  if (!onAirReviewLibraryList) {
-    return;
+  if (onAirLibraryController && typeof onAirLibraryController.renderReviewLibraryList === "function") {
+    onAirLibraryController.renderReviewLibraryList();
   }
-  const assets = onAirMusicLibrary.slice().sort((left, right) => Number(right && right.createdAt || 0) - Number(left && left.createdAt || 0));
-  onAirReviewLibraryList.innerHTML = "";
-  if (onAirReviewLibraryNote) {
-    onAirReviewLibraryNote.textContent = assets.length
-      ? "Preview a library sound, insert it on the selected or next open track, or replace the current selection."
-      : "No music library tracks are available to insert yet.";
+}
+
+function updateOnAirReviewLibraryTabsUI() {
+  if (onAirLibraryController && typeof onAirLibraryController.updateReviewTabsUi === "function") {
+    onAirLibraryController.updateReviewTabsUi();
   }
-  if (!assets.length) {
-    const empty = document.createElement("p");
-    empty.className = "camera-status onair-library-empty";
-    empty.textContent = "Upload a music track first, then it will appear here for review insert.";
-    onAirReviewLibraryList.appendChild(empty);
-    return;
-  }
-  assets.slice(0, 10).forEach((asset) => {
-    const row = document.createElement("div");
-    row.className = "onair-review-library-row";
-    const meta = document.createElement("div");
-    meta.className = "onair-review-library-meta";
-    const title = document.createElement("p");
-    title.className = "onair-library-title";
-    title.textContent = String(asset.title || asset.name || asset.originalFilename || "Untitled Track");
-    const detail = document.createElement("p");
-    detail.className = "onair-library-detail";
-    detail.textContent = [
-      asset && asset.source === "browser-local" ? "This Browser" : formatLibraryAssetStatus(asset.status),
-      formatLibraryAssetSize(asset.byteSize || asset.size)
-    ].filter(Boolean).join(" • ");
-    meta.appendChild(title);
-    meta.appendChild(detail);
-    row.appendChild(meta);
-    const actions = document.createElement("div");
-    actions.className = "onair-review-library-actions";
-    const previewAction = document.createElement("button");
-    previewAction.type = "button";
-    previewAction.className = "onair-review-toolbar-btn";
-    previewAction.textContent = "Preview";
-    previewAction.addEventListener("click", async () => {
-      await startOnAirLibraryPreview(asset);
-      if (onAirMediaStatus) {
-        onAirMediaStatus.textContent = "Previewing " + String(asset.title || asset.name || "track") + ".";
-      }
-    });
-    actions.appendChild(previewAction);
-    const insertAction = document.createElement("button");
-    insertAction.type = "button";
-    insertAction.className = "onair-review-toolbar-btn";
-    insertAction.textContent = "Insert";
-    insertAction.addEventListener("click", async () => {
-      insertAction.disabled = true;
-      try {
-        if (await insertOnAirReviewLibraryAssetAtPlayhead(asset)) {
-          const insertedClip = getOnAirReviewSelectedClip();
-          onAirMediaStatus.textContent =
-            String(asset.title || asset.name || "Track") +
-            " inserted into Track " +
-            String(insertedClip ? insertedClip.lane + 1 : 1) +
-            ".";
-        } else {
-          onAirMediaStatus.textContent = "Unable to insert this library track right now.";
-        }
-      } finally {
-        renderOnAirReviewLibraryList();
-      }
-    });
-    actions.appendChild(insertAction);
-    const replaceAction = document.createElement("button");
-    replaceAction.type = "button";
-    replaceAction.className = "onair-review-toolbar-btn";
-    replaceAction.dataset.reviewLibraryReplace = "1";
-    replaceAction.textContent = "Replace";
-    replaceAction.disabled = !hasOnAirReviewSelection();
-    replaceAction.addEventListener("click", async () => {
-      replaceAction.disabled = true;
-      try {
-        const replaceState = getOnAirReviewReplaceSelectionState();
-        if (!replaceState.allowed) {
-          onAirMediaStatus.textContent = replaceState.reason;
-          if (onAirReviewWaveNote) {
-            onAirReviewWaveNote.textContent = replaceState.reason;
-          }
-          return;
-        }
-        if (await replaceOnAirReviewSelectionWithLibraryAsset(asset)) {
-          onAirMediaStatus.textContent = String(asset.title || asset.name || "Track") + " replaced the selected range.";
-        } else {
-          onAirMediaStatus.textContent = "Replace could not be applied right now.";
-        }
-      } finally {
-        renderOnAirReviewLibraryList();
-      }
-    });
-    actions.appendChild(replaceAction);
-    row.appendChild(actions);
-    onAirReviewLibraryList.appendChild(row);
-  });
 }
 
 function updateOnAirLibraryTabsUI() {
-  document.querySelectorAll("[data-library-view]").forEach((button) => {
-    button.classList.toggle("active", String(button.dataset.libraryView || "") === onAirLibraryView);
-  });
+  if (onAirLibraryController && typeof onAirLibraryController.updateTabsUi === "function") {
+    onAirLibraryController.updateTabsUi();
+  }
 }
 
 async function loadOnAirLibraryKind(libraryKind, forceRefresh) {
-  const normalizedKind = libraryKind === "post-production" ? "post-production" : libraryKind === "episodes" ? "episodes" : "music";
-  if (
-    !forceRefresh &&
-    Array.isArray(onAirLibraryAssets[normalizedKind]) &&
-    onAirLibraryAssets[normalizedKind].length
-  ) {
-    return;
+  if (onAirLibraryController && typeof onAirLibraryController.loadLibraryKind === "function") {
+    await onAirLibraryController.loadLibraryKind(libraryKind, forceRefresh);
   }
-  if (!window.TBRAuth || typeof window.TBRAuth.listLibraryAssets !== "function") {
-    onAirLibraryAssets[normalizedKind] = [];
-    renderOnAirLibraryList();
-    return;
+}
+
+async function loadOnAirReviewLibraryKind(libraryKind, forceRefresh) {
+  if (onAirLibraryController && typeof onAirLibraryController.loadReviewLibraryKind === "function") {
+    await onAirLibraryController.loadReviewLibraryKind(libraryKind, forceRefresh);
   }
-  if (onAirLibraryNote) {
-    onAirLibraryNote.textContent = "Loading " + getLibraryDisplayLabel(normalizedKind) + " Library...";
-  }
-  const response = await window.TBRAuth.listLibraryAssets(normalizedKind, 250);
-  onAirLibraryAssets[normalizedKind] = response && response.ok && Array.isArray(response.assets) ? response.assets : [];
-  renderOnAirLibraryList();
 }
 
 async function setOnAirLibraryView(nextView, forceRefresh) {
-  onAirLibraryView = nextView === "post-production" ? "post-production" : nextView === "episodes" ? "episodes" : "music";
-  updateOnAirLibraryTabsUI();
-  await loadOnAirLibraryKind(onAirLibraryView, !!forceRefresh);
+  if (onAirLibraryController && typeof onAirLibraryController.setLibraryView === "function") {
+    await onAirLibraryController.setLibraryView(nextView, forceRefresh);
+  }
+}
+
+async function setOnAirReviewLibraryView(nextView, forceRefresh) {
+  if (onAirLibraryController && typeof onAirLibraryController.setReviewLibraryView === "function") {
+    await onAirLibraryController.setReviewLibraryView(nextView, forceRefresh);
+  }
 }
 
 async function refreshOnAirMusicLibrary() {
-  let localTracks = [];
-  let sharedTracks = [];
-  let unavailableSharedTracks = [];
-  let localOk = false;
-  let sharedOk = false;
-  try {
-    localTracks = await getAllMusicLibraryTracks();
-    localOk = true;
-  } catch (error) {
-    localTracks = [];
+  if (onAirLibraryController && typeof onAirLibraryController.refreshMusicLibrary === "function") {
+    await onAirLibraryController.refreshMusicLibrary();
   }
-  if (window.TBRAuth && typeof window.TBRAuth.listLibraryAssets === "function") {
-    try {
-      const response = await window.TBRAuth.listLibraryAssets("music", 250);
-      if (response && response.ok) {
-        const filteredShared = await filterPlayableSharedMusicAssets(Array.isArray(response.assets) ? response.assets : []);
-        sharedTracks = filteredShared.playable;
-        unavailableSharedTracks = filteredShared.unavailable;
-        sharedOk = true;
-        onAirLibraryAssets.music = sharedTracks;
-      }
-    } catch (error) {
-      sharedTracks = [];
-    }
-  }
-  onAirMusicLibrary = mergeOnAirMusicLibraries(localTracks, sharedTracks);
-  if (sharedOk) {
-    onAirMusicCatalogStatus = "synced";
-  } else if (localOk) {
-    onAirMusicCatalogStatus = "ready";
-  } else {
-    onAirMusicCatalogStatus = "error";
-  }
-  populateOnAirMusicTrackSelect();
-  renderOnAirReviewLibraryList();
-  if (onAirLibraryOpen && onAirLibraryView === "music") {
-    renderOnAirLibraryList();
-  }
-  if (!sharedOk && !localOk && onAirMusicCuesNote) {
-    onAirMusicCuesNote.textContent = "Music library is unavailable right now.";
-  } else if (unavailableSharedTracks.length && onAirMusicCuesNote) {
-    onAirMusicCuesNote.textContent = unavailableSharedTracks.length + " older browser-only track" + (unavailableSharedTracks.length === 1 ? " is" : "s are") + " unavailable on this device and hidden from the shared library.";
-  }
-  updateOnAirMusicCuesUI();
 }
 
 function clearOnAirMusicObjectUrl() {
@@ -16103,8 +16017,9 @@ async function playOnAirMusicCue(trackRecord, slotLabel, options) {
     return;
   }
   const layeringAllowed = config.allowLayer !== false;
+  const forceLayer = !!config.forceLayer;
   const canUsePrimary = !onAirMusicPrimaryCue;
-  const usePrimary = !layeringAllowed || canUsePrimary;
+  const usePrimary = !forceLayer && (!layeringAllowed || canUsePrimary);
   const buffer = await decodeOnAirPlayableTrack(playableTrack);
   if (!buffer) {
     onAirMediaStatus.textContent = "Selected track could not be decoded for playback.";
@@ -16178,12 +16093,12 @@ async function playOnAirMusicCue(trackRecord, slotLabel, options) {
 
 async function playNextQueuedOnAirMusicCue() {
   if (!isCurrentUserHost()) {
-    setHostStatus("Only the active host can play queued cues.", true);
+    setHostStatus("Only the active host can start the staged next cue.", true);
     return;
   }
   let nextItem = onAirMusicQueue.shift() || null;
   if (!nextItem) {
-    onAirMediaStatus.textContent = "Nothing is queued. Use Queue Next for timed playback.";
+    onAirMediaStatus.textContent = "Nothing is staged in Next Up.";
     updateOnAirMusicCuesUI();
     return;
   }
@@ -16197,27 +16112,31 @@ async function playNextQueuedOnAirMusicCue() {
   updateOnAirMusicCuesUI();
 }
 
-function getSelectedOnAirMusicSlot() {
-  if (!onAirMusicSlotSelect) {
-    return "intro";
-  }
-  return String(onAirMusicSlotSelect.value || "intro").trim() || "intro";
-}
-
-function getSelectedOnAirMusicSlotLabel() {
-  if (!onAirMusicSlotSelect) {
-    return "Intro";
-  }
-  const option = onAirMusicSlotSelect.selectedOptions && onAirMusicSlotSelect.selectedOptions[0];
-  return option ? option.textContent.trim() : "Intro";
-}
-
 function getSelectedOnAirMusicTrackLabel() {
   if (!onAirMusicTrackSelect) {
     return "";
   }
   const option = onAirMusicTrackSelect.selectedOptions && onAirMusicTrackSelect.selectedOptions[0];
   return option ? option.textContent.trim() : "";
+}
+
+function getSelectedOnAirNextTrack() {
+  if (!onAirMusicNextTrackSelect) {
+    return "";
+  }
+  return String(onAirMusicNextTrackSelect.value || "").trim();
+}
+
+function getSelectedOnAirNextTrackLabel() {
+  if (!onAirMusicNextTrackSelect) {
+    return "";
+  }
+  const option = onAirMusicNextTrackSelect.selectedOptions && onAirMusicNextTrackSelect.selectedOptions[0];
+  return option ? option.textContent.trim() : "";
+}
+
+function hasOnAirPrimaryCue() {
+  return !!(onAirMusicPrimaryCue && !onAirMusicPrimaryCue.cleanedUp);
 }
 
 async function attemptOnAirCuePlayback(player) {
@@ -16274,7 +16193,7 @@ async function startQueuedOnAirMusicForRecording() {
       return true;
     } catch (error) {
       pushMusicDiagnostic("recording_start_cue_failed", "track=" + String(preparedCue.trackId || preparedCue.trackRecord.id || "") + " | message=" + String((error && error.message) || "start failed"));
-      onAirMediaStatus.textContent = "Recording started, but the queued music cue was blocked by the browser.";
+      onAirMediaStatus.textContent = "Recording started, but the staged Next Up cue was blocked by the browser.";
       updateOnAirMusicCuesUI();
       queueOnAirAudioControlsRefresh();
       return false;
@@ -16296,7 +16215,7 @@ async function startQueuedOnAirMusicForRecording() {
         updateOnAirMusicCuesUI();
         return false;
       }
-      await playOnAirMusicCue(trackRecord, getSelectedOnAirMusicSlotLabel(), { allowLayer: true });
+      await playOnAirMusicCue(trackRecord, "Current Cue", { allowLayer: false });
       pushMusicDiagnostic("recording_selected_play_ok", "track=" + String(selectedTrackId || ""));
       return true;
     } catch (error) {
@@ -16315,7 +16234,7 @@ async function startQueuedOnAirMusicForRecording() {
     return true;
   } catch (error) {
     pushMusicDiagnostic("recording_queue_play_failed", "message=" + String((error && error.message) || "queue start failed"));
-    onAirMediaStatus.textContent = "Recording started, but the queued music cue could not be started.";
+    onAirMediaStatus.textContent = "Recording started, but the staged Next Up cue could not be started.";
     updateOnAirMusicCuesUI();
     return false;
   }
@@ -16373,8 +16292,10 @@ function updateOnAirMusicCuesUI() {
   const isHost = isCurrentUserHost();
   const hasTrackLibrary = onAirMusicLibrary.length > 0;
   const hasSelectedTrack = !!getSelectedOnAirMusicTrack();
+  const hasSelectedNextTrack = !!getSelectedOnAirNextTrack();
   const activeCueCount = getActiveOnAirMusicCueTargets().length;
   const isPlaying = activeCueCount > 0;
+  const hasPrimaryLive = hasOnAirPrimaryCue();
   if (onAirMusicCuesBadge) {
     onAirMusicCuesBadge.textContent = hasTrackLibrary
       ? onAirMusicLibrary.length + " track" + (onAirMusicLibrary.length === 1 ? "" : "s")
@@ -16384,10 +16305,13 @@ function updateOnAirMusicCuesUI() {
     onAirMusicUploadBtn.disabled = !isHost;
   }
   if (onAirMusicQueueBtn) {
-    onAirMusicQueueBtn.disabled = !isHost || !hasTrackLibrary || !hasSelectedTrack;
+    onAirMusicQueueBtn.disabled = !isHost || !hasTrackLibrary || !hasSelectedNextTrack;
   }
   if (onAirMusicPlayBtn) {
-    onAirMusicPlayBtn.disabled = !isHost || (!onAirMusicQueue.length && !hasSelectedTrack);
+    onAirMusicPlayBtn.disabled = !isHost || !hasSelectedTrack || hasPrimaryLive;
+  }
+  if (onAirMusicLayerBtn) {
+    onAirMusicLayerBtn.disabled = !isHost || !hasSelectedTrack || !isPlaying;
   }
   if (onAirMusicStopBtn) {
     onAirMusicStopBtn.disabled = !isHost || !isPlaying;
@@ -16395,32 +16319,41 @@ function updateOnAirMusicCuesUI() {
   if (onAirMusicClearBtn) {
     onAirMusicClearBtn.disabled = !isHost || onAirMusicQueue.length === 0;
   }
-  if (onAirMusicNext) {
-    if (activeCueCount > 1) {
-      onAirMusicNext.textContent = "Now Playing: " + activeCueCount + " active cues";
-    } else if (isPlaying) {
+  if (onAirMusicCurrent) {
+    if (hasPrimaryLive) {
       const activeTrack = onAirMusicLibrary.find((track) => track.id === onAirMusicCurrentTrackId);
-      onAirMusicNext.textContent = "Now Playing: " + (activeTrack ? activeTrack.name : "Live cue");
-    } else if (onAirMusicQueue.length > 0) {
-      const nextItem = onAirMusicQueue[0];
-      onAirMusicNext.textContent = "Up Next: " + nextItem.slotLabel + " - " + nextItem.trackLabel;
+      onAirMusicCurrent.textContent = "Current Cue: " + (activeTrack ? activeTrack.name : "Live cue") + ".";
+    } else if (activeCueCount > 0) {
+      onAirMusicCurrent.textContent = "Current Cue: none assigned. " + activeCueCount + " layer" + (activeCueCount === 1 ? "" : "s") + " active.";
+    } else if (hasSelectedTrack) {
+      onAirMusicCurrent.textContent = "Current Cue Ready: " + getSelectedOnAirMusicTrackLabel() + ".";
     } else {
-      onAirMusicNext.textContent = "Up Next: nothing queued.";
+      onAirMusicCurrent.textContent = "Current Cue: nothing live.";
+    }
+  }
+  if (onAirMusicNext) {
+    if (onAirMusicQueue.length > 0) {
+      const nextItem = onAirMusicQueue[0];
+      onAirMusicNext.textContent = "Next Up: " + nextItem.trackLabel + ".";
+    } else if (hasSelectedNextTrack) {
+      onAirMusicNext.textContent = "Next Up Ready: " + getSelectedOnAirNextTrackLabel() + ".";
+    } else {
+      onAirMusicNext.textContent = "Next Up: nothing staged.";
     }
   }
   if (onAirMusicCuesNote) {
     if (!isHost) {
-      onAirMusicCuesNote.textContent = "Only the active host can upload, queue, and play music cues.";
+      onAirMusicCuesNote.textContent = "Only the active host can stage current cues, next-up cues, and layers.";
     } else if (!hasTrackLibrary) {
       onAirMusicCuesNote.textContent =
         onAirMusicCatalogStatus === "synced"
-          ? "Upload non-copyright tracks here for intros, beds, and outros. Shared metadata sync is active."
-          : "Upload non-copyright tracks here for intros, beds, and outros.";
+          ? "Upload non-copyright tracks here. Shared library sync is active."
+          : "Upload non-copyright tracks here for live cue staging.";
     } else {
       onAirMusicCuesNote.textContent =
         onAirMusicCatalogStatus === "synced"
-          ? "Queue Next schedules timed playback. Play Now starts the selected cue immediately. Both route into the live mix and shared library."
-          : "Queue Next schedules timed playback. Play Now starts the selected cue immediately.";
+          ? "Start Current launches the primary cue, Stage Next promotes when current ends, and Add Layer preserves simultaneous playback."
+          : "Start Current launches the primary cue, Stage Next promotes when current ends, and Add Layer preserves simultaneous playback.";
     }
   }
   queueOnAirAudioControlsRefresh();
@@ -16440,6 +16373,7 @@ async function syncTrackMetadataToSharedLibrary(trackRecord) {
     status: "uploaded",
     storageProvider: "browser-local",
     metadata: {
+      ...buildShowLibraryMetadata(),
       localTrackId: String(trackRecord.id || ""),
       source: "browser-local",
       hostScoped: true
@@ -16512,11 +16446,11 @@ function setRecordingState(nextRecording, nextReady, sourceUser, startedAtMs) {
     onAirMediaStatus.textContent = "Recording in progress" + (sourceUser ? " (host: " + sourceUser + ")." : ".");
   } else if (recordingReady) {
     if (RECORDING_DEMO_MODE) {
-      onAirMediaStatus.textContent = "Demo recording complete. Playback/download are preview-only in this phase.";
+      onAirMediaStatus.textContent = "Demo recording complete. Open Review Cut to inspect the take.";
     } else {
       onAirMediaStatus.textContent = hasLocalRecordingAsset()
-        ? "Recording complete. Playback and download are now available."
-        : "Recording complete. Host can export local file in this phase.";
+        ? "Recording complete. Open Review Cut or continue in Post-Production."
+        : "Recording complete. Post-Production is ready for the next editorial step.";
     }
   } else {
     onAirMediaStatus.textContent = "Ready to record.";
@@ -16691,237 +16625,38 @@ async function runPreflightMicCheck() {
 }
 
 async function stopHostRecordingWithReason(reasonText) {
-  await stopOnAirMusicCue().catch(() => {
-    // Ignore cue-stop failures during recording finalize.
-  });
-  let ready = false;
-  if (RECORDING_DEMO_MODE) {
-    abortLocalRecordingCapture();
-    ready = true;
-  } else {
-    const blob = await stopLocalRecordingCaptureAndFinalize().catch(() => null);
-    ready = !!((blob && blob.size > 0) || (recordingAudioBlob && recordingAudioBlob.size > 0));
-    if (ready && onAirReviewAppendFinishedRecordingToTimeline) {
-      await appendLatestRecordingAssetToOnAirReviewTimeline().catch(() => false);
-    }
-  }
-  onAirReviewAppendFinishedRecordingToTimeline = false;
-  clearRecordingAutomationTimers();
-  recordingStartInProgress = false;
-  setOnAirCountdownPopoutOpen(false);
-  setRecordingState(false, ready, session.username);
-  if (ready) {
-    beginRecordingProcessingPhase();
-    saveCurrentRecordingToPostProduction()
-      .then((asset) => {
-        if (!asset) {
-          return;
-        }
-        onAirMediaStatus.textContent = "Recording saved to Post-Production as " + String(asset.title || "draft") + ".";
-        if (onAirReviewStatus && recordingWorkflowState !== "processing") {
-          onAirReviewStatus.textContent = "Recording saved to Post-Production. Open Review Cut to polish the draft or return to the library later.";
-        }
-      })
-      .catch((error) => {
-        onAirMediaStatus.textContent =
-          (error && error.message ? error.message : "Recording saved locally but could not be pushed to Post-Production.") +
-          " The local review asset is still available in this browser.";
-      });
-  } else {
-    setRecordingWorkflowState("ready");
-  }
-  sendHostSignalToAll("host-record-state", { recording: false, downloadReady: ready, startedAt: 0 }).catch(() => {
-    // Ignore sync errors.
-  });
-  if (reasonText) {
-    sendChat(reasonText).catch(() => {
-      // Ignore chat post errors.
-    });
+  if (recordingController && typeof recordingController.stopHostRecordingWithReason === "function") {
+    return recordingController.stopHostRecordingWithReason(reasonText);
   }
 }
 
 function setupRecordingAutomation() {
-  clearRecordingAutomationTimers();
-
-  const adminMaxMinutes = Math.max(20, Number(adminSettings.recordingMaxMinutes || 180));
-  const autoStopMinutes = (() => {
-    const requested = getRecordingAutoStopMinutes();
-    if (!requested) {
-      return adminMaxMinutes;
-    }
-    return Math.min(requested, adminMaxMinutes);
-  })();
-  if (autoStopMinutes > 0) {
-    recordingAutoStopTimerId = window.setTimeout(() => {
-      if (!isRecording || !isCurrentUserHost()) {
-        return;
-      }
-      onAirMediaStatus.textContent = "Auto-stop safety timer reached. Finalizing recording.";
-      stopHostRecordingWithReason("Recording auto-stopped after " + autoStopMinutes + " minutes.").catch(() => {
-        // Ignore stop races.
-      });
-    }, autoStopMinutes * 60 * 1000);
-  }
-
-  const autoSplitMinutes = getRecordingAutoSplitMinutes();
-  if (RECORDING_DEMO_MODE) {
-    return;
-  }
-  if (autoSplitMinutes > 0) {
-    recordingAutoSplitTimerId = window.setInterval(() => {
-      if (!isRecording || !isCurrentUserHost() || recordingSplitInProgress) {
-        return;
-      }
-      recordingSplitInProgress = true;
-      onAirMediaStatus.textContent = "Auto-splitting recording segment...";
-      stopLocalRecordingCaptureAndFinalize()
-        .then(async (blob) => {
-          if (!(blob && blob.size > 0)) {
-            throw new Error("Segment finalize failed.");
-          }
-          await startLocalRecordingCapture(false);
-          onAirMediaStatus.textContent = "Auto-split complete. Recording continues.";
-          sendChat("Recording auto-split at " + autoSplitMinutes + " minute interval.").catch(() => {
-            // Ignore chat post errors.
-          });
-        })
-        .catch(() => {
-          onAirMediaStatus.textContent = "Auto-split failed. Recording stopped for safety.";
-          stopHostRecordingWithReason("Recording stopped because auto-split failed.").catch(() => {
-            // Ignore stop races.
-          });
-        })
-        .finally(() => {
-          recordingSplitInProgress = false;
-        });
-    }, autoSplitMinutes * 60 * 1000);
+  if (recordingController && typeof recordingController.setupRecordingAutomation === "function") {
+    recordingController.setupRecordingAutomation();
   }
 }
 
 async function startHostRecordingFlow() {
-  if (!canCurrentUserControlRecording()) {
-    recordingStartInProgress = false;
-    setOnAirCountdownPopoutOpen(false);
-    onAirMediaStatus.textContent = "Recording is restricted to admins right now.";
-    return;
+  if (recordingController && typeof recordingController.startHostRecordingFlow === "function") {
+    return recordingController.startHostRecordingFlow();
   }
-  recordingStartInProgress = true;
-  setRecordingWorkflowState("countdown");
-  clearRecordingProcessingTimer();
-  clearRecordingAutomationTimers();
-  if (!RECORDING_DEMO_MODE) {
-    ensureOnAirReviewTimeline();
-    onAirReviewAppendFinishedRecordingToTimeline = false;
-    if (hasLocalRecordingAsset()) {
-      await convertCurrentRecordingAssetToOnAirReviewClipAsset().catch(() => null);
-    }
-    onAirReviewAppendFinishedRecordingToTimeline = getOnAirReviewMediaClips().length > 0;
-    clearLocalRecordingAsset();
-  }
-  const countdown = getRecordingCountdownSeconds();
-  await primeOnAirMusicCueForRecordingStart().catch(() => false);
-  onAirMediaStatus.textContent = "Recording starts in " + countdown + " seconds...";
-  sendChat("Recording starts in " + countdown + " seconds.").catch(() => {
-    // Ignore chat post errors.
-  });
-
-  await runRecordingCountdown(countdown);
-
-  if (!isCurrentUserHost()) {
-    recordingStartInProgress = false;
-    setOnAirCountdownPopoutOpen(false);
-    setRecordingWorkflowState("ready");
-    onAirMediaStatus.textContent = "Recording start canceled: host changed.";
-    return;
-  }
-
-  const startedAt = Date.now();
-  try {
-    if (!RECORDING_DEMO_MODE) {
-      await startLocalRecordingCapture(false);
-    }
-  } catch (error) {
-    recordingStartInProgress = false;
-    setOnAirCountdownPopoutOpen(false);
-    setRecordingWorkflowState("ready");
-    onAirMediaStatus.textContent = error && error.message ? error.message : "Recording could not start.";
-    throw error;
-  }
-  setRecordingState(true, false, session.username, startedAt);
-  setupRecordingAutomation();
-  await startQueuedOnAirMusicForRecording();
-  recordingStartInProgress = false;
-  sendHostSignalToAll("host-record-state", { recording: true, downloadReady: false, startedAt }).catch(() => {
-    // Ignore sync errors.
-  });
-  sendChat("Recording started by " + (sessionIdentity.displayName || session.username) + ".").catch(() => {
-    // Ignore chat post errors.
-  });
 }
 
 function setHostOwner(username) {
-  const normalized = String(username || "").trim().toLowerCase();
-  currentHostUsername = normalized;
-  if (!normalized) {
-    hostOwnerStatus.textContent = "Host: Unassigned";
-  } else if (normalized === session.username) {
-    hostOwnerStatus.textContent = "Host: " + getDisplayNameForUsername(normalized) + " (You)";
-  } else {
-    hostOwnerStatus.textContent = "Host: " + getDisplayNameForUsername(normalized);
+  if (realtimeController && typeof realtimeController.setHostOwner === "function") {
+    return realtimeController.setHostOwner(username);
   }
-  updateHostControlsAvailability();
-  refreshMessagePopovers();
 }
 
 function renderHostTransferOptions(rows) {
-  const participants = Array.isArray(rows) ? rows : [];
-  const prev = hostTransferSelect.value;
-  hostTransferSelect.innerHTML = "";
-
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Select transfer target";
-  hostTransferSelect.appendChild(defaultOption);
-
-  participants
-    .filter((row) => row.username && row.username !== session.username)
-    .forEach((row) => {
-      const option = document.createElement("option");
-      option.value = row.username;
-      option.textContent = getDisplayNameForRow(row);
-      hostTransferSelect.appendChild(option);
-    });
-
-  if (prev && participants.some((row) => row.username === prev && row.username !== session.username)) {
-    hostTransferSelect.value = prev;
-  } else {
-    hostTransferSelect.value = "";
+  if (realtimeController && typeof realtimeController.renderHostTransferOptions === "function") {
+    return realtimeController.renderHostTransferOptions(rows);
   }
 }
 
 function renderHostSpotlightOptions(rows) {
-  const participants = Array.isArray(rows) ? rows : [];
-  const prev = hostSpotlightSelect.value;
-  hostSpotlightSelect.innerHTML = "";
-
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Select participant";
-  hostSpotlightSelect.appendChild(defaultOption);
-
-  participants.forEach((row) => {
-    const option = document.createElement("option");
-    option.value = row.username;
-    option.textContent = row.username === session.username ? getDisplayNameForRow(row) + " (You)" : getDisplayNameForRow(row);
-    hostSpotlightSelect.appendChild(option);
-  });
-
-  if (spotlightUsername && participants.some((row) => row.username === spotlightUsername)) {
-    hostSpotlightSelect.value = spotlightUsername;
-  } else if (prev && participants.some((row) => row.username === prev)) {
-    hostSpotlightSelect.value = prev;
-  } else {
-    hostSpotlightSelect.value = "";
+  if (realtimeController && typeof realtimeController.renderHostSpotlightOptions === "function") {
+    return realtimeController.renderHostSpotlightOptions(rows);
   }
 }
 
@@ -16970,51 +16705,31 @@ async function applySpotlight(username, sourceUser) {
 }
 
 async function sendHostSignalToAll(type, payload) {
-  if (!isCurrentUserHost()) {
-    setHostStatus("Only the active host can use host controls.", true);
+  if (!realtimeController || typeof realtimeController.sendHostSignalToAll !== "function") {
     return false;
   }
-  if (!realtimeEnabled) {
-    setHostStatus("Realtime server is offline. Host controls unavailable.", true);
-    if (onAirRosterStatus) {
-      onAirRosterStatus.textContent = "On-Air now: realtime offline.";
-    }
-    return false;
-  }
-  const peers = currentParticipants.filter((name) => name && name !== session.username);
-  if (!peers.length) {
-    setHostStatus("No other participants are online.", true);
-    return false;
-  }
-  await Promise.all(peers.map((peer) => sendSignal(peer, type, payload)));
-  return true;
+  return realtimeController.sendHostSignalToAll(type, payload);
 }
 
 async function claimHost() {
-  const data = await api("/host/claim", {
-    method: "POST",
-    body: JSON.stringify({ username: session.username })
-  });
-  setHostOwner(data.hostUsername || "");
-  return data;
+  if (!realtimeController || typeof realtimeController.claimHost !== "function") {
+    return { ok: false };
+  }
+  return realtimeController.claimHost();
 }
 
 async function releaseHost() {
-  const data = await api("/host/release", {
-    method: "POST",
-    body: JSON.stringify({ username: session.username })
-  });
-  setHostOwner(data.hostUsername || "");
-  return data;
+  if (!realtimeController || typeof realtimeController.releaseHost !== "function") {
+    return { ok: false };
+  }
+  return realtimeController.releaseHost();
 }
 
 async function transferHost(toUsername) {
-  const data = await api("/host/transfer", {
-    method: "POST",
-    body: JSON.stringify({ from: session.username, to: toUsername })
-  });
-  setHostOwner(data.hostUsername || "");
-  return data;
+  if (!realtimeController || typeof realtimeController.transferHost !== "function") {
+    return { ok: false };
+  }
+  return realtimeController.transferHost(toUsername);
 }
 
 function getDisplayNameForRow(row) {
@@ -17285,282 +17000,73 @@ async function api(path, options) {
 }
 
 async function sendPresenceHeartbeat() {
-  await api("/presence/heartbeat", {
-    method: "POST",
-    body: JSON.stringify({
-      sessionId,
-      username: session.username,
-      displayName: sessionIdentity.displayName || session.username,
-      onAir: isOnAir
-    })
-  });
-  realtimeEnabled = true;
+  if (!realtimeController || typeof realtimeController.sendPresenceHeartbeat !== "function") {
+    return;
+  }
+  return realtimeController.sendPresenceHeartbeat();
 }
 
 async function pollPresence() {
-  const data = await api("/presence/list");
-  realtimeEnabled = true;
-  if (data && data.adminSettings && typeof data.adminSettings === "object") {
-    adminSettings = {
-      ...adminSettings,
-      ...data.adminSettings
-    };
+  if (!realtimeController || typeof realtimeController.pollPresence !== "function") {
+    return;
   }
-  applyAdminSettingsToUi();
-  showRuntimeWarnings();
-  applyStudioControlState(data && data.studioControlState ? data.studioControlState : null);
-  updateChatStatusFromState();
-  setHostOwner(data.hostUsername || "");
-  const participants = Array.isArray(data.participants)
-    ? data.participants
-    : (Array.isArray(data.users)
-      ? data.users.map((username) => ({
-          username: String(username || "").trim().toLowerCase(),
-          onAir: false,
-          lastSeenAt: Date.now()
-        }))
-      : []);
-  renderParticipants(participants);
+  return realtimeController.pollPresence();
 }
 
 async function sendChat(text, attachment, replyTo) {
-  return api("/chat/send", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      displayName: sessionIdentity.displayName || session.username,
-      text,
-      attachment: attachment || null,
-      replyTo: replyTo || null
-    })
-  });
+  if (!chatController || typeof chatController.sendChat !== "function") {
+    return { ok: false };
+  }
+  return chatController.sendChat(text, attachment, replyTo);
 }
 
 function sendChatWithProgress(text, attachment, onProgress, replyTo) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    attachmentUploadXhr = xhr;
-    xhr.open("POST", REALTIME_BASE_URL + "/chat/send", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState !== 4) {
-        return;
-      }
-      if (attachmentUploadXhr === xhr) {
-        attachmentUploadXhr = null;
-      }
-      let data = null;
-      try {
-        data = xhr.responseText ? JSON.parse(xhr.responseText) : {};
-      } catch (error) {
-        data = {};
-      }
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(data || {});
-        return;
-      }
-      const err = new Error((data && data.error) || "Upload failed");
-      err.status = xhr.status;
-      reject(err);
-    };
-    xhr.onerror = () => {
-      if (attachmentUploadXhr === xhr) {
-        attachmentUploadXhr = null;
-      }
-      reject(new Error("Upload failed"));
-    };
-    xhr.onabort = () => {
-      if (attachmentUploadXhr === xhr) {
-        attachmentUploadXhr = null;
-      }
-      reject(new Error("Upload canceled"));
-    };
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (event) => {
-        if (!event.lengthComputable) {
-          return;
-        }
-        const pct = Math.round((event.loaded / event.total) * 100);
-        onProgress(pct);
-      };
-    }
-    xhr.send(
-      JSON.stringify({
-        username: session.username,
-        displayName: sessionIdentity.displayName || session.username,
-        text,
-        attachment: attachment || null,
-        replyTo: replyTo || null
-      })
-    );
-  });
+  if (!chatController || typeof chatController.sendChatWithProgress !== "function") {
+    return Promise.reject(new Error("Chat upload is not available."));
+  }
+  return chatController.sendChatWithProgress(text, attachment, onProgress, replyTo);
 }
 
 async function sendChatReaction(messageId, emoji) {
-  await api("/chat/react", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      messageId,
-      emoji
-    })
-  });
+  if (chatController && typeof chatController.sendChatReaction === "function") {
+    return chatController.sendChatReaction(messageId, emoji);
+  }
 }
 
 async function sendChatEdit(messageId, text) {
-  await api("/chat/edit", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      messageId,
-      text
-    })
-  });
+  if (chatController && typeof chatController.sendChatEdit === "function") {
+    return chatController.sendChatEdit(messageId, text);
+  }
 }
 
 async function sendChatDelete(messageId, asHost) {
-  return api("/chat/delete", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      messageId,
-      asHost: !!asHost
-    })
-  });
+  if (!chatController || typeof chatController.sendChatDelete !== "function") {
+    return { ok: false };
+  }
+  return chatController.sendChatDelete(messageId, asHost);
 }
 
 async function sendChatSeen(seenUpTo) {
-  if (!seenUpTo) {
-    return;
+  if (chatController && typeof chatController.sendChatSeen === "function") {
+    return chatController.sendChatSeen(seenUpTo);
   }
-  await api("/chat/seen", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      seenUpTo
-    })
-  });
 }
 
 async function sendChatTyping(typing) {
-  await api("/chat/typing", {
-    method: "POST",
-    body: JSON.stringify({
-      username: session.username,
-      displayName: sessionIdentity.displayName || session.username,
-      typing: !!typing
-    })
-  });
+  if (chatController && typeof chatController.sendChatTyping === "function") {
+    return chatController.sendChatTyping(typing);
+  }
 }
 
 function handleIncomingChatEvents(events, suppressAlerts) {
-  const list = Array.isArray(events) ? events : [];
-  const suppress = !!suppressAlerts;
-  for (const event of list) {
-    const eventId = Number(event && event.id ? event.id : 0);
-    if (eventId > lastChatId) {
-      lastChatId = eventId;
-    }
-    if (event.type === "message") {
-      const item = event.payload && event.payload.message ? event.payload.message : null;
-      const messageId = Number(item && item.id ? item.id : 0);
-      if (!item || !messageId) {
-        continue;
-      }
-      const isKnownMessage = seenMessageIds.has(messageId);
-      const entry = {
-        id: messageId,
-        kind: item.kind === "system" || item.username === "system" ? "system" : "chat",
-        username: item.username,
-        text: item.text,
-        timestamp: item.timestamp,
-        reactions: item.reactions && typeof item.reactions === "object" ? { ...item.reactions } : {},
-        attachment: item.attachment && typeof item.attachment === "object" ? { ...item.attachment } : null,
-        replyTo: item.replyTo && typeof item.replyTo === "object" ? { ...item.replyTo } : null,
-        editedAt: Number(item.editedAt || 0),
-        deleted: !!item.deleted,
-        seenBy: item.seenBy && typeof item.seenBy === "object" ? { ...item.seenBy } : {}
-      };
-      const isRemote = entry.username !== session.username;
-      const isUnreadRemote = isRemote && entry.id > lastSeenUpTo && entry.kind !== "system";
-      appendEntryToUI(entry, isUnreadRemote);
-      if (!suppress && isUnreadRemote && !isKnownMessage) {
-        notifyIncomingRemoteMessage(entry);
-      }
-      continue;
-    }
-
-    if (event.type === "reaction") {
-      const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
-      if (!suppress) {
-        notifyIncomingReaction(event.id, payload);
-      }
-      applyReactionUpdate(payload.messageId, payload.reactions);
-      continue;
-    }
-
-    if (event.type === "edit") {
-      const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
-      applyMessageEdit(payload.messageId, payload.text, payload.editedAt);
-      continue;
-    }
-
-    if (event.type === "delete") {
-      const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
-      applyMessageDelete(payload.messageId);
-      continue;
-    }
-
-    if (event.type === "seen") {
-      const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
-      applySeenUpdate(payload.username, payload.seenUpTo);
-      continue;
-    }
-
-    if (event.type === "clear") {
-      clearChatUiForAdminReset();
-      setChatStatus("Chat history was cleared by admin.", "warn");
-      continue;
-    }
-
-    if (event.type === "typing") {
-      const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
-      setTypingUsers(Array.isArray(payload.typingUsers) ? payload.typingUsers : []);
-    }
+  if (chatController && typeof chatController.handleIncomingChatEvents === "function") {
+    return chatController.handleIncomingChatEvents(events, suppressAlerts);
   }
 }
 
 function handleIncomingLegacyMessages(messages, suppressAlerts) {
-  const list = Array.isArray(messages) ? messages : [];
-  const suppress = !!suppressAlerts;
-  for (const item of list) {
-    const messageId = Number(item && item.id ? item.id : 0);
-    if (!messageId) {
-      continue;
-    }
-    const isKnownMessage = seenMessageIds.has(messageId);
-    const entry = {
-      id: messageId,
-      kind: item.kind === "system" || item.username === "system" ? "system" : "chat",
-      username: item.username,
-      text: item.text,
-      timestamp: item.timestamp,
-      reactions: item.reactions && typeof item.reactions === "object" ? { ...item.reactions } : {},
-      attachment: item.attachment && typeof item.attachment === "object" ? { ...item.attachment } : null,
-      replyTo: item.replyTo && typeof item.replyTo === "object" ? { ...item.replyTo } : null,
-      editedAt: Number(item.editedAt || 0),
-      deleted: !!item.deleted,
-      seenBy: item.seenBy && typeof item.seenBy === "object" ? { ...item.seenBy } : {}
-    };
-    const isRemote = entry.username !== session.username;
-    const isUnreadRemote = isRemote && entry.id > lastSeenUpTo && entry.kind !== "system";
-    appendEntryToUI(entry, isUnreadRemote);
-    if (!suppress && isUnreadRemote && !isKnownMessage) {
-      notifyIncomingRemoteMessage(entry);
-    }
-    if (messageId > lastChatId) {
-      lastChatId = messageId;
-    }
+  if (chatController && typeof chatController.handleIncomingLegacyMessages === "function") {
+    return chatController.handleIncomingLegacyMessages(messages, suppressAlerts);
   }
 }
 
@@ -17585,182 +17091,50 @@ function normalizeServerMessageToEntry(item) {
 }
 
 function resetChatSyncState() {
-  lastChatId = 0;
-  lastSeenUpTo = 0;
-  pendingSeenUpTo = 0;
-  seenMessageIds.clear();
-  chatEntriesById.clear();
-  chatMessages.innerHTML = "";
-  saveSeenUpTo(0);
+  if (chatController && typeof chatController.resetChatSyncState === "function") {
+    return chatController.resetChatSyncState();
+  }
 }
 
 function clearChatUiForAdminReset() {
-  lastChatId = 0;
-  seenMessageIds.clear();
-  chatEntriesById.clear();
-  chatMessages.innerHTML = "";
-  pendingSeenUpTo = 0;
-  lastSeenUpTo = 0;
-  saveSeenUpTo(0);
-  clearEditingMessageStatus();
-  clearReplyingMessage();
-  clearLocalPendingMessages();
-  chatQueue = [];
-  saveChatQueue();
-  clearChatAttention();
-  setUnreadCount(0);
-  updateChatStatusFromState();
+  if (chatController && typeof chatController.clearChatUiForAdminReset === "function") {
+    return chatController.clearChatUiForAdminReset();
+  }
 }
 
 async function pollChat(allowRetry) {
-  if (chatPollInFlight) {
-    return;
-  }
-  chatPollInFlight = true;
-  try {
-    const canRetry = allowRetry !== false;
-    const data = await api("/chat/since?since=" + encodeURIComponent(String(lastChatId)));
-    realtimeEnabled = true;
-    const serverLastEventId = Number(data.lastEventId || 0);
-    const syncMode = String(data && data.syncMode ? data.syncMode : "events").toLowerCase();
-    if (canRetry && syncMode !== "messages" && lastChatId > 0 && serverLastEventId < lastChatId) {
-      // Backend event ids can drift during deploy overlap/instance switches.
-      // Soft-resync from zero without clearing UI to avoid visible chat flicker.
-      const fullData = await api("/chat/since?since=0");
-      const fullEvents = Array.isArray(fullData.events) ? fullData.events : [];
-      const fullMessages = Array.isArray(fullData.messages) ? fullData.messages : [];
-      const isInitialHydration = false;
-      if (fullMessages.length) {
-        handleIncomingLegacyMessages(fullMessages, isInitialHydration);
-      }
-      if (fullEvents.length) {
-        handleIncomingChatEvents(fullEvents, isInitialHydration);
-      }
-      setTypingUsers(Array.isArray(fullData.typingUsers) ? fullData.typingUsers : []);
-      const fullLatestMessageId = fullMessages.length ? Number(fullMessages[fullMessages.length - 1].id || 0) : 0;
-      lastChatId = Math.max(lastChatId, Number(fullData.lastEventId || 0), fullLatestMessageId);
-      updateChatStatusFromState();
-      refreshMessagePopovers();
-      markChatSeenUpToLatest();
-      return;
-    }
-    flushSeenSyncQueue();
-    setTypingUsers(Array.isArray(data.typingUsers) ? data.typingUsers : []);
-    const isInitialHydration = lastChatId === 0 && seenMessageIds.size === 0;
-    const events = Array.isArray(data.events) ? data.events : [];
-    const messages = Array.isArray(data.messages) ? data.messages : [];
-    if (messages.length) {
-      handleIncomingLegacyMessages(messages, isInitialHydration);
-    }
-    if (events.length) {
-      handleIncomingChatEvents(events, isInitialHydration);
-    }
-    const latestMessageId = messages.length ? Number(messages[messages.length - 1].id || 0) : 0;
-    if (latestMessageId > lastChatId) {
-      lastChatId = latestMessageId;
-    }
-    if (serverLastEventId > lastChatId) {
-      lastChatId = serverLastEventId;
-    }
-    updateChatStatusFromState();
-    refreshMessagePopovers();
-    markChatSeenUpToLatest();
-  } finally {
-    chatPollInFlight = false;
+  if (chatController && typeof chatController.pollChat === "function") {
+    return chatController.pollChat(allowRetry);
   }
 }
 
 function stopChatStreamRetry() {
-  if (chatStreamRetryTimer) {
-    clearTimeout(chatStreamRetryTimer);
-    chatStreamRetryTimer = null;
+  if (chatController && typeof chatController.stopChatStreamRetry === "function") {
+    return chatController.stopChatStreamRetry();
   }
 }
 
 function closeChatStream() {
-  if (chatStream) {
-    try {
-      chatStream.close();
-    } catch (error) {
-      // Ignore close races.
-    }
-    chatStream = null;
+  if (chatController && typeof chatController.closeChatStream === "function") {
+    return chatController.closeChatStream();
   }
 }
 
 function scheduleChatStreamReconnect() {
-  if (chatStreamRetryTimer || !realtimeEnabled) {
-    return;
+  if (chatController && typeof chatController.scheduleChatStreamReconnect === "function") {
+    return chatController.scheduleChatStreamReconnect();
   }
-  chatStreamRetryTimer = window.setTimeout(() => {
-    chatStreamRetryTimer = null;
-    startChatStream();
-  }, 1500);
 }
 
 function handleChatStreamPayload(payload) {
-  if (!payload || typeof payload !== "object") {
-    return;
+  if (chatController && typeof chatController.handleChatStreamPayload === "function") {
+    return chatController.handleChatStreamPayload(payload);
   }
-  const events = Array.isArray(payload.events)
-    ? payload.events
-    : (payload.event ? [payload.event] : []);
-  if (events.length) {
-    handleIncomingChatEvents(events, false);
-  }
-  if (Array.isArray(payload.typingUsers)) {
-    setTypingUsers(payload.typingUsers);
-  }
-  const serverLastEventId = Number(payload.lastEventId || 0);
-  if (serverLastEventId > lastChatId) {
-    lastChatId = serverLastEventId;
-  }
-  updateChatStatusFromState();
-  refreshMessagePopovers();
-  markChatSeenUpToLatest();
 }
 
 function startChatStream() {
-  if (!realtimeEnabled || chatStream || typeof window.EventSource !== "function") {
-    return;
-  }
-  stopChatStreamRetry();
-  const since = Number(lastChatId || 0);
-  const streamUrl =
-    REALTIME_BASE_URL +
-    "/chat/stream?since=" +
-    encodeURIComponent(String(since)) +
-    "&_=" +
-    encodeURIComponent(String(Date.now()));
-  try {
-    const stream = new EventSource(streamUrl);
-    chatStream = stream;
-    stream.addEventListener("open", () => {
-      realtimeEnabled = true;
-      updateChatStatusFromState();
-    });
-    stream.addEventListener("init", (event) => {
-      try {
-        const payload = event && event.data ? JSON.parse(event.data) : {};
-        handleChatStreamPayload(payload);
-      } catch (error) {
-        // Ignore malformed stream payloads.
-      }
-    });
-    stream.addEventListener("chat", (event) => {
-      try {
-        const payload = event && event.data ? JSON.parse(event.data) : {};
-        handleChatStreamPayload(payload);
-      } catch (error) {
-        // Ignore malformed stream payloads.
-      }
-    });
-    stream.onerror = () => {
-      closeChatStream();
-      scheduleChatStreamReconnect();
-    };
-  } catch (error) {
-    scheduleChatStreamReconnect();
+  if (chatController && typeof chatController.startChatStream === "function") {
+    return chatController.startChatStream();
   }
 }
 
@@ -18107,218 +17481,63 @@ async function handleSignal(signal) {
 }
 
 async function pollSignals() {
-  if (!realtimeEnabled || !videoRoomEnabled) {
-    return;
-  }
-  const data = await api(
-    "/webrtc/signals?for=" + encodeURIComponent(session.username) + "&since=" + encodeURIComponent(String(lastSignalId))
-  );
-  const signals = Array.isArray(data.signals) ? data.signals : [];
-  for (const signal of signals) {
-    if (signal.id > lastSignalId) {
-      lastSignalId = signal.id;
-    }
-    await handleSignal(signal);
+  if (realtimeController && typeof realtimeController.pollSignals === "function") {
+    return realtimeController.pollSignals();
   }
 }
 
 function setRealtimeOfflineFallback() {
-  participantsStatus.textContent = "Realtime server offline. Start server to share chat/presence across users.";
-  setChatOnlineState("offline", false);
-  setVideoRoomStatus("Realtime server offline for video room.", true);
-  setHostStatus("Realtime server offline. Host controls unavailable.", true);
-  setHostOwner("");
-  if (onAirRosterStatus) {
-    onAirRosterStatus.textContent = "On-Air now: realtime offline.";
+  if (realtimeController && typeof realtimeController.setRealtimeOfflineFallback === "function") {
+    return realtimeController.setRealtimeOfflineFallback();
   }
-  stopTypingTimer();
-  typingIsActive = false;
-  setTypingUsers([]);
-  updateChatStatusFromState();
-  updatePreflightSummary();
 }
 
 async function syncSessionState() {
-  if (sessionSyncInFlight) {
-    return;
-  }
-  if (typeof window.TBRAuth.refreshSessionFromServer !== "function") {
-    return;
-  }
-  sessionSyncInFlight = true;
-  try {
-    const result = await window.TBRAuth.refreshSessionFromServer();
-    if (!result || result.invalid || (!result.ok && !result.transient) || (result.ok && !result.session)) {
-      stopRealtimeLoops();
-      leaveVideoRoom();
-      stopCameraStream();
-      stopMicLoopback();
-      stopMicStream();
-      window.TBRAuth.clearSession();
-      window.location.replace("./");
-    }
-  } finally {
-    sessionSyncInFlight = false;
+  if (realtimeController && typeof realtimeController.syncSessionState === "function") {
+    return realtimeController.syncSessionState();
   }
 }
 
 async function initRealtime() {
-  if (realtimeEnabled && heartbeatTimer && chatPollTimer && presencePollTimer && signalPollTimer) {
-    return;
-  }
-  try {
-    await api("/health");
-    await loadRtcIceServers();
-    realtimeEnabled = true;
-    stopRealtimeBootstrapRetry();
-    await sendPresenceHeartbeat();
-    await pollPresence();
-    await pollChat();
-    startChatStream();
-    await flushChatQueue();
-    setHostStatus("Host controls ready.", false);
-    updateChatStatusFromState();
-
-    heartbeatTimer = window.setInterval(() => {
-      sendPresenceHeartbeat().catch(() => {
-        realtimeEnabled = false;
-        setRealtimeOfflineFallback();
-      });
-    }, HEARTBEAT_MS);
-
-    presencePollTimer = window.setInterval(() => {
-      pollPresence().catch(() => {
-        realtimeEnabled = false;
-        setRealtimeOfflineFallback();
-      });
-    }, POLL_PRESENCE_MS);
-
-    chatPollTimer = window.setInterval(() => {
-      pollChat().catch(() => {
-        // Keep realtime marked online when presence/heartbeat are healthy.
-        // Chat poll can fail transiently without full realtime outage.
-        updateChatStatusFromState();
-      });
-      flushChatQueue().catch(() => {
-        // Retry on next poll.
-      });
-    }, POLL_CHAT_MS);
-
-    signalPollTimer = window.setInterval(() => {
-      pollSignals().catch(() => {
-        // Keep non-fatal during intermittent network issues.
-      });
-    }, POLL_WEBRTC_MS);
-
-    sessionSyncTimer = window.setInterval(() => {
-      syncSessionState().catch(() => {
-        // Ignore transient auth sync errors.
-      });
-    }, SESSION_SYNC_MS);
-  } catch (error) {
-    realtimeEnabled = false;
-    setRealtimeOfflineFallback();
-    startRealtimeBootstrapRetry();
+  if (realtimeController && typeof realtimeController.initRealtime === "function") {
+    return realtimeController.initRealtime();
   }
 }
 
 function stopRealtimeLoops() {
-  [heartbeatTimer, chatPollTimer, presencePollTimer, signalPollTimer, sessionSyncTimer].forEach((timer) => {
-    if (timer) {
-      clearInterval(timer);
-    }
-  });
-  heartbeatTimer = null;
-  chatPollTimer = null;
-  presencePollTimer = null;
-  signalPollTimer = null;
-  sessionSyncTimer = null;
-  closeChatStream();
-  stopChatStreamRetry();
+  if (realtimeController && typeof realtimeController.stopRealtimeLoops === "function") {
+    return realtimeController.stopRealtimeLoops();
+  }
 }
 
 function stopRealtimeBootstrapRetry() {
-  if (realtimeBootstrapRetryTimer) {
-    clearInterval(realtimeBootstrapRetryTimer);
-    realtimeBootstrapRetryTimer = null;
+  if (realtimeController && typeof realtimeController.stopRealtimeBootstrapRetry === "function") {
+    return realtimeController.stopRealtimeBootstrapRetry();
   }
 }
 
 function startRealtimeBootstrapRetry() {
-  if (realtimeBootstrapRetryTimer) {
-    return;
+  if (realtimeController && typeof realtimeController.startRealtimeBootstrapRetry === "function") {
+    return realtimeController.startRealtimeBootstrapRetry();
   }
-  realtimeBootstrapRetryTimer = window.setInterval(() => {
-    if (realtimeEnabled || heartbeatTimer || chatPollTimer || presencePollTimer || signalPollTimer) {
-      stopRealtimeBootstrapRetry();
-      return;
-    }
-    initRealtime().catch(() => {
-      // Keep retrying until realtime reconnects.
-    });
-  }, REALTIME_BOOTSTRAP_RETRY_MS);
 }
 
 function leavePresence(force) {
-  if (!force && !realtimeEnabled) {
-    return;
+  if (realtimeController && typeof realtimeController.leavePresence === "function") {
+    return realtimeController.leavePresence(force);
   }
-  const payload = JSON.stringify({
-    sessionId,
-    username: session.username,
-    displayName: sessionIdentity.displayName || session.username
-  });
-  if (navigator.sendBeacon) {
-    const blob = new Blob([payload], { type: "application/json" });
-    const ok = navigator.sendBeacon(REALTIME_BASE_URL + "/presence/leave", blob);
-    if (ok) {
-      return;
-    }
-  }
-  fetch(REALTIME_BASE_URL + "/presence/leave", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: payload,
-    keepalive: true
-  }).catch(() => {
-    // Ignore unload errors.
-  });
 }
 
 async function leavePresenceImmediate() {
-  const payload = JSON.stringify({
-    sessionId,
-    username: session.username,
-    displayName: sessionIdentity.displayName || session.username
-  });
-  try {
-    await api("/presence/leave", {
-      method: "POST",
-      body: payload
-    });
-  } catch (error) {
-    // Ignore errors; unload fallback still runs.
+  if (realtimeController && typeof realtimeController.leavePresenceImmediate === "function") {
+    return realtimeController.leavePresenceImmediate();
   }
 }
 
 function releaseHostOnLeave() {
-  if (!isCurrentUserHost()) {
-    return;
+  if (realtimeController && typeof realtimeController.releaseHostOnLeave === "function") {
+    return realtimeController.releaseHostOnLeave();
   }
-  const payload = JSON.stringify({ username: session.username });
-  if (navigator.sendBeacon) {
-    const blob = new Blob([payload], { type: "application/json" });
-    navigator.sendBeacon(REALTIME_BASE_URL + "/host/release", blob);
-    return;
-  }
-  fetch(REALTIME_BASE_URL + "/host/release", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: payload,
-    keepalive: true
-  }).catch(() => {
-    // Ignore unload errors.
-  });
 }
 
 function leaveVideoRoom() {
@@ -18330,160 +17549,27 @@ function leaveVideoRoom() {
 }
 
 async function submitChatText(text, attachment, forcedReplyTo) {
-  stopTypingTimer();
-  if (typingIsActive) {
-    typingIsActive = false;
-    sendChatTyping(false).catch(() => {
-      // Ignore transient realtime failures.
-    });
-  }
-  const hasText = !!text;
-  const hasAttachment = !!(attachment && typeof attachment === "object");
-  if (!hasText && !hasAttachment) {
-    return;
-  }
-  if (hasAttachment && adminSettings.chatAttachmentsEnabled === false) {
-    setChatStatus("Attachments are disabled by admin.", "warn");
-    return;
-  }
-  if (hasAttachment && attachment && attachment.kind === "video" && adminSettings.chatVideoAttachmentsEnabled === false) {
-    setChatStatus("Video attachments are disabled by admin.", "warn");
-    return;
-  }
-  pendingChatResponse = false;
-  clearChatAttention();
-  setChatStatus(hasAttachment ? "Uploading attachment..." : "Sending message...", "warn");
-  const replyToPayload = forcedReplyTo ? { ...forcedReplyTo } : (replyingToMessage ? { ...replyingToMessage } : null);
-  const pendingId = appendLocalPendingMessage(text, attachment, replyToPayload);
-  let sendCommitted = false;
-  let sentMessage = null;
-  try {
-    if (hasAttachment) {
-      setAttachmentBusy(true);
-      setAttachmentProgress(0);
-      const response = await sendChatWithProgress(text, attachment || null, (pct) => {
-        setAttachmentProgress(pct);
-      }, replyToPayload);
-      sentMessage = response && response.message ? response.message : null;
-      sendCommitted = true;
-      setAttachmentProgress(100);
-    } else {
-      const response = await sendChat(text, attachment || null, replyToPayload);
-      sentMessage = response && response.message ? response.message : null;
-      sendCommitted = true;
-    }
-    removeLocalPendingMessage(pendingId);
-    const committedEntry = normalizeServerMessageToEntry(sentMessage);
-    if (committedEntry) {
-      appendEntryToUI(committedEntry, false);
-      if (committedEntry.id > lastChatId) {
-        lastChatId = committedEntry.id;
-      }
-      markChatSeenUpToLatest();
-    }
-    try {
-      await pollChat();
-    } catch (error) {
-      // Message already sent; realtime sync can catch up in next poll.
-    }
-    updateChatStatusFromState();
-    clearReplyingMessage();
-    if (hasAttachment) {
-      setAttachmentBusy(false);
-      clearPendingAttachment();
-    }
-  } catch (error) {
-    if (hasAttachment) {
-      const reason = error && error.message ? error.message : "Attachment send failed.";
-      if (reason.toLowerCase().includes("canceled")) {
-        setChatStatus("Upload canceled.", "warn");
-      } else {
-        setChatStatus(reason, "error");
-      }
-      setAttachmentBusy(false);
-      setAttachmentRetryVisible(true);
-      pendingAttachmentRetry = {
-        text,
-        attachment,
-        replyTo: replyToPayload
-      };
-      updateLocalPendingMessage(pendingId, "Failed");
-      return;
-    }
-    if (sendCommitted) {
-      removeLocalPendingMessage(pendingId);
-      setChatStatus("Message sent. Live sync will catch up shortly.", "warn");
-      return;
-    }
-    if (isRetryableChatError(error)) {
-      enqueueChatAction({
-        type: "message",
-        text,
-        replyTo: replyToPayload,
-        queuedAt: Date.now()
-      });
-      clearReplyingMessage();
-      updateLocalPendingMessage(pendingId, "Queued");
-      return;
-    }
-    const reason = error && error.message ? error.message : "Unable to send message.";
-    setLockedChatErrorStatus(reason, 9000);
-    updateLocalPendingMessage(pendingId, "Failed");
+  if (chatController && typeof chatController.submitChatText === "function") {
+    return chatController.submitChatText(text, attachment, forcedReplyTo);
   }
 }
 
 function stopTypingTimer() {
-  if (typingStopTimer) {
-    clearTimeout(typingStopTimer);
-    typingStopTimer = null;
+  if (chatController && typeof chatController.stopTypingTimer === "function") {
+    return chatController.stopTypingTimer();
   }
 }
 
 function scheduleTypingStop() {
-  stopTypingTimer();
-  typingStopTimer = setTimeout(() => {
-    if (!typingIsActive) {
-      return;
-    }
-    sendChatTyping(false)
-      .catch(() => {
-        // Ignore transient realtime failures.
-      })
-      .finally(() => {
-        typingIsActive = false;
-      });
-  }, CHAT_TYPING_IDLE_MS);
+  if (chatController && typeof chatController.scheduleTypingStop === "function") {
+    return chatController.scheduleTypingStop();
+  }
 }
 
 function handleComposerTypingState(value) {
-  const text = String(value || "").trim();
-  if (!realtimeEnabled) {
-    return;
+  if (chatController && typeof chatController.handleComposerTypingState === "function") {
+    return chatController.handleComposerTypingState(value);
   }
-  if (!text) {
-    stopTypingTimer();
-    if (!typingIsActive) {
-      return;
-    }
-    sendChatTyping(false)
-      .catch(() => {
-        // Ignore transient realtime failures.
-      })
-      .finally(() => {
-        typingIsActive = false;
-      });
-    return;
-  }
-  scheduleTypingStop();
-  const nowMs = Date.now();
-  if (typingIsActive && nowMs - lastTypingSentAt < CHAT_TYPING_SEND_THROTTLE_MS) {
-    return;
-  }
-  typingIsActive = true;
-  lastTypingSentAt = nowMs;
-  sendChatTyping(true).catch(() => {
-    // Ignore transient realtime failures.
-  });
 }
 
 if (profileOpenLink) {
@@ -19759,7 +18845,7 @@ noiseToggle.addEventListener("change", () => {
   });
 });
 
-onAirRecordBtn.addEventListener("click", async () => {
+onAirRecordBtn?.addEventListener("click", async () => {
   if (!isCurrentUserHost()) {
     setHostStatus("Only the active host can control recording.", true);
     return;
@@ -19785,63 +18871,6 @@ onAirRecordBtn.addEventListener("click", async () => {
   } else {
     await stopHostRecordingWithReason("Recording stopped by " + (sessionIdentity.displayName || session.username) + ".");
   }
-});
-
-onAirPlaybackBtn.addEventListener("click", () => {
-  if (!isCurrentUserHost()) {
-    setHostStatus("Playback is host-only.", true);
-    return;
-  }
-  if (isRecording) {
-    onAirMediaStatus.textContent = "Stop recording before playback.";
-    return;
-  }
-  if (!recordingReady) {
-    onAirMediaStatus.textContent = "Playback is available after a completed recording.";
-    return;
-  }
-  if (RECORDING_DEMO_MODE) {
-    onAirMediaStatus.textContent = "Demo mode: playback preview is disabled until real recording is enabled.";
-    return;
-  }
-  if (!hasLocalRecordingAsset()) {
-    onAirMediaStatus.textContent = "No local playback file found yet for this browser.";
-    return;
-  }
-  setRecordingWorkflowState("review");
-  syncReviewPanelUI();
-  const preferredKind = getPreferredOnAirReviewKind();
-  if (preferredKind) {
-    openOnAirReviewPlayback(preferredKind);
-  }
-  onAirMediaStatus.textContent = "Review cut opened in front of the control room.";
-});
-
-onAirDownloadBtn.addEventListener("click", () => {
-  if (!canCurrentUserDownloadRecording()) {
-    onAirMediaStatus.textContent = "Download is restricted by admin.";
-    return;
-  }
-  if (isRecording) {
-    onAirMediaStatus.textContent = "Stop recording before download.";
-    return;
-  }
-  if (!recordingReady) {
-    onAirMediaStatus.textContent = "Download is available after recording is stopped.";
-    return;
-  }
-  if (RECORDING_DEMO_MODE) {
-    onAirMediaStatus.textContent = "Demo mode: download is disabled until real recording is enabled.";
-    return;
-  }
-  if (!hasLocalRecordingAsset()) {
-    onAirMediaStatus.textContent = "No local download file exists on this browser yet.";
-    return;
-  }
-  setRecordingWorkflowState("export");
-  syncReviewPanelUI();
-  onAirReviewPanel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  onAirMediaStatus.textContent = "Export options are ready in the review panel.";
 });
 
 onAirReviewLaunchBtn?.addEventListener("click", () => {
@@ -19918,7 +18947,7 @@ onAirMusicTrackSelect.addEventListener("change", () => {
   updateOnAirMusicCuesUI();
 });
 
-onAirMusicSlotSelect.addEventListener("change", () => {
+onAirMusicNextTrackSelect?.addEventListener("change", () => {
   updateOnAirMusicCuesUI();
 });
 
@@ -20085,6 +19114,63 @@ onAirLibraryCloseBtn?.addEventListener("click", () => {
   setOnAirLibraryOpen(false);
 });
 
+hostShowLibraryCreateBtn?.addEventListener("click", () => {
+  setShowLibraryModalOpen(true);
+});
+
+showLibraryCancelBtn?.addEventListener("click", () => {
+  setShowLibraryModalOpen(false);
+});
+
+showLibraryBackdrop?.addEventListener("click", () => {
+  setShowLibraryModalOpen(false);
+});
+
+showLibraryCreateConfirmBtn?.addEventListener("click", () => {
+  createShowLibraryFlow().catch(() => {
+    setShowLibraryMessage("Unable to create this show library right now.", true);
+  });
+});
+
+showLibraryNameInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    createShowLibraryFlow().catch(() => {
+      setShowLibraryMessage("Unable to create this show library right now.", true);
+    });
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    setShowLibraryModalOpen(false);
+  }
+});
+
+hostShowLibrarySelect?.addEventListener("change", async () => {
+  const previousFilter = onAirLibraryShowFilterId;
+  activeShowLibraryId = String(hostShowLibrarySelect.value || "").trim();
+  if (!previousFilter || previousFilter === "" || previousFilter === String(studioSettings && studioSettings.activeShowLibraryId || "").trim()) {
+    onAirLibraryShowFilterId = activeShowLibraryId;
+  }
+  syncShowLibraryUi();
+  saveShowLibrarySelections();
+  onAirMediaStatus.textContent = activeShowLibraryId
+    ? "Active show library: " + String((getActiveShowLibrary() && getActiveShowLibrary().title) || "Selected Show") + "."
+    : "Active show library cleared.";
+  await Promise.allSettled([
+    setOnAirLibraryView(onAirLibraryView || "music", true),
+    loadOnAirReviewLibraryKind(onAirReviewLibraryView, true)
+  ]);
+});
+
+onAirLibraryShowFilterSelect?.addEventListener("change", async () => {
+  onAirLibraryShowFilterId = String(onAirLibraryShowFilterSelect.value || "").trim();
+  syncShowLibraryUi();
+  saveShowLibrarySelections();
+  await Promise.allSettled([
+    setOnAirLibraryView(onAirLibraryView || "music", true),
+    loadOnAirReviewLibraryKind(onAirReviewLibraryView, true)
+  ]);
+});
+
 onAirLibraryPreviewCloseBtn?.addEventListener("click", () => {
   closeOnAirLibraryPreview();
 });
@@ -20169,6 +19255,12 @@ document.querySelectorAll("[data-library-view]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-review-library-view]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    await setOnAirReviewLibraryView(String(button.dataset.reviewLibraryView || "post-production"), true);
+  });
+});
+
 onAirMusicUploadInput?.addEventListener("change", async () => {
   const file = Array.from(onAirMusicUploadInput.files || [])[0];
   if (!file) {
@@ -20220,7 +19312,8 @@ onAirMusicUploadInput?.addEventListener("change", async () => {
           }
           const completed = await window.TBRAuth.completeMediaUpload(uploadTicket.asset.id, {
             byteSize: file.size,
-            title: file.name.replace(/\.[^.]+$/, "")
+            title: file.name.replace(/\.[^.]+$/, ""),
+            metadata: buildShowLibraryMetadata()
           });
           if (!completed || !completed.ok) {
             throw new Error((completed && completed.error) || "Shared upload metadata could not be finalized.");
@@ -20257,38 +19350,41 @@ onAirMusicUploadInput?.addEventListener("change", async () => {
 
 onAirMusicQueueBtn.addEventListener("click", () => {
   if (!isCurrentUserHost()) {
-    setHostStatus("Only the active host can queue music cues.", true);
+    setHostStatus("Only the active host can stage the next cue.", true);
     return;
   }
-  const trackValue = getSelectedOnAirMusicTrack();
-  const trackLabel = getSelectedOnAirMusicTrackLabel();
-  if (!trackValue || !trackLabel) {
-    onAirMediaStatus.textContent = "No track is available yet. Upload support comes in the storage phase.";
+  const nextTrackValue = getSelectedOnAirNextTrack();
+  const nextTrackLabel = getSelectedOnAirNextTrackLabel();
+  if (!nextTrackValue || !nextTrackLabel) {
+    onAirMediaStatus.textContent = "Choose a Next Up source first.";
     updateOnAirMusicCuesUI();
     return;
   }
-  const slotValue = getSelectedOnAirMusicSlot();
-  const slotLabel = getSelectedOnAirMusicSlotLabel();
-  onAirMusicQueue.push({
+  onAirMusicQueue = [{
     id: Date.now(),
-    slot: slotValue,
-    slotLabel,
-    track: trackValue,
-    trackLabel
-  });
-  onAirMediaStatus.textContent = "Queued " + slotLabel + ": " + trackLabel + ".";
+    slot: "next-up",
+    slotLabel: "Next Up",
+    track: nextTrackValue,
+    trackLabel: nextTrackLabel
+  }];
+  onAirMediaStatus.textContent = "Next Up staged: " + nextTrackLabel + ".";
   updateOnAirMusicCuesUI();
 });
 
 onAirMusicPlayBtn?.addEventListener("click", () => {
   if (!isCurrentUserHost()) {
-    setHostStatus("Only the active host can play music cues.", true);
+    setHostStatus("Only the active host can start the current cue.", true);
+    return;
+  }
+  if (hasOnAirPrimaryCue()) {
+    onAirMediaStatus.textContent = "A Current Cue is already live. Stage Next or use Add Layer.";
+    updateOnAirMusicCuesUI();
     return;
   }
   const trackId = getSelectedOnAirMusicTrack();
   const trackLabel = getSelectedOnAirMusicTrackLabel();
   if (!trackId || !trackLabel) {
-    onAirMediaStatus.textContent = "Choose a track first.";
+    onAirMediaStatus.textContent = "Choose a Current Cue source first.";
     updateOnAirMusicCuesUI();
     return;
   }
@@ -20299,10 +19395,45 @@ onAirMusicPlayBtn?.addEventListener("click", () => {
         updateOnAirMusicCuesUI();
         return null;
       }
-      return playOnAirMusicCue(trackRecord, getSelectedOnAirMusicSlotLabel(), { allowLayer: true });
+      return playOnAirMusicCue(trackRecord, "Current Cue", { allowLayer: false });
     })
     .catch(() => {
-      onAirMediaStatus.textContent = "Unable to start the selected music cue right now.";
+      onAirMediaStatus.textContent = "Unable to start the current cue right now.";
+    })
+    .finally(() => {
+      updateOnAirMusicCuesUI();
+      queueOnAirAudioControlsRefresh();
+    });
+});
+
+onAirMusicLayerBtn?.addEventListener("click", () => {
+  if (!isCurrentUserHost()) {
+    setHostStatus("Only the active host can add layered cues.", true);
+    return;
+  }
+  if (!getActiveOnAirMusicCueTargets().length) {
+    onAirMediaStatus.textContent = "Start Current first before adding a layer.";
+    updateOnAirMusicCuesUI();
+    return;
+  }
+  const trackId = getSelectedOnAirMusicTrack();
+  const trackLabel = getSelectedOnAirMusicTrackLabel();
+  if (!trackId || !trackLabel) {
+    onAirMediaStatus.textContent = "Choose a Current Cue source before adding a layer.";
+    updateOnAirMusicCuesUI();
+    return;
+  }
+  getMusicLibraryTrackById(trackId)
+    .then((trackRecord) => {
+      if (!trackRecord) {
+        onAirMediaStatus.textContent = "Selected track could not be loaded from the music library.";
+        updateOnAirMusicCuesUI();
+        return null;
+      }
+      return playOnAirMusicCue(trackRecord, "Layer", { allowLayer: true, forceLayer: true });
+    })
+    .catch(() => {
+      onAirMediaStatus.textContent = "Unable to start the layered cue right now.";
     })
     .finally(() => {
       updateOnAirMusicCuesUI();
@@ -20335,7 +19466,7 @@ onAirMusicPlayer?.addEventListener("ended", () => {
         return;
       }
       return playNextQueuedOnAirMusicCue().catch(() => {
-        onAirMediaStatus.textContent = "The next queued music cue could not be started.";
+        onAirMediaStatus.textContent = "The staged Next Up cue could not be started.";
       });
     })
     .catch(() => {
@@ -20348,11 +19479,11 @@ onAirMusicPlayer?.addEventListener("ended", () => {
 
 onAirMusicClearBtn.addEventListener("click", () => {
   if (!isCurrentUserHost()) {
-    setHostStatus("Only the active host can clear queued cues.", true);
+    setHostStatus("Only the active host can clear the staged next cue.", true);
     return;
   }
   onAirMusicQueue = [];
-  onAirMediaStatus.textContent = "Music cue queue cleared.";
+  onAirMediaStatus.textContent = "Next Up cleared.";
   updateOnAirMusicCuesUI();
 });
 
@@ -21315,9 +20446,22 @@ updateOnAirAudioSliderFill();
 setOnAirMusicVolumeNormalized(0.62, { apply: true });
 updateOnAirAudioControlsUI();
 updateOnAirLibraryTabsUI();
+updateOnAirReviewLibraryTabsUI();
+syncShowLibraryUi();
 updateOnAirMusicCuesUI();
 refreshOnAirMusicLibrary().catch(() => {
   // Keep cue UI usable even if browser storage is unavailable.
+});
+refreshShowLibraries().then(() => {
+  return Promise.allSettled([
+    setOnAirLibraryView(onAirLibraryView || "music", true),
+    loadOnAirReviewLibraryKind(onAirReviewLibraryView, true)
+  ]);
+}).catch(() => {
+  // Show library setup should not block the rest of the studio.
+});
+loadOnAirReviewLibraryKind(onAirReviewLibraryView, false).catch(() => {
+  renderOnAirReviewLibraryList();
 });
 applyMicSettingsFromStudioSettings();
 updatePreflightSummary();
