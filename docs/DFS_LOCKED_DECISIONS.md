@@ -1,6 +1,6 @@
 # DFS Locked Decisions
 
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 ## Purpose
 These are the current product decisions that should be treated as stable unless explicitly changed.
@@ -91,14 +91,19 @@ Locked sections:
   - `post-production`
   - `episodes`
 - do not replace `libraryKind` with user-created dynamic libraries
-- user-created show organization should live as metadata and filtering, not as new storage buckets
-- each asset may carry:
+- user-created show organization should live as a first-class asset field plus filtering, not as new storage buckets
+- `studio_library_assets.show_library_id` is the source of truth for show ownership
+- metadata may still carry:
   - `showLibraryId`
   - `showLibraryTitle`
   - `showLibrarySlug`
+  but filtering and ownership should not depend on metadata alone
 - Control Room should expose an `Active show library` selector before recording/upload actions
+- Control Room should expose an explicit recording save target
 - the Library drawer should expose a `Show Filter` above the existing `Music / Episodes / Post-Production` tabs
-- Review Cut and save flows should continue using the same buckets while preserving show-library metadata
+- Review Cut should expose an explicit save target for show assignment
+- Review Cut and save flows should continue using the same buckets while preserving show metadata
+- if users need to correct assignment after save, the right fix is a reassignment feature, not a hidden metadata workaround
 
 ## Audio Engine Direction
 - live music behavior should use the Web Audio path

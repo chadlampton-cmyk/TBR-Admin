@@ -1,6 +1,11 @@
 const http = require("http");
 const { URL } = require("url");
 const crypto = require("crypto");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { pipeline } = require("stream/promises");
+const { spawn } = require("child_process");
 let PgPool = null;
 try {
   ({ Pool: PgPool } = require("pg"));
@@ -801,8 +806,19 @@ async function runDbBootstrap(pool) {
       constraint studio_library_assets_status_check check (status in ('draft','uploaded','processing','review','export-ready','archived'))
     );
   `);
+  await pool.query(`
+    alter table studio_library_assets
+    add column if not exists show_library_id text references studio_show_libraries(id) on delete set null
+  `);
   await pool.query("create index if not exists idx_studio_library_assets_kind on studio_library_assets(library_kind, created_at desc)");
   await pool.query("create index if not exists idx_studio_library_assets_status on studio_library_assets(status, created_at desc)");
+  await pool.query("create index if not exists idx_studio_library_assets_show_library on studio_library_assets(show_library_id, library_kind, created_at desc)");
+  await pool.query(`
+    update studio_library_assets
+    set show_library_id = nullif(metadata->>'showLibraryId', '')
+    where coalesce(show_library_id, '') = ''
+      and coalesce(metadata->>'showLibraryId', '') <> ''
+  `);
   await pool.query("update studio_users set guest_account = false where username <> $1 and guest_account = true", [GUEST_USERNAME]);
   await pool.query("update studio_users set role = 'admin' where username = $1", [DEFAULT_ADMIN_USERNAME]);
   await pool.query("update studio_users set twofa_enforced = true where username = $1", [DEFAULT_ADMIN_USERNAME]);
@@ -947,6 +963,7 @@ async function listLibraryAssetsDb(options) {
         storage_provider as "storageProvider",
         storage_key as "storageKey",
         storage_url as "storageUrl",
+        show_library_id as "showLibraryId",
         created_by as "createdBy",
         updated_by as "updatedBy",
         metadata,
@@ -955,7 +972,7 @@ async function listLibraryAssetsDb(options) {
       from studio_library_assets
       where library_kind = $1
         and status = 'uploaded'
-        and ($3::text = '' or coalesce(metadata->>'showLibraryId', '') = $3)
+        and ($3::text = '' or coalesce(show_library_id, '') = $3)
       order by created_at desc
       limit $2
     `,
@@ -1060,6 +1077,7 @@ async function createLibraryAssetMetadataDb(actorUsername, payload) {
   if (!title) {
     return { ok: false, error: "Title is required." };
   }
+  const showLibraryId = String((payload && payload.showLibraryId) || "").trim() || null;
   const asset = {
     id: "asset_" + crypto.randomBytes(8).toString("hex"),
     libraryKind,
@@ -1073,6 +1091,7 @@ async function createLibraryAssetMetadataDb(actorUsername, payload) {
     storageProvider: String((payload && payload.storageProvider) || "unconfigured").trim().slice(0, 80) || "unconfigured",
     storageKey: String((payload && payload.storageKey) || "").trim().slice(0, 255) || null,
     storageUrl: String((payload && payload.storageUrl) || "").trim().slice(0, 500) || null,
+    showLibraryId,
     metadata: payload && typeof payload.metadata === "object" && payload.metadata ? payload.metadata : {}
   };
   await dbQuery(
@@ -1090,13 +1109,14 @@ async function createLibraryAssetMetadataDb(actorUsername, payload) {
         storage_provider,
         storage_key,
         storage_url,
+        show_library_id,
         created_by,
         updated_by,
         metadata,
         created_at,
         updated_at
       )
-      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14::jsonb,now(),now())
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15::jsonb,now(),now())
     `,
     [
       asset.id,
@@ -1111,6 +1131,7 @@ async function createLibraryAssetMetadataDb(actorUsername, payload) {
       asset.storageProvider,
       asset.storageKey,
       asset.storageUrl,
+      asset.showLibraryId,
       normalizeUsername(actorUsername || "") || null,
       JSON.stringify(asset.metadata)
     ]
@@ -1145,6 +1166,7 @@ async function renameLibraryAssetDb(actorUsername, assetId, nextTitle) {
         storage_provider as "storageProvider",
         storage_key as "storageKey",
         storage_url as "storageUrl",
+        show_library_id as "showLibraryId",
         created_by as "createdBy",
         updated_by as "updatedBy",
         metadata,
@@ -1205,6 +1227,7 @@ async function getLibraryAssetByIdDb(assetId) {
         storage_provider as "storageProvider",
         storage_key as "storageKey",
         storage_url as "storageUrl",
+        show_library_id as "showLibraryId",
         created_by as "createdBy",
         updated_by as "updatedBy",
         metadata,
@@ -1228,6 +1251,7 @@ async function finalizeLibraryAssetUploadDb(actorUsername, assetId, updates) {
     return { ok: false, error: "Asset id is required." };
   }
   const nextTitle = String((updates && updates.title) || "").trim().slice(0, 180) || null;
+  const nextShowLibraryId = String((updates && updates.showLibraryId) || "").trim() || null;
   const result = await dbQuery(
     `
       update studio_library_assets
@@ -1238,7 +1262,8 @@ async function finalizeLibraryAssetUploadDb(actorUsername, assetId, updates) {
         status = 'uploaded',
         updated_by = $5,
         updated_at = now(),
-        metadata = coalesce(metadata, '{}'::jsonb) || $6::jsonb
+        show_library_id = $6,
+        metadata = coalesce(metadata, '{}'::jsonb) || $7::jsonb
       where id = $1
       returning
         id,
@@ -1253,6 +1278,7 @@ async function finalizeLibraryAssetUploadDb(actorUsername, assetId, updates) {
         storage_provider as "storageProvider",
         storage_key as "storageKey",
         storage_url as "storageUrl",
+        show_library_id as "showLibraryId",
         created_by as "createdBy",
         updated_by as "updatedBy",
         metadata,
@@ -1265,6 +1291,7 @@ async function finalizeLibraryAssetUploadDb(actorUsername, assetId, updates) {
       Math.max(0, Number((updates && updates.byteSize) || 0) || 0),
       Number.isFinite(Number(updates && updates.durationSeconds)) ? Number(updates.durationSeconds) : null,
       normalizeUsername(actorUsername || "") || null,
+      nextShowLibraryId,
       JSON.stringify((updates && updates.metadata && typeof updates.metadata === "object") ? updates.metadata : {})
     ]
   );
@@ -1320,6 +1347,7 @@ async function createLibraryUploadTicket(actorUsername, payload) {
   const created = await createLibraryAssetMetadataDb(actorUsername, {
     libraryKind,
     assetRole: payload && payload.assetRole ? payload.assetRole : "",
+    showLibraryId: payload && payload.showLibraryId ? payload.showLibraryId : "",
     title,
     originalFilename: filename,
     mimeType,
@@ -1462,6 +1490,312 @@ async function streamLibraryAssetToResponse(res, assetId) {
         "\n"
     );
     json(res, 500, { ok: false, error: "Shared media download failed." });
+  }
+}
+
+function normalizeExportFormat(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "m4a" || normalized === "mp4") {
+    return normalized;
+  }
+  return "mp3";
+}
+
+function normalizeExportQualityPreset(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "standard" || normalized === "premium") {
+    return normalized;
+  }
+  return "high";
+}
+
+function getExportBitrateFromPreset(preset) {
+  if (preset === "standard") {
+    return 128;
+  }
+  if (preset === "high") {
+    return 192;
+  }
+  return 320;
+}
+
+function normalizeExportBitrateKbps(value, preset) {
+  const numeric = Number(value || 0);
+  if (numeric === 128 || numeric === 192 || numeric === 256 || numeric === 320) {
+    return numeric;
+  }
+  return getExportBitrateFromPreset(normalizeExportQualityPreset(preset));
+}
+
+function normalizeExportSampleRateHz(value) {
+  return Number(value || 0) === 44100 ? 44100 : 48000;
+}
+
+function normalizeExportChannelMode(value) {
+  return String(value || "").trim().toLowerCase() === "mono" ? "mono" : "stereo";
+}
+
+function getFilenameExtensionFromMimeType(mimeType, fallback) {
+  const normalized = String(mimeType || "").trim().toLowerCase();
+  if (normalized.includes("mpeg")) {
+    return "mp3";
+  }
+  if (normalized.includes("wav")) {
+    return "wav";
+  }
+  if (normalized.includes("mp4")) {
+    return "mp4";
+  }
+  if (normalized.includes("webm")) {
+    return "webm";
+  }
+  if (normalized.includes("ogg")) {
+    return "ogg";
+  }
+  if (normalized.includes("aac")) {
+    return "m4a";
+  }
+  return String(fallback || "bin").trim() || "bin";
+}
+
+function getExportMimeType(format) {
+  if (format === "m4a") {
+    return "audio/mp4";
+  }
+  if (format === "mp4") {
+    return "video/mp4";
+  }
+  return "audio/mpeg";
+}
+
+function sanitizeExportFilename(value) {
+  return String(value || "episode").trim().replace(/[^\w.-]+/g, "-") || "episode";
+}
+
+async function writeBodyToFile(body, filePath) {
+  if (!body) {
+    await fs.promises.writeFile(filePath, Buffer.alloc(0));
+    return;
+  }
+  if (typeof body.pipe === "function") {
+    await pipeline(body, fs.createWriteStream(filePath));
+    return;
+  }
+  if (typeof body.transformToByteArray === "function") {
+    const bytes = await body.transformToByteArray();
+    await fs.promises.writeFile(filePath, Buffer.from(bytes));
+    return;
+  }
+  const chunks = [];
+  for await (const chunk of body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  await fs.promises.writeFile(filePath, Buffer.concat(chunks));
+}
+
+async function writeLibraryAssetToTempFile(asset, filePath) {
+  if (!asset || !asset.storageKey || !hasMediaStorageConfig()) {
+    throw new Error("Library asset storage is unavailable.");
+  }
+  const client = getMediaStorageClient();
+  const bucket = getBucketForLibraryKind(asset.libraryKind);
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: asset.storageKey
+  });
+  const response = await client.send(command);
+  await writeBodyToFile(response && response.Body ? response.Body : null, filePath);
+}
+
+function buildTranscodeArgs(inputPath, outputPath, asset, options) {
+  const format = normalizeExportFormat(options && options.format);
+  const preset = normalizeExportQualityPreset(options && options.qualityPreset);
+  const bitrateKbps = normalizeExportBitrateKbps(options && options.bitrateKbps, preset);
+  const sampleRateHz = normalizeExportSampleRateHz(options && options.sampleRateHz);
+  const channelMode = normalizeExportChannelMode(options && options.channelMode);
+  const channels = channelMode === "mono" ? 1 : 2;
+  if (format === "m4a") {
+    return {
+      format,
+      bitrateKbps,
+      sampleRateHz,
+      channelMode,
+      mimeType: getExportMimeType(format),
+      args: [
+        "-y",
+        "-i",
+        inputPath,
+        "-vn",
+        "-ar",
+        String(sampleRateHz),
+        "-ac",
+        String(channels),
+        "-b:a",
+        String(bitrateKbps) + "k",
+        "-c:a",
+        "aac",
+        "-movflags",
+        "+faststart",
+        outputPath
+      ]
+    };
+  }
+  if (format === "mp4") {
+    const hasSourceVideo =
+      String(asset && asset.mimeType || "").trim().toLowerCase().startsWith("video/") ||
+      !!(asset && asset.metadata && asset.metadata.hasVideo);
+    const args = hasSourceVideo
+      ? [
+          "-y",
+          "-i",
+          inputPath,
+          "-ar",
+          String(sampleRateHz),
+          "-ac",
+          String(channels),
+          "-b:a",
+          String(bitrateKbps) + "k",
+          "-c:v",
+          "copy",
+          "-c:a",
+          "aac",
+          "-movflags",
+          "+faststart",
+          outputPath
+        ]
+      : [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=black:s=1920x1080:r=30",
+          "-i",
+          inputPath,
+          "-shortest",
+          "-ar",
+          String(sampleRateHz),
+          "-ac",
+          String(channels),
+          "-b:a",
+          String(bitrateKbps) + "k",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-pix_fmt",
+          "yuv420p",
+          "-c:a",
+          "aac",
+          "-movflags",
+          "+faststart",
+          outputPath
+        ];
+    return {
+      format,
+      bitrateKbps,
+      sampleRateHz,
+      channelMode,
+      mimeType: getExportMimeType(format),
+      args
+    };
+  }
+  return {
+    format: "mp3",
+    bitrateKbps,
+    sampleRateHz,
+    channelMode,
+    mimeType: getExportMimeType("mp3"),
+    args: (() => {
+      const args = [
+        "-y",
+        "-i",
+        inputPath,
+        "-vn",
+        "-ar",
+        String(sampleRateHz),
+        "-ac",
+        String(channels),
+        "-codec:a",
+        "libmp3lame"
+      ];
+      if (preset === "premium" || bitrateKbps >= 320) {
+        args.push("-q:a", "0");
+      } else {
+        args.push("-b:a", String(bitrateKbps) + "k");
+      }
+      args.push(outputPath);
+      return args;
+    })()
+  };
+}
+
+async function runFfmpegTranscode(args) {
+  await new Promise((resolve, reject) => {
+    const ffmpeg = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    let stderr = "";
+    ffmpeg.stderr.on("data", (chunk) => {
+      stderr += String(chunk || "");
+    });
+    ffmpeg.on("error", (error) => {
+      if (error && error.code === "ENOENT") {
+        reject(new Error("FFmpeg is not installed on the realtime server."));
+        return;
+      }
+      reject(error);
+    });
+    ffmpeg.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(stderr.trim() || ("FFmpeg exited with code " + String(code) + ".")));
+    });
+  });
+}
+
+async function transcodeLibraryAssetToResponse(res, assetId, payload) {
+  const asset = await getLibraryAssetByIdDb(assetId);
+  if (!asset || !asset.storageKey) {
+    json(res, 404, { ok: false, error: "Library asset not found." });
+    return null;
+  }
+  if (!hasMediaStorageConfig()) {
+    json(res, 503, { ok: false, error: "Shared media storage is not configured right now." });
+    return null;
+  }
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "dfs-export-"));
+  const inputExtension = sanitizeExportFilename(
+    String(asset && asset.originalFilename || "").split(".").pop() || getFilenameExtensionFromMimeType(asset && asset.mimeType, "bin")
+  );
+  const inputPath = path.join(tempDir, "input." + inputExtension);
+  try {
+    await writeLibraryAssetToTempFile(asset, inputPath);
+    const plan = buildTranscodeArgs(inputPath, path.join(tempDir, "output." + normalizeExportFormat(payload && payload.format)), asset, payload);
+    await runFfmpegTranscode(plan.args);
+    const outputPath = plan.args[plan.args.length - 1];
+    const stat = await fs.promises.stat(outputPath);
+    const filename = sanitizeExportFilename(asset.title || "episode") + "." + plan.format;
+    res.writeHead(200, {
+      "Content-Type": plan.mimeType,
+      "Content-Length": String(Math.max(0, Number(stat.size || 0) || 0)),
+      "Content-Disposition": 'attachment; filename="' + filename.replace(/"/g, "") + '"',
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    });
+    await pipeline(fs.createReadStream(outputPath), res);
+    return {
+      asset,
+      exportPlan: {
+        format: plan.format,
+        bitrateKbps: plan.bitrateKbps,
+        sampleRateHz: plan.sampleRateHz,
+        channelMode: plan.channelMode
+      }
+    };
+  } finally {
+    await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
@@ -4320,7 +4654,9 @@ const server = http.createServer(async (req, res) => {
         title: body.title,
         byteSize: body.byteSize,
         durationSeconds: body.durationSeconds,
+        showLibraryId: body.showLibraryId,
         metadata: {
+          ...((body && body.metadata && typeof body.metadata === "object") ? body.metadata : {}),
           completedVia: "browser-upload",
           completedAt: new Date().toISOString()
         }
@@ -4425,6 +4761,50 @@ const server = http.createServer(async (req, res) => {
         assetId
       });
       await streamLibraryAssetToResponse(res, assetId);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/media/export-transcode") {
+      const authUser = await requireAuth(req, res, false);
+      if (!authUser) {
+        return;
+      }
+      const body = await parseBody(req);
+      const assetId = String(body.assetId || "").trim();
+      if (!assetId) {
+        json(res, 400, { ok: false, error: "Asset id is required." });
+        return;
+      }
+      try {
+        const result = await transcodeLibraryAssetToResponse(res, assetId, body);
+        if (result && result.asset) {
+          await writeAuditLog("library.asset.export_transcode", authUser.username, "", {
+            assetId: result.asset.id,
+            libraryKind: result.asset.libraryKind,
+            format: result.exportPlan && result.exportPlan.format ? result.exportPlan.format : "",
+            bitrateKbps: result.exportPlan && result.exportPlan.bitrateKbps ? result.exportPlan.bitrateKbps : 0,
+            sampleRateHz: result.exportPlan && result.exportPlan.sampleRateHz ? result.exportPlan.sampleRateHz : 0,
+            channelMode: result.exportPlan && result.exportPlan.channelMode ? result.exportPlan.channelMode : ""
+          });
+        }
+      } catch (error) {
+        process.stdout.write(
+          "[realtime] media export failed for " +
+            assetId +
+            ": " +
+            String(error && error.message ? error.message : error) +
+            "\n"
+        );
+        if (!res.headersSent) {
+          json(res, 500, { ok: false, error: error && error.message ? error.message : "Media export failed." });
+        } else {
+          try {
+            res.end();
+          } catch (closeError) {
+            // Ignore close errors after partial write.
+          }
+        }
+      }
       return;
     }
 

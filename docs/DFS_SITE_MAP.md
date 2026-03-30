@@ -1,6 +1,6 @@
 # DFS Site Map
 
-Last updated: 2026-03-23
+Last updated: 2026-03-30
 
 ## Purpose
 This is the fast orientation doc for the active DFS build.
@@ -39,6 +39,18 @@ Review Cut modules:
 - `landing/review-cut-interaction-controller.js`
 - `landing/review-cut-media-controller.js`
 - `landing/review-cut-session-controller.js`
+- `landing/review-cut-noise-tools.js`
+
+Extracted support modules now active:
+- `landing/onair-library-storage.js`
+- `landing/onair-library-render.js`
+- `landing/onair-library-controller.js`
+- `landing/onair-library-bridge.js`
+- `landing/recording-controller.js`
+- `landing/recording-capture.js`
+- `landing/realtime-controller.js`
+- `landing/chat-controller.js`
+- `landing/onair-audio-state.js`
 
 ## Current User Flow
 1. User lands in `landing/hello.html`
@@ -65,15 +77,16 @@ Review Cut modules:
 - export actions
 - chat drawer
 
-## What Is Still Present But Historical
-These files still exist, but they are no longer the main product path:
+## Legacy Page Reality
+These files still exist, but they are not primary product pages and should not be treated as the implementation center:
 - `landing/settings.html`
 - `landing/profile.html`
 - `landing/help.html`
 
 Important:
-- product direction treats those pages as historical-only code, not part of the active `hello` flow
-- `landing/hello.*` still contains some leftover references to those pages, so that cleanup should be treated as legacy removal work rather than active feature work
+- `landing/profile.html` and `landing/help.html` are archive / legacy files
+- `landing/settings.html` is no longer a standalone product page, but it still backs the embedded Settings iframe opened from `landing/hello.html`
+- future work should happen in `landing/hello.html`, `landing/hello.js`, and the extracted modules, not by reviving the old standalone pages
 
 ## On-Air Ownership Split
 `Library` owns:
@@ -96,6 +109,8 @@ Important:
 - the recording/composite path is still effectively centered on local video plus one remote participant
 - guest channel UI exists, but guest gain is not yet fully wired into the real recorded/live mix path
 - Review Cut edited video export does not exist yet
+- the new backend episode export path depends on Railway having `ffmpeg`
+- audio-only quality is now moving toward WAV master capture, but that still needs live validation on freshly recorded takes
 
 ## Current Restart Point
 If resuming implementation, start in:
@@ -104,8 +119,7 @@ If resuming implementation, start in:
 3. `landing/styles.css`
 
 Immediate work area:
-- Review Cut track-head drag and zoom-follow polish
-- Review Cut accessibility / keyboard ownership
-- active cue controls
-- guest audio validation
-- recording fidelity and validation
+- validate fresh audio-only recordings after the new WAV-master capture path
+- validate `Episodes` export for `MP3`, `M4A`, and `MP4` after Railway deploy with `ffmpeg`
+- stabilize recording -> Post-Production -> Review Cut flow under repeated real use
+- validate guest audio behavior against the real live and recorded mix

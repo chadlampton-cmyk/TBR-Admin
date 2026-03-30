@@ -106,6 +106,12 @@ const showLibraryNameInput = document.getElementById("show-library-name-input");
 const showLibraryMessage = document.getElementById("show-library-message");
 const showLibraryCancelBtn = document.getElementById("show-library-cancel-btn");
 const showLibraryCreateConfirmBtn = document.getElementById("show-library-create-confirm-btn");
+const libraryRenameModal = document.getElementById("library-rename-modal");
+const libraryRenameBackdrop = document.getElementById("library-rename-backdrop");
+const libraryRenameInput = document.getElementById("library-rename-input");
+const libraryRenameMessage = document.getElementById("library-rename-message");
+const libraryRenameCancelBtn = document.getElementById("library-rename-cancel-btn");
+const libraryRenameConfirmBtn = document.getElementById("library-rename-confirm-btn");
 const chatSendBtn = chatForm ? chatForm.querySelector(".chat-send") : null;
 const quickNoteButtons = Array.from(document.querySelectorAll(".quick-note-btn"));
 const cameraVideo = document.getElementById("camera-video");
@@ -161,6 +167,7 @@ const onAirRecordLevelBadge = document.getElementById("onair-record-level-badge"
 const onAirRecordWave = document.getElementById("onair-record-wave");
 const onAirMediaStatus = document.getElementById("onair-media-status");
 const hostShowLibrarySelect = document.getElementById("host-show-library-select");
+const hostRecordingSaveShowSelect = document.getElementById("host-recording-save-show-select");
 const hostShowLibraryCreateBtn = document.getElementById("host-show-library-create-btn");
 const workflowReadyPill = document.getElementById("workflow-ready-pill");
 const workflowCountdownPill = document.getElementById("workflow-countdown-pill");
@@ -182,6 +189,7 @@ const onAirReviewWindow = document.getElementById("onair-review-window");
 const onAirReviewWindowStatus = document.getElementById("onair-review-window-status");
 const onAirReviewSaveDraftBtn = document.getElementById("onair-review-save-draft-btn");
 const onAirReviewSaveEpisodeBtn = document.getElementById("onair-review-save-episode-btn");
+const onAirReviewSaveShowSelect = document.getElementById("onair-review-save-show-select");
 const onAirReviewPlayer = document.getElementById("onair-review-player");
 const onAirReviewPlayBtn = document.getElementById("onair-review-play-btn");
 const onAirReviewTime = document.getElementById("onair-review-time");
@@ -218,6 +226,7 @@ const onAirReviewMarkerReadout = document.getElementById("onair-review-marker-re
 const onAirReviewClearMarkersBtn = document.getElementById("onair-review-clear-markers-btn");
 const onAirReviewCleanSelectionBtn = document.getElementById("onair-review-clean-selection-btn");
 const onAirReviewCleanAllBtn = document.getElementById("onair-review-clean-all-btn");
+const onAirReviewNoiseReadout = document.getElementById("onair-review-noise-readout");
 const onAirReviewCleanupReadout = document.getElementById("onair-review-cleanup-readout");
 const onAirReviewPreviewAutoBtn = document.getElementById("onair-review-preview-auto-btn");
 const onAirReviewPreviewOriginalBtn = document.getElementById("onair-review-preview-original-btn");
@@ -751,8 +760,10 @@ const onAirReviewPlayheadController = typeof reviewCutPlayheadControllerFactory.
   : null;
 const reviewCutSessionControllerApi = window.ReviewCutSessionController || {};
 const reviewCutPlaybackControllerFactory = window.ReviewCutPlaybackController || {};
+const reviewCutNoiseToolsApi = window.ReviewCutNoiseTools || {};
 const onAirLibraryStorageApi = window.OnAirLibraryStorage || {};
 const onAirLibraryRenderApi = window.OnAirLibraryRender || {};
+const onAirAudioStateFactory = window.OnAirAudioState || {};
 const onAirLibraryControllerFactory = window.OnAirLibraryController || {};
 const onAirLibraryBridgeFactory = window.OnAirLibraryBridge || {};
 const recordingCaptureFactory = window.RecordingCapture || {};
@@ -1011,7 +1022,11 @@ let onAirReviewLibraryView = "post-production";
 let showLibraries = [];
 let activeShowLibraryId = String((studioSettings && studioSettings.activeShowLibraryId) || "").trim();
 let onAirLibraryShowFilterId = String((studioSettings && studioSettings.libraryShowFilterId) || activeShowLibraryId || "").trim();
+let recordingSaveShowLibraryId = String((studioSettings && studioSettings.recordingSaveShowLibraryId) || activeShowLibraryId || "").trim();
+let reviewSaveShowLibraryId = String((studioSettings && studioSettings.reviewSaveShowLibraryId) || activeShowLibraryId || "").trim();
 let showLibraryCreateInFlight = false;
+let libraryRenameInFlight = false;
+let libraryRenameAssetId = "";
 let onAirLibraryPreviewAssetId = "";
 let onAirLibraryPreviewObjectUrl = "";
 let onAirPostProductionSaveInFlight = false;
@@ -1025,6 +1040,20 @@ const onAirLibraryAssets = {
   episodes: [],
   "post-production": []
 };
+const onAirAudioState = typeof onAirAudioStateFactory.create === "function"
+  ? onAirAudioStateFactory.create({
+      getBaseVolume: () => onAirMusicBaseVolume,
+      getPrimaryVolume: () => onAirMusicPrimaryVolume,
+      getDuckMultiplier: () => getOnAirMusicDuckMultiplier(),
+      getPrimaryCue: () => onAirMusicPrimaryCue,
+      getAuxCues: () => onAirAuxMusicCues,
+      setAuxCues(value) {
+        onAirAuxMusicCues = Array.isArray(value) ? value : [];
+      },
+      getMusicLibrary: () => onAirMusicLibrary,
+      getCurrentTrackId: () => onAirMusicCurrentTrackId
+    })
+  : null;
 const onAirLibraryController = typeof onAirLibraryControllerFactory.create === "function"
   ? onAirLibraryControllerFactory.create({
       authApi: window.TBRAuth || null,
@@ -1088,6 +1117,7 @@ const onAirLibraryController = typeof onAirLibraryControllerFactory.create === "
       createMusicUseAction: (asset) => createOnAirMusicUseAction(asset),
       createMusicDeleteAction: (asset) => createOnAirMusicDeleteAction(asset),
       createPostProductionReviewAction: (asset) => createOnAirPostProductionReviewAction(asset),
+      createPostProductionRenameAction: (asset) => createOnAirPostProductionRenameAction(asset),
       createPostProductionDeleteAction: (asset) => createOnAirPostProductionDeleteAction(asset),
       createEpisodeExportAction: (asset) => createOnAirEpisodeExportAction(asset),
       createEpisodeDeleteAction: (asset) => createOnAirEpisodeDeleteAction(asset),
@@ -1134,7 +1164,11 @@ const onAirLibraryBridge = typeof onAirLibraryBridgeFactory.create === "function
       getOnAirReviewSourceAsset: () => onAirReviewSourceAsset,
       setOnAirReviewSourceAsset(value) {
         onAirReviewSourceAsset = value;
-      }
+      },
+      getRecordingSaveShowLibraryId: () => recordingSaveShowLibraryId,
+      getReviewSaveShowLibraryId: () => reviewSaveShowLibraryId,
+      getEpisodeExportSettings,
+      getFilenameExtensionForFormat
     })
   : null;
 const recordingController = typeof recordingControllerFactory.create === "function"
@@ -1188,6 +1222,7 @@ const recordingController = typeof recordingControllerFactory.create === "functi
       getRecordingAudioBlob: () => recordingAudioBlob,
       appendLatestRecordingAssetToOnAirReviewTimeline,
       beginRecordingProcessingPhase,
+      finishRecordingProcessingPhase,
       saveCurrentRecordingToPostProduction,
       getAdminRecordingMaxMinutes: () => adminSettings.recordingMaxMinutes,
       getRecordingAutoStopMinutes,
@@ -1211,6 +1246,10 @@ const recordingCaptureController = typeof recordingCaptureFactory.create === "fu
       syncReviewPanelUI: () => syncReviewPanelUI(),
       getSupportedRecordingMimeType,
       getAudioOnlyRecordingMimeType,
+      getRecordingDefaultFormat,
+      getRecordingDefaultQuality,
+      getRecordingChannelMode,
+      getRecordingSampleRate,
       drawRecordingCompositeFrame,
       setMediaDebugEnabled,
       isMediaDebugEnabled: () => mediaDebugEnabled,
@@ -1303,6 +1342,7 @@ const recordingCaptureController = typeof recordingCaptureFactory.create === "fu
       setRecordingAudioMimeType(value) {
         recordingAudioMimeType = String(value || "");
       },
+      encodeAudioBufferToWavBlob,
       getRecordingDiagnostics: () => recordingDiagnostics
     })
   : null;
@@ -2070,7 +2110,7 @@ function setLoungeSettingsModalOpen(open) {
   loungeSettingsModal.setAttribute("aria-hidden", isOpen ? "false" : "true");
   if (loungeSettingsFrame) {
     if (isOpen) {
-      const nextSrc = "./settings.html?embed=1";
+      const nextSrc = "./settings.html?embed=1&v=20260330-113";
       if (loungeSettingsFrame.getAttribute("src") !== nextSrc) {
         loungeSettingsFrame.setAttribute("src", nextSrc);
       }
@@ -4074,6 +4114,75 @@ function getAudioOnlyRecordingMimeType() {
   return "";
 }
 
+function getRecordingDefaultFormat() {
+  return String(studioSettings && studioSettings.recordingDefaultFormat || "video").trim().toLowerCase() === "audio"
+    ? "audio"
+    : "video";
+}
+
+function getRecordingDefaultQuality() {
+  return String(studioSettings && studioSettings.recordingDefaultQuality || "standard").trim().toLowerCase() === "high"
+    ? "high"
+    : "standard";
+}
+
+function getRecordingChannelMode() {
+  return String(studioSettings && studioSettings.recordingChannelMode || "stereo").trim().toLowerCase() === "mono"
+    ? "mono"
+    : "stereo";
+}
+
+function getRecordingSampleRate() {
+  return Number(studioSettings && studioSettings.recordingSampleRateHz || 48000) === 44100
+    ? 44100
+    : 48000;
+}
+
+function getExportFormat() {
+  const format = String(studioSettings && studioSettings.exportFormat || "mp3").trim().toLowerCase();
+  return format === "m4a" || format === "mp4" ? format : "mp3";
+}
+
+function getExportQualityPreset() {
+  const preset = String(studioSettings && studioSettings.exportQualityPreset || "premium").trim().toLowerCase();
+  return preset === "standard" || preset === "high" ? preset : "premium";
+}
+
+function getExportBitrateKbps() {
+  const bitrate = Number(studioSettings && studioSettings.exportBitrateKbps || 320);
+  return bitrate === 128 || bitrate === 192 || bitrate === 256 ? bitrate : 320;
+}
+
+function getExportSampleRateHz() {
+  return Number(studioSettings && studioSettings.exportSampleRateHz || 48000) === 44100
+    ? 44100
+    : 48000;
+}
+
+function getExportChannelMode() {
+  return String(studioSettings && studioSettings.exportChannelMode || "stereo").trim().toLowerCase() === "mono"
+    ? "mono"
+    : "stereo";
+}
+
+function getEpisodeExportSettings() {
+  return {
+    format: getExportFormat(),
+    qualityPreset: getExportQualityPreset(),
+    bitrateKbps: getExportBitrateKbps(),
+    sampleRateHz: getExportSampleRateHz(),
+    channelMode: getExportChannelMode()
+  };
+}
+
+function getFilenameExtensionForFormat(format, fallbackExtension) {
+  const normalized = String(format || "").trim().toLowerCase();
+  if (normalized === "mp3" || normalized === "m4a" || normalized === "mp4" || normalized === "wav" || normalized === "webm" || normalized === "ogg") {
+    return normalized;
+  }
+  return String(fallbackExtension || "bin").trim() || "bin";
+}
+
 function clearRecordingProcessingTimer() {
   if (recordingProcessingTimerId) {
     clearTimeout(recordingProcessingTimerId);
@@ -4569,8 +4678,6 @@ function hashOnAirReviewString(value) {
 function getOnAirReviewRecordingDefaultLabel() {
   const candidates = [
     studioSettings && studioSettings.recordingDefaultName,
-    studioSettings && studioSettings.recordingNameDefault,
-    studioSettings && studioSettings.defaultRecordingName,
     studioSettings && studioSettings.showTitle,
     studioSettings && studioSettings.projectTitle,
     recordingAudioBlob && recordingAudioBlob.name,
@@ -4602,6 +4709,9 @@ function getOnAirConfiguredRecordingNameStem() {
   const pattern = String(studioSettings && studioSettings.recordingNamePattern || "show-date").trim().toLowerCase();
   if (pattern === "show-date") {
     return baseName + "-" + getOnAirRecordingDateTag();
+  }
+  if (pattern === "show-episode-date") {
+    return baseName + "-episode-" + getOnAirRecordingDateTag();
   }
   return baseName;
 }
@@ -6010,6 +6120,7 @@ function applyOnAirReviewDeleteToTimeline(mode) {
     if (leading > 0) {
       nextClips.push({
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: clip.clipId,
         start: clipStart,
         duration: leading,
         sourceStart: clip.sourceStart,
@@ -6020,6 +6131,7 @@ function applyOnAirReviewDeleteToTimeline(mode) {
       const nextStart = mode === "ripple" ? overlapStart : selectionEnd;
       nextClips.push({
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
         start: nextStart,
         duration: trailing,
         sourceStart: clip.sourceEnd - trailing,
@@ -6206,6 +6318,14 @@ function formatOnAirReviewRulerLabel(seconds, stepSeconds) {
 }
 
 function getOnAirReviewNoiseAtEditedProgress(progress, totalDuration) {
+  if (reviewCutNoiseToolsApi && typeof reviewCutNoiseToolsApi.getNoiseAtEditedProgress === "function") {
+    return reviewCutNoiseToolsApi.getNoiseAtEditedProgress({
+      progress,
+      totalDuration,
+      noiseFloorMap: onAirReviewNoiseFloorMap,
+      getTimelinePosition: getOnAirReviewTimelinePosition
+    });
+  }
   const clampedProgress = Math.max(0, Math.min(1, Number(progress) || 0));
   const editedDuration = Math.max(0, Number(totalDuration) || 0);
   if (!(editedDuration > 0) || !onAirReviewNoiseFloorMap.length) {
@@ -6569,6 +6689,48 @@ function getOnAirReviewCleanupCount() {
   return Array.isArray(onAirReviewCleanupRanges) ? onAirReviewCleanupRanges.length : 0;
 }
 
+function getOnAirReviewNoiseSummary() {
+  if (reviewCutNoiseToolsApi && typeof reviewCutNoiseToolsApi.getNoiseSummary === "function") {
+    return reviewCutNoiseToolsApi.getNoiseSummary({
+      noiseFloorMap: onAirReviewNoiseFloorMap,
+      getTimelineDuration: getOnAirReviewTimelineDuration,
+      hasSelection: hasOnAirReviewSelection(),
+      selectionStart: onAirReviewSelectionStart,
+      selectionEnd: onAirReviewSelectionEnd,
+      getTimelinePosition: getOnAirReviewTimelinePosition
+    });
+  }
+  if (!onAirReviewNoiseFloorMap.length) {
+    return { average: 0, peak: 0, profile: "off", percent: 0, scope: "show" };
+  }
+  const duration = getOnAirReviewTimelineDuration();
+  const hasSelection = hasOnAirReviewSelection() && duration > 0;
+  const start = hasSelection ? Math.min(onAirReviewSelectionStart, onAirReviewSelectionEnd) : 0;
+  const end = hasSelection ? Math.max(onAirReviewSelectionStart, onAirReviewSelectionEnd) : duration;
+  const sampleCount = hasSelection ? 18 : Math.max(24, Math.min(64, onAirReviewNoiseFloorMap.length));
+  let total = 0;
+  let peak = 0;
+  for (let index = 0; index < sampleCount; index += 1) {
+    const progress = sampleCount <= 1 ? 0 : index / Math.max(1, sampleCount - 1);
+    const time = start + (end - start) * progress;
+    const value = hasSelection
+      ? getOnAirReviewNoiseAtEditedProgress(duration > 0 ? time / duration : 0, duration)
+      : Number(onAirReviewNoiseFloorMap[Math.max(0, Math.min(onAirReviewNoiseFloorMap.length - 1, Math.round(progress * (onAirReviewNoiseFloorMap.length - 1))))] || 0);
+    total += value;
+    peak = Math.max(peak, value);
+  }
+  const average = total / Math.max(1, sampleCount);
+  const percent = Math.round(Math.max(average, peak * 0.82) * 100);
+  const profile = percent >= 63 ? "high" : percent >= 37 ? "medium" : percent > 0 ? "low" : "off";
+  return {
+    average,
+    peak,
+    profile,
+    percent,
+    scope: hasSelection ? "selection" : "show"
+  };
+}
+
 function updateOnAirReviewMarkerReadout() {
   if (!onAirReviewMarkerReadout) {
     return;
@@ -6583,6 +6745,22 @@ function updateOnAirReviewCleanupReadout() {
   }
   const count = getOnAirReviewCleanupCount();
   onAirReviewCleanupReadout.textContent = count ? count + " Cln" : "Clean Off";
+}
+
+function updateOnAirReviewNoiseReadout() {
+  if (!onAirReviewNoiseReadout) {
+    return;
+  }
+  const summary = getOnAirReviewNoiseSummary();
+  onAirReviewNoiseReadout.classList.remove("low", "medium", "high");
+  if (summary.profile === "off") {
+    onAirReviewNoiseReadout.textContent = "Noise Off";
+    return;
+  }
+  onAirReviewNoiseReadout.classList.add(summary.profile);
+  const label = summary.scope === "selection" ? "Sel" : "Show";
+  onAirReviewNoiseReadout.textContent =
+    label + " " + getOnAirReviewNoiseProfileLabel(summary.profile) + " " + String(summary.percent) + "%";
 }
 
 function updateOnAirReviewCleanupPreviewModeUi() {
@@ -7249,6 +7427,7 @@ function updateOnAirReviewSelectionControls() {
   if (onAirReviewPreviewCleanedBtn) {
     onAirReviewPreviewCleanedBtn.disabled = !onAirReviewCleanedAudioBuffer;
   }
+  updateOnAirReviewNoiseReadout();
   updateOnAirReviewCleanupPreviewModeUi();
   if (onAirReviewGainDownBtn) {
     onAirReviewGainDownBtn.disabled = !hasSelection;
@@ -7772,12 +7951,21 @@ function moveOnAirReviewClip(entryIndex, targetStart) {
   const laneIndex = laneEntries.findIndex((entry) => entry.clipId === entryIndex);
   const previous = laneEntries[laneIndex - 1] || null;
   const next = laneEntries[laneIndex + 1] || null;
-  const overlapLimit = Math.min(4.5, clip.duration * 0.72);
-  const minStart = Math.max(0, previous ? previous.start - overlapLimit : 0);
-  const maxStart = Math.max(0, next ? next.end - Math.max(0.12, clip.duration * 0.28) : totalDuration);
-  let nextStart = Math.max(minStart, Math.min(maxStart, Number(targetStart) || 0));
   const dragActive = !!(onAirReviewClipDragState && onAirReviewClipDragState.entryIndex === entryIndex);
-  const snapTolerance = dragActive ? 0.012 : Math.max(0.08, clip.duration * 0.04);
+  const overlapLimit = Math.min(4.5, clip.duration * 0.72);
+  const minStart = dragActive
+    ? Math.max(0, previous ? previous.end : 0)
+    : Math.max(0, previous ? previous.start - overlapLimit : 0);
+  const maxStart = dragActive
+    ? Math.max(minStart, next ? next.start - clip.duration : totalDuration)
+    : Math.max(0, next ? next.end - Math.max(0.12, clip.duration * 0.28) : totalDuration);
+  let nextStart = Math.max(minStart, Math.min(maxStart, Number(targetStart) || 0));
+  if (dragActive) {
+    nextStart = Math.round(nextStart * 120) / 120;
+  }
+  const snapTolerance = dragActive
+    ? Math.max(0.04, Math.min(0.12, clip.duration * 0.03))
+    : Math.max(0.08, clip.duration * 0.04);
   if (previous && snapTolerance > 0 && Math.abs(nextStart - previous.end) <= snapTolerance) {
     nextStart = previous.end;
   }
@@ -7996,6 +8184,7 @@ function applyOnAirReviewSplitAtPlayhead() {
     return [
       {
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: clip.clipId,
         start: clip.start,
         duration: leadingDuration,
         sourceStart: clip.sourceStart,
@@ -8003,6 +8192,7 @@ function applyOnAirReviewSplitAtPlayhead() {
       },
       {
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
         start: splitTime,
         duration: trailingDuration,
         sourceStart: sourceSplitTime,
@@ -8064,6 +8254,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
     if (overlapStart > clip.start + 0.02) {
       nextClips.push({
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
         start: clip.start,
         duration: overlapStart - clip.start,
         sourceStart: clip.sourceStart,
@@ -8072,6 +8263,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
     }
     nextClips.push({
       ...createOnAirReviewClipDescriptor(clip),
+      clipId: clip.clipId,
       start: overlapStart,
       duration: overlapEnd - overlapStart,
       sourceStart: overlapSourceStart,
@@ -8080,6 +8272,7 @@ function applyOnAirReviewSplitAtSelectionEdges() {
     if (overlapEnd < clip.end - 0.02) {
       nextClips.push({
         ...createOnAirReviewClipDescriptor(clip),
+        clipId: getNextOnAirReviewClipId(),
         start: overlapEnd,
         duration: clip.end - overlapEnd,
         sourceStart: overlapSourceEnd,
@@ -8206,6 +8399,9 @@ function sampleWaveformPeaksFromAudioBuffer(buffer, bucketCount) {
 }
 
 function sampleNoiseFloorMapFromAudioBuffer(buffer, bucketCount) {
+  if (reviewCutNoiseToolsApi && typeof reviewCutNoiseToolsApi.sampleNoiseFloorMapFromAudioBuffer === "function") {
+    return reviewCutNoiseToolsApi.sampleNoiseFloorMapFromAudioBuffer(buffer, bucketCount);
+  }
   const channelData = [];
   for (let channel = 0; channel < Math.max(1, buffer.numberOfChannels); channel += 1) {
     channelData.push(buffer.getChannelData(channel));
@@ -8255,14 +8451,18 @@ function sampleNoiseFloorMapFromAudioBuffer(buffer, bucketCount) {
   return buckets;
 }
 
-function getOnAirReviewNoiseProfileLabel() {
-  if (onAirReviewNoiseOverlayProfile === "high") {
+function getOnAirReviewNoiseProfileLabel(profile) {
+  if (reviewCutNoiseToolsApi && typeof reviewCutNoiseToolsApi.getNoiseProfileLabel === "function") {
+    return reviewCutNoiseToolsApi.getNoiseProfileLabel(profile || onAirReviewNoiseOverlayProfile || "off");
+  }
+  const targetProfile = String(profile || onAirReviewNoiseOverlayProfile || "off").trim().toLowerCase();
+  if (targetProfile === "high") {
     return "High";
   }
-  if (onAirReviewNoiseOverlayProfile === "medium") {
+  if (targetProfile === "medium") {
     return "Medium";
   }
-  if (onAirReviewNoiseOverlayProfile === "low") {
+  if (targetProfile === "low") {
     return "Low";
   }
   return "Off";
@@ -8632,6 +8832,7 @@ async function refreshOnAirReviewWaveform() {
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent = "No review file loaded yet.";
     }
+    updateOnAirReviewNoiseReadout();
     queueOnAirReviewWaveRender();
     return;
   }
@@ -8663,7 +8864,7 @@ async function refreshOnAirReviewWaveform() {
     if (onAirReviewWaveNote) {
       onAirReviewWaveNote.textContent =
         "Click anywhere in the timeline to scrub the show. Recording clips carry their own noise-floor tint (" +
-        getOnAirReviewNoiseProfileLabel() +
+        getOnAirReviewNoiseProfileLabel(onAirReviewNoiseOverlayProfile) +
         ").";
     }
   } catch (error) {
@@ -8677,6 +8878,7 @@ async function refreshOnAirReviewWaveform() {
       onAirReviewWaveNote.textContent = "Waveform preview is approximate on this browser, but scrubbing and playback are still available.";
     }
   }
+  updateOnAirReviewNoiseReadout();
   queueOnAirReviewWaveRender();
 }
 
@@ -8902,29 +9104,49 @@ function renderOnAirReviewWaveform() {
       ctx.fillStyle = isSelectedClip ? "rgba(170, 215, 255, 0.34)" : palette.accent;
       ctx.fillRect(clipX + 7, clipY + 5, Math.max(12, Math.min(clipWidth - 14, 18 + (clipIndex % 2) * 8)), 2);
       if (String(clip.sourceKind || "recording") === "recording" && onAirReviewNoiseFloorMap.length) {
-        const clipNoiseBuckets = Math.max(12, Math.min(60, Math.floor(clipWidth / 8)));
-        for (let bucketIndex = 0; bucketIndex < clipNoiseBuckets; bucketIndex += 1) {
-          const bucketStartTime = clip.start + (clip.duration * bucketIndex / clipNoiseBuckets);
-          const bucketMidTime = clip.start + (clip.duration * (bucketIndex + 0.5) / clipNoiseBuckets);
-          const bucketEndTime = clip.start + (clip.duration * (bucketIndex + 1) / clipNoiseBuckets);
-          const noiseValue = Math.max(
-            getOnAirReviewNoiseAtEditedProgress(bucketStartTime / duration, duration),
-            getOnAirReviewNoiseAtEditedProgress(bucketMidTime / duration, duration),
-            getOnAirReviewNoiseAtEditedProgress(bucketEndTime / duration, duration)
-          );
-          if (noiseValue <= 0.08) {
-            continue;
+        if (reviewCutNoiseToolsApi && typeof reviewCutNoiseToolsApi.renderClipNoiseOverlay === "function") {
+          reviewCutNoiseToolsApi.renderClipNoiseOverlay({
+            ctx,
+            clip,
+            duration,
+            clipX,
+            clipY,
+            clipWidth,
+            clipHeight,
+            noiseFloorMap: onAirReviewNoiseFloorMap,
+            getTimelinePosition: getOnAirReviewTimelinePosition
+          });
+        } else {
+          const clipNoiseBuckets = Math.max(12, Math.min(60, Math.floor(clipWidth / 8)));
+          for (let bucketIndex = 0; bucketIndex < clipNoiseBuckets; bucketIndex += 1) {
+            const bucketStartTime = clip.start + (clip.duration * bucketIndex / clipNoiseBuckets);
+            const bucketMidTime = clip.start + (clip.duration * (bucketIndex + 0.5) / clipNoiseBuckets);
+            const bucketEndTime = clip.start + (clip.duration * (bucketIndex + 1) / clipNoiseBuckets);
+            const noiseValue = Math.max(
+              getOnAirReviewNoiseAtEditedProgress(bucketStartTime / duration, duration),
+              getOnAirReviewNoiseAtEditedProgress(bucketMidTime / duration, duration),
+              getOnAirReviewNoiseAtEditedProgress(bucketEndTime / duration, duration)
+            );
+            if (noiseValue <= 0.08) {
+              continue;
+            }
+            const noiseX = clipX + (clipWidth * bucketIndex / clipNoiseBuckets);
+            const noiseWidth = Math.max(1, clipWidth / clipNoiseBuckets);
+            const overlayAlpha = 0.1 + noiseValue * 0.22;
+            const color = noiseValue > 0.68
+              ? "rgba(255, 126, 92, " + overlayAlpha.toFixed(3) + ")"
+              : noiseValue > 0.42
+                ? "rgba(236, 178, 98, " + overlayAlpha.toFixed(3) + ")"
+                : "rgba(172, 182, 196, " + Math.max(0.06, overlayAlpha * 0.7).toFixed(3) + ")";
+            ctx.fillStyle = color;
+            ctx.fillRect(noiseX, clipY + 1, noiseWidth, clipHeight - 2);
+            if (noiseValue > 0.42) {
+              ctx.fillStyle = noiseValue > 0.68
+                ? "rgba(255, 168, 140, 0.86)"
+                : "rgba(241, 205, 142, 0.78)";
+              ctx.fillRect(noiseX, clipY + 1, noiseWidth, Math.max(2, clipHeight * 0.08));
+            }
           }
-          const noiseX = clipX + (clipWidth * bucketIndex / clipNoiseBuckets);
-          const noiseWidth = Math.max(1, clipWidth / clipNoiseBuckets);
-          const overlayAlpha = 0.04 + noiseValue * 0.12;
-          const color = noiseValue > 0.68
-            ? "rgba(255, 126, 92, " + overlayAlpha.toFixed(3) + ")"
-            : noiseValue > 0.42
-              ? "rgba(236, 178, 98, " + overlayAlpha.toFixed(3) + ")"
-              : "rgba(172, 182, 196, " + Math.max(0.03, overlayAlpha * 0.6).toFixed(3) + ")";
-          ctx.fillStyle = color;
-          ctx.fillRect(noiseX, clipY + 1, noiseWidth, clipHeight - 2);
         }
       }
       drawOnAirReviewClipWaveform(ctx, clip, {
@@ -9412,6 +9634,12 @@ function getOnAirReviewClipHitAtClient(clientX, clientY) {
   if (!laneClips.length) {
     return null;
   }
+  if (laneClips.length > 1) {
+    const sortedHits = laneClips
+      .slice()
+      .sort((left, right) => right.start - left.start || (right.clipId || 0) - (left.clipId || 0));
+    return sortedHits[0] || null;
+  }
   if (Number.isFinite(onAirReviewSelectedClipIndex) && onAirReviewSelectedClipIndex >= 0) {
     const selectedMatch = laneClips.find((clip) => clip.clipId === onAirReviewSelectedClipIndex);
     if (selectedMatch) {
@@ -9491,20 +9719,30 @@ function beginRecordingProcessingPhase() {
     onAirExportNote.textContent = "Exports unlock after the review cut is ready.";
   }
   syncReviewPanelUI();
+}
+
+function finishRecordingProcessingPhase(result) {
+  clearRecordingProcessingTimer();
+  const savedAsset = result && result.savedAsset ? result.savedAsset : null;
+  const saveError = result && result.saveError ? result.saveError : null;
+  setRecordingWorkflowState("review");
+  if (onAirReviewStatus) {
+    if (savedAsset) {
+      onAirReviewStatus.textContent = "Review ready. Saved to Post-Production as " + String(savedAsset.title || "draft") + ".";
+    } else if (saveError) {
+      onAirReviewStatus.textContent = "Review ready in this browser. Shared Post-Production save failed.";
+    } else {
+      onAirReviewStatus.textContent = "Review ready. Open the show cut below before exporting or saving more edits.";
+    }
+  }
+  syncReviewPanelUI();
   recordingProcessingTimerId = window.setTimeout(() => {
-    setRecordingWorkflowState("review");
-    if (onAirReviewStatus) {
-      onAirReviewStatus.textContent = "Review the show cut below before exporting or moving into post-production edits.";
+    setRecordingWorkflowState("export");
+    if (onAirExportNote) {
+      onAirExportNote.textContent = "Choose the browser-generated show cut as video or audio-only download.";
     }
     syncReviewPanelUI();
-    window.setTimeout(() => {
-      setRecordingWorkflowState("export");
-      if (onAirExportNote) {
-        onAirExportNote.textContent = "Choose the browser-generated show cut as video or audio-only download.";
-      }
-      syncReviewPanelUI();
-    }, 900);
-  }, 1400);
+  }, 320);
 }
 
 function downloadBlobAsset(url, filename) {
@@ -9546,6 +9784,7 @@ async function uploadBlobToSharedLibrary(libraryKind, blob, options) {
   const uploadTicket = await window.TBRAuth.requestMediaUpload({
     libraryKind,
     assetRole: String(options && options.assetRole || "").trim(),
+    showLibraryId: String(options && options.showLibraryId || "").trim(),
     title: uploadTitle,
     filename,
     mimeType,
@@ -9572,12 +9811,14 @@ async function uploadBlobToSharedLibrary(libraryKind, blob, options) {
   } else {
     throw new Error("Shared upload URL was not returned.");
   }
+  const requestedShowLibraryId = String(options && options.showLibraryId || "").trim();
   const completed = await window.TBRAuth.completeMediaUpload(uploadTicket.asset.id, {
     title: uploadTitle,
     byteSize: Math.max(0, Number(blob.size || 0) || 0),
     durationSeconds: Number.isFinite(Number(options && options.durationSeconds)) ? Number(options.durationSeconds) : null,
+    showLibraryId: requestedShowLibraryId,
     metadata: {
-      ...buildShowLibraryMetadata(),
+      ...buildShowLibraryMetadata(requestedShowLibraryId),
       ...(options && options.metadata && typeof options.metadata === "object" ? options.metadata : {})
     }
   });
@@ -10180,10 +10421,11 @@ async function appendLatestRecordingAssetToOnAirReviewTimeline() {
   return true;
 }
 
-async function importOnAirReviewFile(file) {
+async function importOnAirReviewFile(file, options) {
   if (!file) {
     return false;
   }
+  const replaceExisting = !!(options && options.replaceExisting);
   const type = String(file.type || "").toLowerCase();
   const isAudio = type.startsWith("audio/");
   const isVideo = type.startsWith("video/");
@@ -10197,7 +10439,7 @@ async function importOnAirReviewFile(file) {
     recordingMediaUrl ||
     (onAirActiveReviewMedia && onAirActiveReviewMedia.src)
   );
-  if (isAudio && hasExistingReviewContent) {
+  if (isAudio && hasExistingReviewContent && !replaceExisting) {
     const inserted = await insertOnAirReviewImportedAudioFileAtPlayhead(file);
     if (inserted) {
       setOnAirReviewModalOpen(true);
@@ -10210,7 +10452,7 @@ async function importOnAirReviewFile(file) {
     setOnAirReviewStatusMessage("Audio import could not be inserted right now.", true);
     return false;
   }
-  if (isVideo && hasExistingReviewContent) {
+  if (isVideo && hasExistingReviewContent && !replaceExisting) {
     setOnAirReviewStatusMessage("Video import is blocked while a draft is open so Review Cut stays non-destructive. Open an empty Review Cut first if you want a new source.", true);
     return false;
   }
@@ -13592,33 +13834,41 @@ function getLibraryDisplayLabel(libraryKind) {
     : (typeof onAirLibraryRenderApi.getLibraryDisplayLabel === "function" ? onAirLibraryRenderApi.getLibraryDisplayLabel(libraryKind) : "Music");
 }
 
-function getActiveShowLibrary() {
-  if (!activeShowLibraryId) {
+function getShowLibraryById(showLibraryId) {
+  const targetId = String(showLibraryId || "").trim();
+  if (!targetId) {
     return null;
   }
-  return showLibraries.find((entry) => String(entry && entry.id || "").trim() === activeShowLibraryId) || null;
+  return showLibraries.find((entry) => String(entry && entry.id || "").trim() === targetId) || null;
+}
+
+function getActiveShowLibrary() {
+  return getShowLibraryById(activeShowLibraryId);
 }
 
 function getShowLibraryFilterId() {
   return String(onAirLibraryShowFilterId || "").trim();
 }
 
-function buildShowLibraryMetadata() {
-  const activeShow = getActiveShowLibrary();
-  if (!activeShow) {
+function buildShowLibraryMetadata(showLibraryId) {
+  const targetId = String(showLibraryId || "").trim() || activeShowLibraryId;
+  const targetShow = getShowLibraryById(targetId);
+  if (!targetShow) {
     return {};
   }
   return {
-    showLibraryId: String(activeShow.id || "").trim(),
-    showLibraryTitle: String(activeShow.title || "").trim(),
-    showLibrarySlug: String(activeShow.slug || "").trim()
+    showLibraryId: String(targetShow.id || "").trim(),
+    showLibraryTitle: String(targetShow.title || "").trim(),
+    showLibrarySlug: String(targetShow.slug || "").trim()
   };
 }
 
 function saveShowLibrarySelections() {
   studioSettings = window.TBRAuth.saveStudioSettings({
     activeShowLibraryId,
-    libraryShowFilterId: onAirLibraryShowFilterId
+    libraryShowFilterId: onAirLibraryShowFilterId,
+    recordingSaveShowLibraryId,
+    reviewSaveShowLibraryId
   });
 }
 
@@ -13649,6 +13899,14 @@ function syncShowLibraryUi() {
   if (hostShowLibrarySelect) {
     hostShowLibrarySelect.value = activeShowLibraryId;
   }
+  renderShowLibrarySelectOptions(hostRecordingSaveShowSelect, "No Show Selected");
+  if (hostRecordingSaveShowSelect) {
+    hostRecordingSaveShowSelect.value = recordingSaveShowLibraryId;
+  }
+  renderShowLibrarySelectOptions(onAirReviewSaveShowSelect, "No Show Selected");
+  if (onAirReviewSaveShowSelect) {
+    onAirReviewSaveShowSelect.value = reviewSaveShowLibraryId;
+  }
   renderShowLibrarySelectOptions(onAirLibraryShowFilterSelect, "All Shows");
   if (onAirLibraryShowFilterSelect) {
     onAirLibraryShowFilterSelect.value = onAirLibraryShowFilterId;
@@ -13665,6 +13923,12 @@ async function refreshShowLibraries() {
   showLibraries = response && response.ok && Array.isArray(response.showLibraries) ? response.showLibraries : [];
   if (activeShowLibraryId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === activeShowLibraryId)) {
     activeShowLibraryId = "";
+  }
+  if (recordingSaveShowLibraryId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === recordingSaveShowLibraryId)) {
+    recordingSaveShowLibraryId = activeShowLibraryId;
+  }
+  if (reviewSaveShowLibraryId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === reviewSaveShowLibraryId)) {
+    reviewSaveShowLibraryId = activeShowLibraryId;
   }
   if (onAirLibraryShowFilterId && !showLibraries.some((entry) => String(entry && entry.id || "").trim() === onAirLibraryShowFilterId)) {
     onAirLibraryShowFilterId = activeShowLibraryId;
@@ -13701,6 +13965,80 @@ function setShowLibraryModalOpen(open) {
   }
 }
 
+function setLibraryRenameMessage(message, isError) {
+  if (!libraryRenameMessage) {
+    return;
+  }
+  const text = String(message || "").trim();
+  libraryRenameMessage.textContent = text;
+  libraryRenameMessage.classList.toggle("hidden", !text);
+  libraryRenameMessage.classList.toggle("error", !!(text && isError));
+}
+
+function setLibraryRenameModalOpen(open, asset) {
+  if (!libraryRenameModal) {
+    return;
+  }
+  const nextOpen = !!open;
+  libraryRenameModal.classList.toggle("hidden", !nextOpen);
+  libraryRenameModal.setAttribute("aria-hidden", nextOpen ? "false" : "true");
+  if (nextOpen) {
+    libraryRenameAssetId = String(asset && asset.id || "").trim();
+    if (libraryRenameInput) {
+      libraryRenameInput.value = String(asset && (asset.title || asset.name || asset.originalFilename) || "").trim();
+      libraryRenameInput.focus();
+      libraryRenameInput.select();
+    }
+    setLibraryRenameMessage("", false);
+    return;
+  }
+  libraryRenameAssetId = "";
+  if (libraryRenameInput) {
+    libraryRenameInput.value = "";
+  }
+  setLibraryRenameMessage("", false);
+}
+
+async function renamePostProductionAssetFlow() {
+  if (!window.TBRAuth || typeof window.TBRAuth.renameLibraryAsset !== "function") {
+    onAirMediaStatus.textContent = "Rename is unavailable right now.";
+    return;
+  }
+  if (!libraryRenameAssetId) {
+    setLibraryRenameMessage("Choose a draft to rename first.", true);
+    return;
+  }
+  const nextTitle = String(libraryRenameInput && libraryRenameInput.value || "").trim();
+  if (!nextTitle) {
+    setLibraryRenameMessage("Enter a draft name first.", true);
+    return;
+  }
+  if (libraryRenameInFlight) {
+    return;
+  }
+  libraryRenameInFlight = true;
+  if (libraryRenameConfirmBtn) {
+    libraryRenameConfirmBtn.disabled = true;
+    libraryRenameConfirmBtn.textContent = "Saving...";
+  }
+  const renamed = await window.TBRAuth.renameLibraryAsset(libraryRenameAssetId, nextTitle);
+  libraryRenameInFlight = false;
+  if (libraryRenameConfirmBtn) {
+    libraryRenameConfirmBtn.disabled = false;
+    libraryRenameConfirmBtn.textContent = "Save Name";
+  }
+  if (!renamed || !renamed.ok || !renamed.asset) {
+    setLibraryRenameMessage((renamed && renamed.error) || "Unable to rename this draft right now.", true);
+    return;
+  }
+  setLibraryRenameModalOpen(false);
+  await Promise.allSettled([
+    setOnAirLibraryView("post-production", true),
+    loadOnAirReviewLibraryKind(onAirReviewLibraryView || "post-production", true)
+  ]);
+  onAirMediaStatus.textContent = "Renamed draft to " + String(renamed.asset.title || nextTitle) + ".";
+}
+
 async function createShowLibraryFlow() {
   if (!window.TBRAuth || typeof window.TBRAuth.createShowLibrary !== "function") {
     onAirMediaStatus.textContent = "Show libraries are unavailable right now.";
@@ -13731,6 +14069,8 @@ async function createShowLibraryFlow() {
   }
   await refreshShowLibraries();
   activeShowLibraryId = String(created.showLibrary.id || "").trim();
+  recordingSaveShowLibraryId = activeShowLibraryId;
+  reviewSaveShowLibraryId = activeShowLibraryId;
   onAirLibraryShowFilterId = activeShowLibraryId;
   syncShowLibraryUi();
   saveShowLibrarySelections();
@@ -14081,6 +14421,9 @@ function getOnAirMusicEffectiveVolume(cueTarget) {
 }
 
 function getOnAirCueVolumeMultiplier(cueTarget) {
+  if (onAirAudioState && typeof onAirAudioState.getOnAirCueVolumeMultiplier === "function") {
+    return onAirAudioState.getOnAirCueVolumeMultiplier(cueTarget);
+  }
   if (!cueTarget) {
     return 1;
   }
@@ -14092,6 +14435,9 @@ function getOnAirCueVolumeMultiplier(cueTarget) {
 }
 
 function getOnAirCueEffectiveVolume(cueTarget) {
+  if (onAirAudioState && typeof onAirAudioState.getOnAirCueEffectiveVolume === "function") {
+    return onAirAudioState.getOnAirCueEffectiveVolume(cueTarget);
+  }
   return Math.max(
     0,
     Math.min(1, onAirMusicBaseVolume * getOnAirCueVolumeMultiplier(cueTarget) * getOnAirMusicDuckMultiplier())
@@ -14099,6 +14445,9 @@ function getOnAirCueEffectiveVolume(cueTarget) {
 }
 
 function getActiveOnAirMusicCueTargets() {
+  if (onAirAudioState && typeof onAirAudioState.getActiveOnAirMusicCueTargets === "function") {
+    return onAirAudioState.getActiveOnAirMusicCueTargets();
+  }
   const targets = [];
   if (onAirMusicPrimaryCue && !onAirMusicPrimaryCue.cleanedUp) {
     targets.push({
@@ -14131,6 +14480,9 @@ function getActiveOnAirMusicCueTargets() {
 }
 
 function createExplicitOnAirMusicCueTarget(cue) {
+  if (onAirAudioState && typeof onAirAudioState.createExplicitOnAirMusicCueTarget === "function") {
+    return onAirAudioState.createExplicitOnAirMusicCueTarget(cue);
+  }
   if (!cue) {
     return null;
   }
@@ -14148,6 +14500,9 @@ function createExplicitOnAirMusicCueTarget(cue) {
 }
 
 function createPrimaryOnAirMusicCueTarget() {
+  if (onAirAudioState && typeof onAirAudioState.createPrimaryOnAirMusicCueTarget === "function") {
+    return onAirAudioState.createPrimaryOnAirMusicCueTarget();
+  }
   if (!onAirMusicPrimaryCue) {
     return null;
   }
@@ -14177,6 +14532,9 @@ function createPrimaryOnAirMusicCueTarget() {
 }
 
 function getOnAirCueDisplayName(cueTarget) {
+  if (onAirAudioState && typeof onAirAudioState.getOnAirCueDisplayName === "function") {
+    return onAirAudioState.getOnAirCueDisplayName(cueTarget);
+  }
   if (!cueTarget) {
     return "Live cue";
   }
@@ -14191,6 +14549,10 @@ function getOnAirCueDisplayName(cueTarget) {
 }
 
 function clearOnAirMusicAutoFadeTimers(target) {
+  if (onAirAudioState && typeof onAirAudioState.clearOnAirMusicAutoFadeTimers === "function") {
+    onAirAudioState.clearOnAirMusicAutoFadeTimers(target);
+    return;
+  }
   if (!target) {
     return;
   }
@@ -14250,6 +14612,10 @@ function applyOnAirMusicOutputVolume(immediate) {
     return;
   }
   cueTargets.forEach((cueTarget) => {
+    const activeFadeFrameId = cueTarget.getFadeFrameId ? cueTarget.getFadeFrameId() : 0;
+    if (activeFadeFrameId) {
+      return;
+    }
     const currentValue = cueTarget.cue && Number.isFinite(cueTarget.cue.currentGain)
       ? cueTarget.cue.currentGain
       : getOnAirCueEffectiveVolume(cueTarget);
@@ -15707,6 +16073,12 @@ function createOnAirPostProductionReviewAction(asset) {
   });
 }
 
+function createOnAirPostProductionRenameAction(asset) {
+  return createOnAirLibraryActionButton("Rename", () => {
+    setLibraryRenameModalOpen(true, asset);
+  });
+}
+
 function createOnAirPostProductionDeleteAction(asset) {
   return createOnAirLibraryActionButton("Delete", async () => {
     if (!window.TBRAuth || typeof window.TBRAuth.deleteLibraryAsset !== "function") {
@@ -16136,6 +16508,9 @@ function getSelectedOnAirNextTrackLabel() {
 }
 
 function hasOnAirPrimaryCue() {
+  if (onAirAudioState && typeof onAirAudioState.hasOnAirPrimaryCue === "function") {
+    return onAirAudioState.hasOnAirPrimaryCue();
+  }
   return !!(onAirMusicPrimaryCue && !onAirMusicPrimaryCue.cleanedUp);
 }
 
@@ -16475,17 +16850,19 @@ async function runPreflightMicCheck() {
   preflightMicCheckInProgress = true;
   preflightMicAssessment = {
     state: "neutral",
-    summary: "Listening... speak normally for 6 seconds."
+    summary: "Mic Check Step 1 of 4: stay silent for room-noise analysis."
   };
   if (preflightMicCheckBtn) {
     preflightMicCheckBtn.disabled = true;
-    preflightMicCheckBtn.textContent = "Listening...";
+    preflightMicCheckBtn.textContent = "Checking...";
   }
   updatePreflightSummary();
 
   let tempStream = null;
   let audioContext = null;
   let shouldRestartLiveMic = false;
+  let sampleAudio = null;
+  let sampleUrl = "";
   try {
     const selectedId = micDeviceSelect ? String(micDeviceSelect.value || "").trim() : "";
     const constraints = {
@@ -16505,30 +16882,78 @@ async function runPreflightMicCheck() {
     analyser.smoothingTimeConstant = 0.82;
     source.connect(analyser);
     const data = new Uint8Array(analyser.fftSize);
-    const startedAt = performance.now();
-    const frames = [];
-    const noiseFrames = [];
-
-    while (performance.now() - startedAt < 6000) {
+    const captureFrame = () => {
       analyser.getByteTimeDomainData(data);
       let sum = 0;
       let peak = 0;
+      let zeroCrossings = 0;
+      let previous = 0;
       for (let index = 0; index < data.length; index += 1) {
         const sample = (data[index] - 128) / 128;
         sum += sample * sample;
         peak = Math.max(peak, Math.abs(sample));
+        if (index > 0 && ((sample >= 0 && previous < 0) || (sample < 0 && previous >= 0))) {
+          zeroCrossings += 1;
+        }
+        previous = sample;
       }
-      const rms = Math.sqrt(sum / data.length);
-      frames.push({ rms, peak });
-      if (performance.now() - startedAt < 1500) {
-        noiseFrames.push(rms);
+      return {
+        rms: Math.sqrt(sum / data.length),
+        peak,
+        zeroCrossings
+      };
+    };
+    const captureStage = async (durationMs, statusText) => {
+      preflightMicAssessment = {
+        state: "neutral",
+        summary: statusText
+      };
+      updatePreflightSummary();
+      const startedAt = performance.now();
+      const frames = [];
+      while (performance.now() - startedAt < durationMs) {
+        frames.push(captureFrame());
+        await new Promise((resolve) => window.setTimeout(resolve, 60));
       }
-      await new Promise((resolve) => window.setTimeout(resolve, 60));
+      return frames;
+    };
+    const averageMetric = (frames, key) =>
+      frames.reduce((total, frame) => total + Number(frame && frame[key] || 0), 0) / Math.max(1, frames.length);
+    const peakMetric = (frames, key) =>
+      frames.reduce((max, frame) => Math.max(max, Number(frame && frame[key] || 0)), 0);
+
+    const recordingMimeType = (window.MediaRecorder && window.MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))
+      ? "audio/webm;codecs=opus"
+      : ((window.MediaRecorder && window.MediaRecorder.isTypeSupported("audio/webm")) ? "audio/webm" : "");
+    const sampleChunks = [];
+    let sampleRecorder = null;
+    if (window.MediaRecorder) {
+      sampleRecorder = new MediaRecorder(analysisStream, recordingMimeType ? { mimeType: recordingMimeType } : undefined);
+      sampleRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          sampleChunks.push(event.data);
+        }
+      };
     }
 
-    const avgRms = frames.reduce((total, frame) => total + frame.rms, 0) / Math.max(1, frames.length);
-    const maxPeak = frames.reduce((max, frame) => Math.max(max, frame.peak), 0);
-    const noiseFloor = noiseFrames.reduce((total, value) => total + value, 0) / Math.max(1, noiseFrames.length);
+    const noiseFrames = await captureStage(1800, "Mic Check Step 1 of 4: stay silent for room-noise analysis.");
+    await captureStage(300, "Mic Check Step 2 of 4: preparing normal voice check.");
+    if (sampleRecorder) {
+      sampleRecorder.start();
+    }
+    const voiceFrames = await captureStage(4200, "Mic Check Step 2 of 4: speak normally in your podcast voice.");
+    const loudFrames = await captureStage(2200, "Mic Check Step 3 of 4: now speak louder to test clip protection.");
+    if (sampleRecorder && sampleRecorder.state !== "inactive") {
+      await new Promise((resolve) => {
+        sampleRecorder.onstop = () => resolve();
+        sampleRecorder.stop();
+      });
+    }
+
+    const avgRms = averageMetric(voiceFrames, "rms");
+    const maxPeak = Math.max(peakMetric(voiceFrames, "peak"), peakMetric(loudFrames, "peak"));
+    const noiseFloor = averageMetric(noiseFrames, "rms");
+    const noiseCross = averageMetric(noiseFrames, "zeroCrossings");
 
     if (avgRms < 0.008) {
       preflightMicAssessment = {
@@ -16540,21 +16965,24 @@ async function runPreflightMicCheck() {
 
     let gain = 100;
     const notes = [];
-    if (avgRms < 0.02) {
-      gain = 138;
-      notes.push("raised mic gain to 138%");
+    if (avgRms < 0.016) {
+      gain = 145;
+      notes.push("raised mic gain to 145%");
+    } else if (avgRms < 0.023) {
+      gain = 130;
+      notes.push("raised mic gain to 130%");
     } else if (avgRms < 0.03) {
-      gain = 125;
-      notes.push("raised mic gain to 125%");
+      gain = 118;
+      notes.push("raised mic gain to 118%");
+    } else if (maxPeak > 0.96) {
+      gain = 72;
+      notes.push("reduced mic gain to 72% for clip safety");
     } else if (maxPeak > 0.92) {
-      gain = 76;
-      notes.push("reduced mic gain to 76% to protect against clipping");
-    } else if (maxPeak > 0.85) {
-      gain = 85;
-      notes.push("reduced mic gain to 85% to keep peaks under control");
+      gain = 82;
+      notes.push("reduced mic gain to 82% to keep peaks under control");
     }
 
-    const noiseProfile = noiseFloor > 0.03 ? "high" : noiseFloor > 0.018 ? "medium" : "low";
+    const noiseProfile = noiseFloor > 0.03 || noiseCross > 180 ? "high" : noiseFloor > 0.018 || noiseCross > 130 ? "medium" : "low";
     if (noiseProfile === "high") {
       notes.push("set noise control to High");
     } else if (noiseProfile === "medium") {
@@ -16581,19 +17009,36 @@ async function runPreflightMicCheck() {
     });
     applyMicSettingsFromStudioSettings();
     shouldRestartLiveMic = !!micStream;
+    if (sampleChunks.length) {
+      const sampleBlob = new Blob(sampleChunks, { type: recordingMimeType || "audio/webm" });
+      if (sampleBlob.size > 0) {
+        sampleUrl = URL.createObjectURL(sampleBlob);
+        sampleAudio = new Audio(sampleUrl);
+        sampleAudio.volume = 1;
+        sampleAudio.play().catch(() => {
+          // Ignore autoplay restrictions.
+        });
+      }
+    }
+
+    const summaryPrefix = [
+      "room noise " + formatMicNoiseProfileLabel(noiseProfile),
+      "voice level " + (avgRms < 0.02 ? "quiet" : avgRms > 0.05 ? "strong" : "balanced"),
+      "peak safety " + (maxPeak > 0.92 ? "protected" : "clear")
+    ].join(" | ");
 
     if (notes.length || !headphonesToggle.checked) {
       preflightMicAssessment = {
         state: notes.length ? "adjusted" : "warning",
         summary:
           notes.length
-            ? "Mic optimized for podcast use: " + notes.join(", ") + ". Current profile: " + summaryParts.join(" | ") + "."
+            ? "Mic optimized for podcast use: " + summaryPrefix + ". Applied: " + notes.join(", ") + (sampleChunks.length ? ". Playing a short sample now." : ".")
             : "Mic is clear, but headphones are still recommended to avoid echo. Current profile: " + summaryParts.join(" | ") + "."
       };
     } else {
       preflightMicAssessment = {
         state: "ready",
-        summary: "Mic sounds clear and is ready for studio use. Current profile: " + summaryParts.join(" | ") + "."
+        summary: "Mic sounds clear and is ready for studio use. " + summaryPrefix + (sampleChunks.length ? ". Playing a short sample now." : ".")
       };
     }
   } catch (error) {
@@ -16610,6 +17055,18 @@ async function runPreflightMicCheck() {
         // Ignore close races.
       });
     }
+    window.setTimeout(() => {
+      if (sampleAudio) {
+        try {
+          sampleAudio.pause();
+        } catch (error) {
+          // Ignore playback cleanup errors.
+        }
+      }
+      if (sampleUrl) {
+        URL.revokeObjectURL(sampleUrl);
+      }
+    }, 12000);
     if (shouldRestartLiveMic) {
       startMic().catch(() => {
         // Ignore restart races after applying new defaults.
@@ -19144,6 +19601,32 @@ showLibraryNameInput?.addEventListener("keydown", (event) => {
   }
 });
 
+libraryRenameCancelBtn?.addEventListener("click", () => {
+  setLibraryRenameModalOpen(false);
+});
+
+libraryRenameBackdrop?.addEventListener("click", () => {
+  setLibraryRenameModalOpen(false);
+});
+
+libraryRenameConfirmBtn?.addEventListener("click", () => {
+  renamePostProductionAssetFlow().catch(() => {
+    setLibraryRenameMessage("Unable to rename this draft right now.", true);
+  });
+});
+
+libraryRenameInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    renamePostProductionAssetFlow().catch(() => {
+      setLibraryRenameMessage("Unable to rename this draft right now.", true);
+    });
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    setLibraryRenameModalOpen(false);
+  }
+});
+
 hostShowLibrarySelect?.addEventListener("change", async () => {
   const previousFilter = onAirLibraryShowFilterId;
   activeShowLibraryId = String(hostShowLibrarySelect.value || "").trim();
@@ -19159,6 +19642,24 @@ hostShowLibrarySelect?.addEventListener("change", async () => {
     setOnAirLibraryView(onAirLibraryView || "music", true),
     loadOnAirReviewLibraryKind(onAirReviewLibraryView, true)
   ]);
+});
+
+hostRecordingSaveShowSelect?.addEventListener("change", () => {
+  recordingSaveShowLibraryId = String(hostRecordingSaveShowSelect.value || "").trim();
+  saveShowLibrarySelections();
+  const targetShow = getShowLibraryById(recordingSaveShowLibraryId);
+  onAirMediaStatus.textContent = targetShow
+    ? "Recording saves will go to " + String(targetShow.title || "Untitled Show") + "."
+    : "Recording saves will stay unassigned to a show.";
+});
+
+onAirReviewSaveShowSelect?.addEventListener("change", () => {
+  reviewSaveShowLibraryId = String(onAirReviewSaveShowSelect.value || "").trim();
+  saveShowLibrarySelections();
+  const targetShow = getShowLibraryById(reviewSaveShowLibraryId);
+  onAirMediaStatus.textContent = targetShow
+    ? "Review Cut saves will go to " + String(targetShow.title || "Untitled Show") + "."
+    : "Review Cut saves will stay unassigned to a show.";
 });
 
 onAirLibraryShowFilterSelect?.addEventListener("change", async () => {

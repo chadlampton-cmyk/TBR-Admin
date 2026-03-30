@@ -3,6 +3,8 @@
 
   function createRecordingCaptureController(config) {
     const cfg = config && typeof config === "object" ? config : {};
+    let audioMasterCapture = null;
+    let recordingMixBus = null;
 
     function stopRecordingCanvasLoop() {
       const frameId = cfg.getRecordingMediaCanvasFrameId ? cfg.getRecordingMediaCanvasFrameId() : 0;
@@ -24,10 +26,112 @@
       cfg.setRecordingMediaAudioSources?.([]);
     }
 
+    function clearAudioMasterCapture() {
+      if (!audioMasterCapture) {
+        return;
+      }
+      if (audioMasterCapture.processor) {
+        try {
+          audioMasterCapture.processor.onaudioprocess = null;
+        } catch (error) {
+          // Ignore processor cleanup races.
+        }
+        try {
+          audioMasterCapture.processor.disconnect();
+        } catch (error) {
+          // Ignore disconnect races.
+        }
+      }
+      if (audioMasterCapture.silentGain) {
+        try {
+          audioMasterCapture.silentGain.disconnect();
+        } catch (error) {
+          // Ignore disconnect races.
+        }
+      }
+      if (audioMasterCapture.mixBus) {
+        try {
+          audioMasterCapture.mixBus.disconnect();
+        } catch (error) {
+          // Ignore disconnect races.
+        }
+      }
+      audioMasterCapture = null;
+    }
+
+    function setupAudioMasterCapture(audioContext, mixBus, destination, channelMode) {
+      clearAudioMasterCapture();
+      if (!audioContext || !mixBus || !destination || typeof audioContext.createScriptProcessor !== "function") {
+        return null;
+      }
+      const channelCount = channelMode === "mono" ? 1 : 2;
+      const processor = audioContext.createScriptProcessor(4096, channelCount, channelCount);
+      const silentGain = audioContext.createGain();
+      silentGain.gain.value = 0;
+      const buffers = channelCount === 1 ? [[]] : [[], []];
+      const capture = {
+        channelCount,
+        buffers,
+        frameCount: 0,
+        processor,
+        silentGain,
+        mixBus,
+        sampleRate: Number(audioContext.sampleRate || 48000) || 48000
+      };
+      processor.onaudioprocess = (event) => {
+        const inputBuffer = event && event.inputBuffer ? event.inputBuffer : null;
+        if (!inputBuffer) {
+          return;
+        }
+        const availableChannels = Math.max(1, Number(inputBuffer.numberOfChannels) || 1);
+        const sampleFrames = Math.max(0, Number(inputBuffer.length) || 0);
+        for (let channelIndex = 0; channelIndex < channelCount; channelIndex += 1) {
+          const sourceChannel = Math.min(channelIndex, availableChannels - 1);
+          const data = inputBuffer.getChannelData(sourceChannel);
+          buffers[channelIndex].push(new Float32Array(data));
+        }
+        capture.frameCount += sampleFrames;
+      };
+      mixBus.connect(destination);
+      mixBus.connect(processor);
+      processor.connect(silentGain);
+      silentGain.connect(audioContext.destination);
+      audioMasterCapture = capture;
+      return audioMasterCapture;
+    }
+
+    function finalizeAudioMasterCapture() {
+      if (!audioMasterCapture || !(audioMasterCapture.frameCount > 0) || typeof cfg.encodeAudioBufferToWavBlob !== "function") {
+        clearAudioMasterCapture();
+        return null;
+      }
+      const capture = audioMasterCapture;
+      const audioContext = cfg.getRecordingMediaAudioContext ? cfg.getRecordingMediaAudioContext() : null;
+      const bufferContext = audioContext || new (global.AudioContext || global.webkitAudioContext)({ sampleRate: capture.sampleRate });
+      const audioBuffer = bufferContext.createBuffer(
+        capture.channelCount,
+        capture.frameCount,
+        capture.sampleRate
+      );
+      for (let channelIndex = 0; channelIndex < capture.channelCount; channelIndex += 1) {
+        const channelData = audioBuffer.getChannelData(channelIndex);
+        let offset = 0;
+        capture.buffers[channelIndex].forEach((chunk) => {
+          channelData.set(chunk, offset);
+          offset += chunk.length;
+        });
+      }
+      const blob = cfg.encodeAudioBufferToWavBlob(audioBuffer);
+      clearAudioMasterCapture();
+      if (bufferContext !== audioContext) {
+        bufferContext.close().catch(() => {});
+      }
+      return blob;
+    }
+
     async function refreshRecordingAudioSources() {
       const audioContext = cfg.getRecordingMediaAudioContext ? cfg.getRecordingMediaAudioContext() : null;
-      const destination = cfg.getRecordingMediaAudioDestination ? cfg.getRecordingMediaAudioDestination() : null;
-      if (!audioContext || !destination) {
+      if (!audioContext || !recordingMixBus) {
         return;
       }
 
@@ -38,9 +142,11 @@
           return;
         }
         const source = audioContext.createMediaStreamSource(stream);
-        source.connect(destination);
+        const sourceBus = audioContext.createGain();
+        source.connect(sourceBus);
+        sourceBus.connect(recordingMixBus);
         const nextSources = cfg.getRecordingMediaAudioSources ? cfg.getRecordingMediaAudioSources().slice() : [];
-        nextSources.push(source);
+        nextSources.push(source, sourceBus);
         cfg.setRecordingMediaAudioSources?.(nextSources);
       };
 
@@ -56,6 +162,15 @@
     function stopLocalRecordingCapture() {
       stopRecordingCanvasLoop();
       disconnectRecordingAudioSources();
+      if (recordingMixBus) {
+        try {
+          recordingMixBus.disconnect();
+        } catch (error) {
+          // Ignore disconnect races.
+        }
+        recordingMixBus = null;
+      }
+      clearAudioMasterCapture();
       cfg.disconnectOnAirMusicRecordingStream?.();
       const audioContext = cfg.getRecordingMediaAudioContext ? cfg.getRecordingMediaAudioContext() : null;
       if (audioContext) {
@@ -75,11 +190,34 @@
     }
 
     function hasRecordingVideoSources() {
+      if (cfg.getRecordingDefaultFormat?.() === "audio") {
+        return false;
+      }
       const localStream = cfg.getOnAirCameraVideoStream?.() || cfg.getCameraVideoStream?.() || cfg.getCameraStream?.() || null;
       const remoteStream = cfg.getOnAirRemoteVideoStream?.() || cfg.getRemoteVideoStream?.() || null;
       const localReady = !!(localStream && localStream.getVideoTracks && localStream.getVideoTracks().length);
       const remoteReady = !!(remoteStream && remoteStream.getVideoTracks && remoteStream.getVideoTracks().length);
       return localReady || remoteReady;
+    }
+
+    function getRecordingVideoProfile() {
+      const quality = cfg.getRecordingDefaultQuality?.() === "high" ? "high" : "standard";
+      if (quality === "high") {
+        return {
+          width: 1920,
+          height: 1080,
+          frameRate: 30,
+          videoBitsPerSecond: 7000000,
+          audioBitsPerSecond: 192000
+        };
+      }
+      return {
+        width: 1280,
+        height: 720,
+        frameRate: 24,
+        videoBitsPerSecond: 3500000,
+        audioBitsPerSecond: 128000
+      };
     }
 
     function startRecordingCanvasLoop() {
@@ -110,11 +248,12 @@
       }
       const output = new MediaStream();
       const includeVideo = hasRecordingVideoSources();
+      const videoProfile = getRecordingVideoProfile();
 
       if (includeVideo) {
         const canvas = document.createElement("canvas");
-        canvas.width = 1280;
-        canvas.height = 720;
+        canvas.width = videoProfile.width;
+        canvas.height = videoProfile.height;
         const context = canvas.getContext("2d");
         if (!context) {
           throw new Error("Unable to prepare recording canvas.");
@@ -123,18 +262,45 @@
         cfg.setRecordingMediaCanvasContext?.(context);
         startRecordingCanvasLoop();
 
-        const captureStream = canvas.captureStream(30);
+        const captureStream = canvas.captureStream(videoProfile.frameRate);
         const videoTrack = captureStream.getVideoTracks()[0];
         if (videoTrack) {
           output.addTrack(videoTrack);
         }
       }
 
-      const audioContext = new (global.AudioContext || global.webkitAudioContext)();
+      const preferredSampleRate = Number(cfg.getRecordingSampleRate?.() || 0) || 0;
+      const audioContext = new (global.AudioContext || global.webkitAudioContext)(
+        preferredSampleRate > 0
+          ? { sampleRate: preferredSampleRate }
+          : undefined
+      );
       cfg.setRecordingMediaAudioContext?.(audioContext);
+      const recordingChannelMode = cfg.getRecordingChannelMode?.() === "mono" ? "mono" : "stereo";
       const audioDestination = audioContext.createMediaStreamDestination();
+      try {
+        audioDestination.channelCountMode = "explicit";
+        audioDestination.channelInterpretation = "speakers";
+        audioDestination.channelCount = recordingChannelMode === "mono" ? 1 : 2;
+      } catch (error) {
+        // Some browsers do not allow all destination channel properties to be reassigned.
+      }
+      const mixBus = audioContext.createGain();
+      try {
+        mixBus.channelCountMode = "explicit";
+        mixBus.channelInterpretation = "speakers";
+        mixBus.channelCount = recordingChannelMode === "mono" ? 1 : 2;
+      } catch (error) {
+        // Ignore browsers that don't allow explicit mix-bus channel config.
+      }
+      recordingMixBus = mixBus;
       cfg.setRecordingMediaAudioDestination?.(audioDestination);
       cfg.setRecordingMediaAudioSources?.([]);
+      if (!includeVideo) {
+        setupAudioMasterCapture(audioContext, mixBus, audioDestination, recordingChannelMode);
+      } else {
+        mixBus.connect(audioDestination);
+      }
       await refreshRecordingAudioSources();
 
       const mixedTrack = audioDestination.stream.getAudioTracks()[0];
@@ -150,6 +316,8 @@
         "build_stream",
         "video=" +
           (includeVideo ? "on" : "off") +
+          " | sampleRate=" +
+          Number(audioContext.sampleRate || preferredSampleRate || 0) +
           " | localMicTracks=" +
           localMicTracks +
           " | remoteAudioTracks=" +
@@ -160,11 +328,13 @@
           mixedAudioTracks,
         {
           stage: "Preparing",
-          stageNote: includeVideo ? "Building video and audio capture." : "Building audio-only capture.",
+          stageNote: includeVideo
+            ? "Building " + videoProfile.width + "x" + videoProfile.height + " " + videoProfile.frameRate + "fps video + audio capture."
+            : "Building audio-only capture at " + Number(audioContext.sampleRate || preferredSampleRate || 48000) + " Hz.",
           audio: mixedAudioTracks > 0 ? "Live" : "Missing",
           audioNote:
             mixedAudioTracks > 0
-              ? "Recorder sees " + mixedAudioTracks + " mixed audio track" + (mixedAudioTracks === 1 ? "" : "s") + "."
+              ? "Recorder sees " + mixedAudioTracks + " mixed audio track" + (mixedAudioTracks === 1 ? "" : "s") + " in " + recordingChannelMode + " mode."
               : "Recorder did not get a mixed audio track."
         }
       );
@@ -174,7 +344,8 @@
       }
       return {
         stream: output,
-        hasVideo: includeVideo
+        hasVideo: includeVideo,
+        videoProfile
       };
     }
 
@@ -205,7 +376,13 @@
 
       if (recordingBuild.hasVideo) {
         const recordingMediaMimeType = cfg.getRecordingMediaMimeType ? cfg.getRecordingMediaMimeType() : "";
-        const options = recordingMediaMimeType ? { mimeType: recordingMediaMimeType } : undefined;
+        const options = recordingMediaMimeType ? { mimeType: recordingMediaMimeType } : {};
+        if (recordingBuild.videoProfile && recordingBuild.videoProfile.videoBitsPerSecond) {
+          options.videoBitsPerSecond = recordingBuild.videoProfile.videoBitsPerSecond;
+        }
+        if (recordingBuild.videoProfile && recordingBuild.videoProfile.audioBitsPerSecond) {
+          options.audioBitsPerSecond = recordingBuild.videoProfile.audioBitsPerSecond;
+        }
         const mediaRecorder = new MediaRecorder(recordingBuild.stream, options);
         cfg.setRecordingMediaRecorder?.(mediaRecorder);
 
@@ -283,11 +460,21 @@
         });
       }
 
-      const recordingAudioMimeType = cfg.getAudioOnlyRecordingMimeType?.() || "";
-      cfg.setRecordingAudioMimeType?.(recordingAudioMimeType);
-      const audioOptions = recordingAudioMimeType ? { mimeType: recordingAudioMimeType } : undefined;
       const audioDestination = cfg.getRecordingMediaAudioDestination ? cfg.getRecordingMediaAudioDestination() : null;
-      if (audioDestination && global.MediaRecorder) {
+      if (!recordingBuild.hasVideo && audioMasterCapture) {
+        cfg.setRecordingAudioMediaRecorder?.(null);
+        cfg.setRecordingAudioMimeType?.("audio/wav");
+        cfg.pushRecordingDiagnostic?.("audio_master_start", "format=wav | sampleRate=" + Number(audioMasterCapture.sampleRate || 48000), {
+          audio: "Live",
+          audioNote: "PCM/WAV master capture is active."
+        });
+      } else if (audioDestination && global.MediaRecorder) {
+        const recordingAudioMimeType = cfg.getAudioOnlyRecordingMimeType?.() || "";
+        cfg.setRecordingAudioMimeType?.(recordingAudioMimeType);
+        const audioOptions = recordingAudioMimeType ? { mimeType: recordingAudioMimeType } : {};
+        if (recordingBuild.videoProfile && recordingBuild.videoProfile.audioBitsPerSecond) {
+          audioOptions.audioBitsPerSecond = recordingBuild.videoProfile.audioBitsPerSecond;
+        }
         const audioRecorder = new MediaRecorder(audioDestination.stream, audioOptions);
         cfg.setRecordingAudioMediaRecorder?.(audioRecorder);
         audioRecorder.ondataavailable = (event) => {
@@ -409,6 +596,26 @@
 
       cfg.setRecordingStopPromise?.(null);
       cfg.setRecordingStopResolve?.(null);
+      if (audioMasterCapture && !recordingMediaBlob) {
+        const wavBlob = finalizeAudioMasterCapture();
+        if (wavBlob && wavBlob.size > 0) {
+          const existingUrl = cfg.getRecordingAudioUrl ? cfg.getRecordingAudioUrl() : "";
+          if (existingUrl) {
+            URL.revokeObjectURL(existingUrl);
+          }
+          cfg.setRecordingAudioMimeType?.("audio/wav");
+          cfg.setRecordingAudioBlob?.(wavBlob);
+          cfg.setRecordingAudioUrl?.(URL.createObjectURL(wavBlob));
+          cfg.pushRecordingDiagnostic?.(
+            "audio_master_stop",
+            "blob=" + wavBlob.size + " | sampleRate=" + Number((audioMasterCapture && audioMasterCapture.sampleRate) || 48000),
+            {
+              stage: "Saving",
+              stageNote: "Audio master capture saved as WAV."
+            }
+          );
+        }
+      }
       stopLocalRecordingCapture();
       cfg.syncReviewPanelUI?.();
       const recordingMediaBlob = cfg.getRecordingMediaBlob ? cfg.getRecordingMediaBlob() : null;

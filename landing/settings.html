@@ -150,12 +150,24 @@
                   <option value="standard">Standard</option>
                   <option value="high">High</option>
                 </select>
+                <label class="settings-field settings-subfield" for="recording-channel-mode-select">Recording channel mode</label>
+                <select id="recording-channel-mode-select" class="settings-select">
+                  <option value="stereo">Stereo</option>
+                  <option value="mono">Mono</option>
+                </select>
+                <label class="settings-field settings-subfield" for="recording-sample-rate-select">Recording sample rate</label>
+                <select id="recording-sample-rate-select" class="settings-select">
+                  <option value="48000">48 kHz</option>
+                  <option value="44100">44.1 kHz</option>
+                </select>
                 <label class="settings-field settings-subfield" for="recording-name-pattern-select">File naming</label>
                 <select id="recording-name-pattern-select" class="settings-select">
                   <option value="show-date">ShowName-YYYY-MM-DD</option>
                   <option value="show-episode-date">ShowName-Episode-YYYY-MM-DD</option>
                   <option value="custom">Prompt each download</option>
                 </select>
+                <label class="settings-field settings-subfield" for="recording-default-name-input">Recording base name</label>
+                <input id="recording-default-name-input" class="settings-input" type="text" maxlength="120" placeholder="Example: Turnbuckle Report" />
                 <label class="settings-field settings-subfield" for="recording-countdown-seconds-select">Default start countdown</label>
                 <select id="recording-countdown-seconds-select" class="settings-select">
                   <option value="3">3 seconds</option>
@@ -193,6 +205,39 @@
                 <select id="recording-auto-fade-out-duration-seconds-select" class="settings-select"></select>
                 <p class="settings-help">
                   Recording defaults apply when you are the active host. During a live session, the current host's recording settings are used for everyone.
+                </p>
+                <p class="settings-group-title">Export Defaults</p>
+                <label class="settings-field settings-subfield" for="export-format-select">Export format</label>
+                <select id="export-format-select" class="settings-select">
+                  <option value="mp3">MP3</option>
+                  <option value="m4a">M4A</option>
+                  <option value="mp4">MP4</option>
+                </select>
+                <label class="settings-field settings-subfield" for="export-quality-preset-select">Export quality preset</label>
+                <select id="export-quality-preset-select" class="settings-select">
+                  <option value="standard">Standard</option>
+                  <option value="high">High</option>
+                  <option value="premium">Premium</option>
+                </select>
+                <label class="settings-field settings-subfield" for="export-bitrate-kbps-select">Export bitrate</label>
+                <select id="export-bitrate-kbps-select" class="settings-select">
+                  <option value="128">128 kbps</option>
+                  <option value="192">192 kbps</option>
+                  <option value="256">256 kbps</option>
+                  <option value="320">320 kbps</option>
+                </select>
+                <label class="settings-field settings-subfield" for="export-sample-rate-select">Export sample rate</label>
+                <select id="export-sample-rate-select" class="settings-select">
+                  <option value="48000">48 kHz</option>
+                  <option value="44100">44.1 kHz</option>
+                </select>
+                <label class="settings-field settings-subfield" for="export-channel-mode-select">Export channel mode</label>
+                <select id="export-channel-mode-select" class="settings-select">
+                  <option value="stereo">Stereo</option>
+                  <option value="mono">Mono</option>
+                </select>
+                <p class="settings-help">
+                  Episode exports use these defaults when rendering MP3, M4A, or MP4 delivery files.
                 </p>
               </div>
             </section>
@@ -695,7 +740,7 @@
       </div>
     </div>
 
-    <script src="./auth.js?v=20260316-95"></script>
-    <script src="./settings.js?v=20260316-111"></script>
+    <script src="./auth.js?v=20260330-096"></script>
+    <script src="./settings.js?v=20260330-112"></script>
   </body>
 </html>

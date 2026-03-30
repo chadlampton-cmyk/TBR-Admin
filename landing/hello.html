@@ -452,6 +452,12 @@
               <button type="button" class="btn sso host-btn" id="host-show-library-create-btn">New Show</button>
             </div>
             <div class="host-spotlight-row">
+              <label class="settings-field" for="host-recording-save-show-select">Recording save to</label>
+              <select id="host-recording-save-show-select" class="settings-select">
+                <option value="">No Show Selected</option>
+              </select>
+            </div>
+            <div class="host-spotlight-row">
               <label class="settings-field" for="host-spotlight-select">Spotlight speaker</label>
               <select id="host-spotlight-select" class="settings-select"></select>
               <button type="button" class="btn primary host-btn" id="host-spotlight-apply-btn">Apply Spotlight</button>
@@ -558,6 +564,12 @@
                 <p class="camera-status" id="onair-review-window-status">Open the review cut to audition the latest show draft.</p>
               </div>
               <div class="onair-review-window-actions">
+                <label class="settings-field onair-review-save-select-wrap" for="onair-review-save-show-select">
+                  <span class="onair-review-save-select-label">Save to show</span>
+                  <select id="onair-review-save-show-select" class="settings-select onair-review-save-select" aria-label="Review Cut save show library">
+                    <option value="">No Show Selected</option>
+                  </select>
+                </label>
                 <button type="button" class="onair-review-toolbar-btn" id="onair-review-save-draft-btn">Save Draft</button>
                 <button type="button" class="onair-review-toolbar-btn" id="onair-review-save-episode-btn">Save to Episodes</button>
                 <button type="button" class="onair-review-toolbar-btn" id="onair-review-load-btn">Import Source</button>
@@ -704,9 +716,17 @@
                       <section class="onair-review-inspector-card">
                         <div class="onair-review-panel-head">
                           <p class="onair-review-panel-title">Cleanup</p>
-                          <span class="onair-review-gain-readout" id="onair-review-cleanup-readout">Clean Off</span>
+                          <div class="onair-review-panel-head-readouts">
+                            <span class="onair-review-gain-readout onair-review-noise-readout" id="onair-review-noise-readout">Noise Off</span>
+                            <span class="onair-review-gain-readout" id="onair-review-cleanup-readout">Clean Off</span>
+                          </div>
                         </div>
-                        <p class="camera-status onair-review-panel-note">Run denoise on a range or the full show, then compare original against cleaned playback.</p>
+                        <p class="camera-status onair-review-panel-note">Noise tint is painted directly on recording clips. Detect the severity here, then run cleanup on a range or the full show.</p>
+                        <div class="onair-review-noise-legend" aria-label="Noise severity legend">
+                          <span class="onair-review-noise-chip low">Low</span>
+                          <span class="onair-review-noise-chip medium">Medium</span>
+                          <span class="onair-review-noise-chip high">High</span>
+                        </div>
                         <div class="onair-review-control-grid">
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-clean-selection-btn" aria-label="Auto clean selected range">Clean Sel</button>
                           <button type="button" class="onair-review-toolbar-btn" id="onair-review-clean-all-btn" aria-label="Auto clean full recording">Clean All</button>
@@ -1383,6 +1403,21 @@
       </div>
     </div>
 
+    <div id="library-rename-modal" class="chat-confirm-modal hidden" aria-hidden="true">
+      <div class="chat-confirm-backdrop" id="library-rename-backdrop"></div>
+      <div class="chat-confirm-card settings-confirm-card show-library-card" role="dialog" aria-modal="true" aria-labelledby="library-rename-title">
+        <p id="library-rename-title" class="chat-confirm-title">Rename Draft</p>
+        <p class="chat-confirm-text">Update the saved Post-Production title without changing the recording itself.</p>
+        <label class="settings-field settings-subfield" for="library-rename-input">Draft name</label>
+        <input id="library-rename-input" type="text" maxlength="160" placeholder="Example: Turnbuckle Report-2026-03-30" />
+        <p id="library-rename-message" class="form-message hidden" role="status"></p>
+        <div class="chat-confirm-actions">
+          <button type="button" class="chat-confirm-btn" id="library-rename-cancel-btn">Cancel</button>
+          <button type="button" class="chat-confirm-btn primary" id="library-rename-confirm-btn">Save Name</button>
+        </div>
+      </div>
+    </div>
+
     <div id="lounge-settings-modal" class="lounge-page-modal hidden" aria-hidden="true">
       <div class="lounge-page-backdrop" id="lounge-settings-backdrop"></div>
       <section
@@ -1421,7 +1456,7 @@
       </section>
     </div>
 
-    <script src="./auth.js?v=20260311-92"></script>
+    <script src="./auth.js?v=20260330-001"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
     <script src="./vendor/twilio-video.min.js?v=20260312-01"></script>
     <script src="./review-cut-state.js?v=20260323-001"></script>
@@ -1433,14 +1468,16 @@
     <script src="./review-cut-interaction-controller.js?v=20260323-002"></script>
     <script src="./review-cut-media-controller.js?v=20260323-002"></script>
     <script src="./review-cut-session-controller.js?v=20260323-002"></script>
+    <script src="./review-cut-noise-tools.js?v=20260330-001"></script>
+    <script src="./onair-audio-state.js?v=20260327-001"></script>
     <script src="./onair-library-storage.js?v=20260326-001"></script>
-    <script src="./onair-library-render.js?v=20260326-001"></script>
+    <script src="./onair-library-render.js?v=20260330-001"></script>
     <script src="./onair-library-controller.js?v=20260326-001"></script>
-    <script src="./onair-library-bridge.js?v=20260326-001"></script>
+    <script src="./onair-library-bridge.js?v=20260330-001"></script>
     <script src="./recording-capture.js?v=20260326-001"></script>
     <script src="./recording-controller.js?v=20260326-001"></script>
     <script src="./realtime-controller.js?v=20260326-001"></script>
     <script src="./chat-controller.js?v=20260326-001"></script>
-    <script src="./hello.js?v=20260326-437"></script>
+    <script src="./hello.js?v=20260330-002"></script>
   </body>
 </html>

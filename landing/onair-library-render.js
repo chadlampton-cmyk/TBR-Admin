@@ -136,7 +136,11 @@
           }
         });
       } else if (libraryView === "post-production") {
-        [cfg.createPostProductionReviewAction?.(asset), cfg.createPostProductionDeleteAction?.(asset)].forEach((action) => {
+        [
+          cfg.createPostProductionReviewAction?.(asset),
+          cfg.createPostProductionRenameAction?.(asset),
+          cfg.createPostProductionDeleteAction?.(asset)
+        ].forEach((action) => {
           if (action) {
             actions.appendChild(action);
           }

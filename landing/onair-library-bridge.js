@@ -5,18 +5,27 @@
     const cfg = config && typeof config === "object" ? config : {};
     return {
       async loadSharedLibraryAssetAsFile(asset) {
-        if (!asset || !(cfg.authApi && typeof cfg.authApi.requestMediaDownload === "function")) {
+        if (!asset || !cfg.authApi) {
           throw new Error("Shared library asset is unavailable.");
         }
-        const ticket = await cfg.authApi.requestMediaDownload(asset.id);
-        if (!ticket || !ticket.ok || !ticket.downloadUrl) {
-          throw new Error((ticket && ticket.error) || "Unable to open this library asset right now.");
+        let blob = null;
+        if (typeof cfg.authApi.fetchMediaAssetBlob === "function") {
+          const fetched = await cfg.authApi.fetchMediaAssetBlob(asset.id);
+          if (!fetched || !fetched.ok || !fetched.blob) {
+            throw new Error((fetched && fetched.error) || "Unable to open this library asset right now.");
+          }
+          blob = fetched.blob;
+        } else {
+          const ticket = await cfg.authApi.requestMediaDownload(asset.id);
+          if (!ticket || !ticket.ok || !ticket.downloadUrl) {
+            throw new Error((ticket && ticket.error) || "Unable to open this library asset right now.");
+          }
+          const response = await fetch(ticket.downloadUrl, { method: "GET" });
+          if (!response.ok) {
+            throw new Error("Library asset download failed with status " + response.status + ".");
+          }
+          blob = await response.blob();
         }
-        const response = await fetch(ticket.downloadUrl, { method: "GET" });
-        if (!response.ok) {
-          throw new Error("Library asset download failed with status " + response.status + ".");
-        }
-        const blob = await response.blob();
         const fallbackExtension = String(asset.libraryKind || "").trim().toLowerCase() === "episodes" ? "wav" : "webm";
         const filename =
           String(asset.originalFilename || "").trim() ||
@@ -32,7 +41,7 @@
 
       async openPostProductionAssetInReviewCut(asset) {
         const file = await this.loadSharedLibraryAssetAsFile(asset);
-        const imported = await cfg.importOnAirReviewFile(file);
+        const imported = await cfg.importOnAirReviewFile(file, { replaceExisting: true });
         if (!imported) {
           throw new Error("Review Cut could not load this post-production asset.");
         }
@@ -47,6 +56,25 @@
       },
 
       async exportLibraryAssetAudio(asset) {
+        const exportSettings = cfg.getEpisodeExportSettings ? cfg.getEpisodeExportSettings() : null;
+        if (
+          asset &&
+          String(asset.libraryKind || "").trim().toLowerCase() === "episodes" &&
+          cfg.authApi &&
+          typeof cfg.authApi.exportMediaAssetBlob === "function" &&
+          exportSettings
+        ) {
+          const exported = await cfg.authApi.exportMediaAssetBlob(asset.id, exportSettings);
+          if (!exported || !exported.ok || !exported.blob) {
+            throw new Error((exported && exported.error) || "Unable to export this episode right now.");
+          }
+          const extension = cfg.getFilenameExtensionForFormat
+            ? cfg.getFilenameExtensionForFormat(exportSettings.format, "mp3")
+            : String(exportSettings.format || "mp3").trim().toLowerCase();
+          const exportBaseName = String(asset.title || "episode").trim().replace(/[^\w.-]+/g, "-") || "episode";
+          cfg.downloadBlobObject?.(exported.blob, exportBaseName + "." + extension);
+          return;
+        }
         const file = await this.loadSharedLibraryAssetAsFile(asset);
         cfg.downloadBlobObject?.(file, cfg.getLibraryAssetDownloadFilename(asset, "wav"));
       },
@@ -74,6 +102,7 @@
             filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
             mimeType: sourceMimeType,
             durationSeconds: sourceDuration > 0 ? sourceDuration : null,
+            showLibraryId: cfg.getRecordingSaveShowLibraryId ? cfg.getRecordingSaveShowLibraryId() : "",
             metadata: {
               reviewKind: "audio",
               hasAudio: true,
@@ -111,6 +140,7 @@
             filenameBase: title.replace(/[^\w.-]+/g, "-").toLowerCase(),
             mimeType: "audio/wav",
             durationSeconds: cfg.getOnAirReviewTimelineDuration(),
+            showLibraryId: cfg.getReviewSaveShowLibraryId ? cfg.getReviewSaveShowLibraryId() : "",
             metadata: {
               reviewKind: "audio",
               hasAudio: true,

@@ -249,6 +249,12 @@ Candidate source areas today:
 - `landing/hello.js` library/save/export region
 - `realtime/server.js` library/media route region
 
+## Current Low-Risk Follow-Up Map
+After the earlier library / recording / realtime extractions, use:
+- [DFS_LOW_RISK_JS_SPLIT_MAP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_LOW_RISK_JS_SPLIT_MAP.md)
+
+That map is the current safest guide for the remaining `hello.js` split work, especially the `onair-audio-*` area.
+
 ## Stop Conditions
 Pause extraction work and return to product stabilization if:
 - recording start/stop becomes unreliable

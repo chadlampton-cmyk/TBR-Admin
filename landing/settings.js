@@ -4,7 +4,10 @@ const reactionsVisibleToggle = document.getElementById("reactions-visible-toggle
 const chatBubbleThemeSelect = document.getElementById("chat-bubble-theme-select");
 const recordingFormatSelect = document.getElementById("recording-format-select");
 const recordingQualitySelect = document.getElementById("recording-quality-select");
+const recordingChannelModeSelect = document.getElementById("recording-channel-mode-select");
+const recordingSampleRateSelect = document.getElementById("recording-sample-rate-select");
 const recordingNamePatternSelect = document.getElementById("recording-name-pattern-select");
+const recordingDefaultNameInput = document.getElementById("recording-default-name-input");
 const recordingCountdownSecondsSelect = document.getElementById("recording-countdown-seconds-select");
 const recordingAutoStopMinutesSelect = document.getElementById("recording-auto-stop-minutes-select");
 const recordingAutoSplitMinutesSelect = document.getElementById("recording-auto-split-minutes-select");
@@ -14,6 +17,11 @@ const recordingAutoFadeInStartSecondsSelect = document.getElementById("recording
 const recordingAutoFadeInDurationSecondsSelect = document.getElementById("recording-auto-fade-in-duration-seconds-select");
 const recordingAutoFadeOutStartSecondsSelect = document.getElementById("recording-auto-fade-out-start-seconds-select");
 const recordingAutoFadeOutDurationSecondsSelect = document.getElementById("recording-auto-fade-out-duration-seconds-select");
+const exportFormatSelect = document.getElementById("export-format-select");
+const exportQualityPresetSelect = document.getElementById("export-quality-preset-select");
+const exportBitrateKbpsSelect = document.getElementById("export-bitrate-kbps-select");
+const exportSampleRateSelect = document.getElementById("export-sample-rate-select");
+const exportChannelModeSelect = document.getElementById("export-channel-mode-select");
 const containersLightToggle = document.getElementById("containers-light-toggle");
 const containersModeLabel = document.getElementById("containers-mode-label");
 const profileMenuEl = document.getElementById("profile-menu");
@@ -1441,7 +1449,25 @@ function loadSettings() {
   chatBubbleThemeSelect.value = String(settings.chatSelfBubbleTheme || "blue");
   recordingFormatSelect.value = String(settings.recordingDefaultFormat || "video");
   recordingQualitySelect.value = String(settings.recordingDefaultQuality || "standard");
+  if (recordingChannelModeSelect) {
+    recordingChannelModeSelect.value = String(settings.recordingChannelMode || "stereo").trim().toLowerCase() === "mono"
+      ? "mono"
+      : "stereo";
+  }
+  if (recordingSampleRateSelect) {
+    recordingSampleRateSelect.value = String(Number(settings.recordingSampleRateHz || 48000) === 44100 ? 44100 : 48000);
+  }
   recordingNamePatternSelect.value = String(settings.recordingNamePattern || "show-date");
+  if (recordingDefaultNameInput) {
+    recordingDefaultNameInput.value = String(
+      settings.recordingDefaultName ||
+      settings.recordingNameDefault ||
+      settings.defaultRecordingName ||
+      settings.showTitle ||
+      settings.projectTitle ||
+      ""
+    ).trim();
+  }
   const countdownValue = Number(settings.recordingDefaultCountdownSeconds || 3);
   if (countdownValue === 3 || countdownValue === 5 || countdownValue === 10) {
     recordingCountdownSecondsSelect.value = String(countdownValue);
@@ -1456,6 +1482,24 @@ function loadSettings() {
   recordingAutoFadeInDurationSecondsSelect.value = String(Math.max(1, Math.min(20, Number(settings.recordingMusicAutoFadeInDurationSeconds) || 2)));
   recordingAutoFadeOutStartSecondsSelect.value = String(Math.max(1, Math.min(30, Number(settings.recordingMusicAutoFadeOutStartSeconds) || 5)));
   recordingAutoFadeOutDurationSecondsSelect.value = String(Math.max(1, Math.min(20, Number(settings.recordingMusicAutoFadeOutDurationSeconds) || 5)));
+  if (exportFormatSelect) {
+    const format = String(settings.exportFormat || "mp3").trim().toLowerCase();
+    exportFormatSelect.value = format === "m4a" || format === "mp4" ? format : "mp3";
+  }
+  if (exportQualityPresetSelect) {
+    const preset = String(settings.exportQualityPreset || "premium").trim().toLowerCase();
+    exportQualityPresetSelect.value = preset === "standard" || preset === "high" ? preset : "premium";
+  }
+  if (exportBitrateKbpsSelect) {
+    const bitrate = Number(settings.exportBitrateKbps || 320);
+    exportBitrateKbpsSelect.value = String(bitrate === 128 || bitrate === 192 || bitrate === 256 ? bitrate : 320);
+  }
+  if (exportSampleRateSelect) {
+    exportSampleRateSelect.value = String(Number(settings.exportSampleRateHz || 48000) === 44100 ? 44100 : 48000);
+  }
+  if (exportChannelModeSelect) {
+    exportChannelModeSelect.value = String(settings.exportChannelMode || "stereo").trim().toLowerCase() === "mono" ? "mono" : "stereo";
+  }
   containersLightToggle.checked = settings.uiContainerMode === "light";
   applyContainerModeToBody(containersLightToggle.checked);
   updateContainerModeLabel(containersLightToggle.checked);
@@ -1548,11 +1592,76 @@ recordingQualitySelect.addEventListener("change", () => {
   setMessage("Recording quality set to " + String(next.recordingDefaultQuality || "standard") + ".");
 });
 
+recordingChannelModeSelect?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    recordingChannelMode: recordingChannelModeSelect.value === "mono" ? "mono" : "stereo"
+  });
+  setMessage("Recording channel mode set to " + String(next.recordingChannelMode || "stereo") + ".");
+});
+
+recordingSampleRateSelect?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    recordingSampleRateHz: Number(recordingSampleRateSelect.value) === 44100 ? 44100 : 48000
+  });
+  setMessage("Recording sample rate set to " + String(next.recordingSampleRateHz || 48000) + " Hz.");
+});
+
 recordingNamePatternSelect.addEventListener("change", () => {
   const next = window.TBRAuth.saveStudioSettings({
     recordingNamePattern: recordingNamePatternSelect.value || "show-date"
   });
   setMessage("Recording naming updated.");
+});
+
+recordingDefaultNameInput?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    recordingDefaultName: String(recordingDefaultNameInput.value || "").trim()
+  });
+  recordingDefaultNameInput.value = String(next.recordingDefaultName || "").trim();
+  setMessage("Recording base name updated.");
+});
+
+exportFormatSelect?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    exportFormat: String(exportFormatSelect.value || "mp3").trim().toLowerCase()
+  });
+  setMessage("Export format set to " + String(next.exportFormat || "mp3").toUpperCase() + ".");
+});
+
+exportQualityPresetSelect?.addEventListener("change", () => {
+  const preset = String(exportQualityPresetSelect.value || "premium").trim().toLowerCase();
+  const bitrate = preset === "standard" ? 128 : preset === "high" ? 192 : 320;
+  if (exportBitrateKbpsSelect) {
+    exportBitrateKbpsSelect.value = String(bitrate);
+  }
+  const next = window.TBRAuth.saveStudioSettings({
+    exportQualityPreset: preset,
+    exportBitrateKbps: bitrate
+  });
+  setMessage("Export quality preset set to " + String(next.exportQualityPreset || "high") + ".");
+});
+
+exportBitrateKbpsSelect?.addEventListener("change", () => {
+  const parsed = Number(exportBitrateKbpsSelect.value);
+  const bitrate = parsed === 128 || parsed === 192 || parsed === 256 ? parsed : 320;
+  const next = window.TBRAuth.saveStudioSettings({
+    exportBitrateKbps: bitrate
+  });
+  setMessage("Export bitrate set to " + String(next.exportBitrateKbps || 192) + " kbps.");
+});
+
+exportSampleRateSelect?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    exportSampleRateHz: Number(exportSampleRateSelect.value) === 44100 ? 44100 : 48000
+  });
+  setMessage("Export sample rate set to " + String(next.exportSampleRateHz || 48000) + " Hz.");
+});
+
+exportChannelModeSelect?.addEventListener("change", () => {
+  const next = window.TBRAuth.saveStudioSettings({
+    exportChannelMode: exportChannelModeSelect.value === "mono" ? "mono" : "stereo"
+  });
+  setMessage("Export channel mode set to " + String(next.exportChannelMode || "stereo") + ".");
 });
 
 recordingCountdownSecondsSelect.addEventListener("change", () => {
@@ -1827,9 +1936,11 @@ async function runMicCheckWizard() {
     return;
   }
   micCheckWizardBtn.disabled = true;
-  setMicWizardStatus("Listening... speak normally for 6 seconds.");
+  setMicWizardStatus("Mic Check Step 1 of 4: stay silent for room-noise analysis.");
   let stream = null;
   let audioContext = null;
+  let sampleAudio = null;
+  let sampleUrl = "";
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1839,13 +1950,12 @@ async function runMicCheckWizard() {
     analyser.smoothingTimeConstant = 0.82;
     source.connect(analyser);
     const data = new Uint8Array(analyser.fftSize);
-    const startedAt = performance.now();
-    const frames = [];
-    const noiseFrames = [];
-    while (performance.now() - startedAt < 6000) {
+    const captureFrame = () => {
       analyser.getByteTimeDomainData(data);
       let sum = 0;
       let peak = 0;
+      let zeroCrossings = 0;
+      let previous = 0;
       for (let i = 0; i < data.length; i += 1) {
         const sample = (data[i] - 128) / 128;
         sum += sample * sample;
@@ -1853,28 +1963,95 @@ async function runMicCheckWizard() {
         if (abs > peak) {
           peak = abs;
         }
+        if (i > 0 && ((sample >= 0 && previous < 0) || (sample < 0 && previous >= 0))) {
+          zeroCrossings += 1;
+        }
+        previous = sample;
       }
-      const rms = Math.sqrt(sum / data.length);
-      frames.push({ rms, peak });
-      if (performance.now() - startedAt < 1500) {
-        noiseFrames.push(rms);
+      return {
+        rms: Math.sqrt(sum / data.length),
+        peak,
+        zeroCrossings
+      };
+    };
+    const captureStage = async (durationMs, statusText) => {
+      setMicWizardStatus(statusText);
+      const startedAt = performance.now();
+      const frames = [];
+      while (performance.now() - startedAt < durationMs) {
+        frames.push(captureFrame());
+        await new Promise((resolve) => window.setTimeout(resolve, 60));
       }
-      await new Promise((resolve) => window.setTimeout(resolve, 60));
+      return frames;
+    };
+    const averageMetric = (frames, key) =>
+      frames.reduce((total, frame) => total + Number(frame && frame[key] || 0), 0) / Math.max(1, frames.length);
+    const peakMetric = (frames, key) =>
+      frames.reduce((max, frame) => Math.max(max, Number(frame && frame[key] || 0)), 0);
+
+    const recordingMimeType = (window.MediaRecorder && window.MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))
+      ? "audio/webm;codecs=opus"
+      : ((window.MediaRecorder && window.MediaRecorder.isTypeSupported("audio/webm")) ? "audio/webm" : "");
+    const sampleChunks = [];
+    let sampleRecorder = null;
+    if (window.MediaRecorder) {
+      sampleRecorder = new MediaRecorder(stream, recordingMimeType ? { mimeType: recordingMimeType } : undefined);
+      sampleRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          sampleChunks.push(event.data);
+        }
+      };
     }
 
-    const avgRms = frames.reduce((total, frame) => total + frame.rms, 0) / Math.max(1, frames.length);
-    const maxPeak = frames.reduce((max, frame) => Math.max(max, frame.peak), 0);
-    const noiseFloor = noiseFrames.reduce((total, value) => total + value, 0) / Math.max(1, noiseFrames.length);
+    const noiseFrames = await captureStage(1800, "Mic Check Step 1 of 4: stay silent for room-noise analysis.");
+    await captureStage(300, "Mic Check Step 2 of 4: preparing normal voice check.");
+    if (sampleRecorder) {
+      sampleRecorder.start();
+    }
+    const voiceFrames = await captureStage(4200, "Mic Check Step 2 of 4: speak normally in your podcast voice.");
+    const loudFrames = await captureStage(2200, "Mic Check Step 3 of 4: now speak louder to test clip protection.");
+    if (sampleRecorder && sampleRecorder.state !== "inactive") {
+      await new Promise((resolve) => {
+        sampleRecorder.onstop = () => resolve();
+        sampleRecorder.stop();
+      });
+    }
+
+    const avgRms = averageMetric(voiceFrames, "rms");
+    const maxPeak = Math.max(peakMetric(voiceFrames, "peak"), peakMetric(loudFrames, "peak"));
+    const noiseFloor = averageMetric(noiseFrames, "rms");
+    const noiseCross = averageMetric(noiseFrames, "zeroCrossings");
+
+    if (avgRms < 0.008) {
+      setMicWizardStatus("No usable mic signal was detected. Check the selected microphone and browser permission.");
+      return;
+    }
 
     let gain = 100;
-    if (avgRms < 0.03) {
-      gain = 125;
-    } else if (maxPeak > 0.85) {
-      gain = 85;
+    const notes = [];
+    if (avgRms < 0.016) {
+      gain = 145;
+      notes.push("raised mic gain to 145%");
+    } else if (avgRms < 0.023) {
+      gain = 130;
+      notes.push("raised mic gain to 130%");
+    } else if (avgRms < 0.03) {
+      gain = 118;
+      notes.push("raised mic gain to 118%");
+    } else if (maxPeak > 0.96) {
+      gain = 72;
+      notes.push("reduced mic gain to 72% for clip safety");
+    } else if (maxPeak > 0.9) {
+      gain = 82;
+      notes.push("reduced mic gain to 82% to protect peaks");
     }
 
-    const noiseProfile = noiseFloor > 0.03 ? "high" : noiseFloor > 0.018 ? "medium" : "low";
+    const noiseProfile = noiseFloor > 0.03 || noiseCross > 180 ? "high" : noiseFloor > 0.018 || noiseCross > 130 ? "medium" : "low";
     const profile = NOISE_PROFILE_TO_VALUES[noiseProfile];
+    notes.push("set noise control to " + (noiseProfile === "high" ? "High" : noiseProfile === "medium" ? "Balanced" : "Low"));
+    if (maxPeak > 0.82) {
+      notes.push("kept limiter on");
+    }
     const tuned = window.TBRAuth.saveStudioSettings({
       micPreset: "custom",
       micInputGainPercent: gain,
@@ -1887,13 +2064,24 @@ async function runMicCheckWizard() {
     });
     syncSimpleMicControls(tuned);
     syncAdvancedMicControls(tuned);
-    setMicWizardStatus(
-      "Mic check complete: gain " +
-        gain +
-        "%, noise profile " +
-        noiseProfile +
-        ", loudness Podcast Standard."
-    );
+    if (sampleChunks.length) {
+      const sampleBlob = new Blob(sampleChunks, { type: recordingMimeType || "audio/webm" });
+      if (sampleBlob.size > 0) {
+        sampleUrl = URL.createObjectURL(sampleBlob);
+        sampleAudio = new Audio(sampleUrl);
+        sampleAudio.volume = 1;
+        sampleAudio.play().catch(() => {
+          // Ignore autoplay restrictions.
+        });
+      }
+    }
+    const summary = [
+      "Mic check complete",
+      "room noise " + formatMicNoiseProfileLabel(noiseProfile),
+      "voice level " + (avgRms < 0.02 ? "quiet" : avgRms > 0.05 ? "strong" : "balanced"),
+      "peak safety " + (maxPeak > 0.92 ? "protected" : "clear")
+    ];
+    setMicWizardStatus(summary.join(" | ") + ". Applied: " + notes.join(", ") + (sampleChunks.length ? ". Playing a short sample now." : "."));
     setMessage("Mic check complete. Suggested defaults applied.");
   } catch (error) {
     setMicWizardStatus("Mic check failed. Allow microphone access and try again.");
@@ -1906,6 +2094,18 @@ async function runMicCheckWizard() {
         // Ignore close races.
       });
     }
+    window.setTimeout(() => {
+      if (sampleAudio) {
+        try {
+          sampleAudio.pause();
+        } catch (error) {
+          // Ignore playback cleanup errors.
+        }
+      }
+      if (sampleUrl) {
+        URL.revokeObjectURL(sampleUrl);
+      }
+    }, 12000);
     micCheckWizardBtn.disabled = false;
   }
 }
@@ -1968,7 +2168,10 @@ saveSettingsBtn.addEventListener("click", async () => {
     chatSelfBubbleTheme: chatBubbleThemeSelect.value || "blue",
     recordingDefaultFormat: recordingFormatSelect.value || "video",
     recordingDefaultQuality: recordingQualitySelect.value || "standard",
+    recordingChannelMode: recordingChannelModeSelect && recordingChannelModeSelect.value === "mono" ? "mono" : "stereo",
+    recordingSampleRateHz: recordingSampleRateSelect && Number(recordingSampleRateSelect.value) === 44100 ? 44100 : 48000,
     recordingNamePattern: recordingNamePatternSelect.value || "show-date",
+    recordingDefaultName: String(recordingDefaultNameInput && recordingDefaultNameInput.value || "").trim(),
     recordingDefaultCountdownSeconds: (() => {
       const value = Number(recordingCountdownSecondsSelect.value);
       return value === 3 || value === 5 || value === 10 ? value : 3;
@@ -1981,6 +2184,14 @@ saveSettingsBtn.addEventListener("click", async () => {
     recordingMusicAutoFadeInDurationSeconds: getClampedSettingsSelectValue(recordingAutoFadeInDurationSecondsSelect, 1, 20, 2),
     recordingMusicAutoFadeOutStartSeconds: getClampedSettingsSelectValue(recordingAutoFadeOutStartSecondsSelect, 1, 30, 5),
     recordingMusicAutoFadeOutDurationSeconds: getClampedSettingsSelectValue(recordingAutoFadeOutDurationSecondsSelect, 1, 20, 5),
+    exportFormat: String(exportFormatSelect && exportFormatSelect.value || "mp3").trim().toLowerCase(),
+    exportQualityPreset: String(exportQualityPresetSelect && exportQualityPresetSelect.value || "premium").trim().toLowerCase(),
+    exportBitrateKbps: (() => {
+      const value = Number(exportBitrateKbpsSelect && exportBitrateKbpsSelect.value);
+      return value === 128 || value === 192 || value === 256 ? value : 320;
+    })(),
+    exportSampleRateHz: exportSampleRateSelect && Number(exportSampleRateSelect.value) === 44100 ? 44100 : 48000,
+    exportChannelMode: exportChannelModeSelect && exportChannelModeSelect.value === "mono" ? "mono" : "stereo",
     uiContainerMode: containersLightToggle.checked ? "light" : "dark",
     cameraAutoStart: cameraAutoStartToggle.checked,
     cameraBackgroundMode: draftStudioSettings.cameraBackgroundMode || "off",

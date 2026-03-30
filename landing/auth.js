@@ -1603,6 +1603,177 @@
     }
   }
 
+  async function fetchMediaAssetBlob(assetId) {
+    const session = getSession();
+    if (!session) {
+      return { ok: false, error: "Not signed in.", blob: null };
+    }
+    const normalizedAssetId = String(assetId || "").trim();
+    if (!normalizedAssetId) {
+      return { ok: false, error: "Asset id is required.", blob: null };
+    }
+    const baseUrl = getRealtimeBaseUrl();
+    const fallbackUrl = getDefaultRealtimeBaseUrl();
+    const canFallbackToDefault = baseUrl !== fallbackUrl;
+    const buildRequest = (targetBaseUrl, signal) =>
+      fetch(
+        targetBaseUrl + "/media/download?assetId=" + encodeURIComponent(normalizedAssetId),
+        {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + session.token
+          },
+          signal
+        }
+      );
+    try {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timeoutId = controller
+        ? window.setTimeout(() => {
+            controller.abort();
+          }, 12000)
+        : 0;
+      let response;
+      try {
+        response = await buildRequest(baseUrl, controller ? controller.signal : undefined);
+      } catch (networkError) {
+        if (!canFallbackToDefault) {
+          throw networkError;
+        }
+        response = await buildRequest(fallbackUrl, controller ? controller.signal : undefined);
+        try {
+          localStorage.setItem(REALTIME_URL_KEY, fallbackUrl);
+        } catch (error) {
+          // Ignore storage write failures.
+        }
+      }
+      if (!response.ok && canFallbackToDefault) {
+        response = await buildRequest(fallbackUrl, controller ? controller.signal : undefined);
+        try {
+          localStorage.setItem(REALTIME_URL_KEY, fallbackUrl);
+        } catch (error) {
+          // Ignore storage write failures.
+        }
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        return {
+          ok: false,
+          error: errorText || ("Media download failed with status " + response.status + "."),
+          blob: null
+        };
+      }
+      const blob = await response.blob();
+      return {
+        ok: true,
+        blob
+      };
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return {
+          ok: false,
+          error: "Media download timed out.",
+          blob: null
+        };
+      }
+      return {
+        ok: false,
+        error: error && error.message ? error.message : "Unable to load media asset.",
+        blob: null
+      };
+    }
+  }
+
+  async function exportMediaAssetBlob(assetId, options) {
+    const session = getSession();
+    if (!session) {
+      return { ok: false, error: "Not signed in.", blob: null };
+    }
+    const normalizedAssetId = String(assetId || "").trim();
+    if (!normalizedAssetId) {
+      return { ok: false, error: "Asset id is required.", blob: null };
+    }
+    const baseUrl = getRealtimeBaseUrl();
+    const fallbackUrl = getDefaultRealtimeBaseUrl();
+    const canFallbackToDefault = baseUrl !== fallbackUrl;
+    const payload = {
+      assetId: normalizedAssetId,
+      ...(options && typeof options === "object" ? options : {})
+    };
+    const buildRequest = (targetBaseUrl, signal) =>
+      fetch(targetBaseUrl + "/media/export-transcode", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + session.token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        signal
+      });
+    try {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timeoutId = controller
+        ? window.setTimeout(() => {
+            controller.abort();
+          }, 120000)
+        : 0;
+      let response;
+      try {
+        response = await buildRequest(baseUrl, controller ? controller.signal : undefined);
+      } catch (networkError) {
+        if (!canFallbackToDefault) {
+          throw networkError;
+        }
+        response = await buildRequest(fallbackUrl, controller ? controller.signal : undefined);
+        try {
+          localStorage.setItem(REALTIME_URL_KEY, fallbackUrl);
+        } catch (error) {
+          // Ignore storage write failures.
+        }
+      }
+      if (!response.ok && canFallbackToDefault) {
+        response = await buildRequest(fallbackUrl, controller ? controller.signal : undefined);
+        try {
+          localStorage.setItem(REALTIME_URL_KEY, fallbackUrl);
+        } catch (error) {
+          // Ignore storage write failures.
+        }
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        return {
+          ok: false,
+          error: errorText || ("Media export failed with status " + response.status + "."),
+          blob: null
+        };
+      }
+      const blob = await response.blob();
+      return {
+        ok: true,
+        blob
+      };
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return {
+          ok: false,
+          error: "Media export timed out.",
+          blob: null
+        };
+      }
+      return {
+        ok: false,
+        error: error && error.message ? error.message : "Unable to export media asset.",
+        blob: null
+      };
+    }
+  }
+
   async function startForgotPassword(username) {
     try {
       const payload = await apiRequest("/auth/forgot-password/start", {
@@ -1677,7 +1848,15 @@
       chatSelfBubbleTheme: "blue",
       recordingDefaultFormat: "video",
       recordingDefaultQuality: "standard",
+      recordingChannelMode: "stereo",
+      recordingSampleRateHz: 48000,
       recordingNamePattern: "show-date",
+      recordingDefaultName: "",
+      exportFormat: "mp3",
+      exportQualityPreset: "premium",
+      exportBitrateKbps: 320,
+      exportSampleRateHz: 48000,
+      exportChannelMode: "stereo",
       recordingDefaultCountdownSeconds: 3,
       recordingSafetyAutoStopMinutes: 0,
       recordingAutoSplitMinutes: 0,
@@ -1790,6 +1969,8 @@
     uploadMediaBytes,
     completeMediaUpload,
     requestMediaDownload,
+    fetchMediaAssetBlob,
+    exportMediaAssetBlob,
     deleteCurrentUser,
     clearChatHistoryForAdmin,
     changePassword,

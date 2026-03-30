@@ -1,9 +1,9 @@
 # Session Notes - 2026-03-24
 
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 
 ## Purpose
-This is the current restart note after the Review Cut stabilization pass.
+This is the current restart note.
 
 Use this as the newest implementation handoff.
 
@@ -58,6 +58,11 @@ Important lesson:
 - `landing/hello.html`
 - `landing/hello.js`
 - `landing/styles.css`
+- `landing/auth.js`
+- `landing/recording-controller.js`
+- `landing/recording-capture.js`
+- `landing/onair-library-bridge.js`
+- `landing/review-cut-noise-tools.js`
 - `landing/review-cut-state.js`
 - `landing/review-cut-render.js`
 - `landing/review-cut-playback.js`
@@ -69,9 +74,96 @@ Important lesson:
 - `landing/review-cut-session-controller.js`
 - `landing/auth.js`
 - `realtime/server.js`
+- `realtime/Dockerfile`
+- `realtime/nixpacks.toml`
 - `docs/DFS_PHASE_STATUS.md`
 
+## Legacy Page Warning
+Do not restart from the old standalone pages.
+
+Reality:
+- `landing/hello.html` is the live app
+- `landing/profile.html` is archive-only legacy
+- `landing/help.html` is archive-only legacy
+- `landing/settings.html` is not a standalone product path anymore; it only survives as the embedded iframe-backed Settings surface launched from `landing/hello.html`
+
+Future cleanup direction:
+- treat `settings.*`, `profile.*`, and `help.*` as legacy dependencies to reduce later
+- do not route new feature work into those old page flows
+
+## Current Show-Library State
+The show-library path was partially implemented first through asset metadata, but that was not durable enough for real workflow ownership.
+
+What failed:
+- recordings and Review Cut saves could appear under `All Shows`
+- filtering by a user-created show like `Turnbuckle Report` did not reliably return those assets
+- the UI implied strong organization behavior before the backend contract was strong enough
+
+Corrected direction:
+- `studio_library_assets` now needs a real `show_library_id` field
+- show filtering should use that first-class column, not `metadata->>'showLibraryId'`
+- frontend save flows should send `showLibraryId` explicitly during both upload ticket creation and upload finalization
+
+What was changed locally on 2026-03-27:
+- `realtime/server.js`
+  - adds `show_library_id` to `studio_library_assets` if missing
+  - adds an index on `(show_library_id, library_kind, created_at desc)`
+  - backfills `show_library_id` from existing `metadata.showLibraryId` where possible
+  - `listLibraryAssetsDb(...)` filters by `show_library_id`
+  - asset create/get/finalize queries now return `showLibraryId`
+  - upload ticket creation and upload completion both accept/store `showLibraryId`
+- `landing/hello.js`
+  - explicit save-target selectors exist for:
+    - `Recording save to`
+    - `Review Cut -> Save to show`
+  - upload requests now send `showLibraryId` as a first-class value
+
+Current handoff caution:
+- this is implemented locally, but still requires live validation after deploy
+- do not claim the show-library workflow is complete until a fresh save is verified under a specific show filter on the live site
+
 ## What Was Completed
+
+### Audio-first fidelity and export pass
+- recording defaults now include:
+  - channel mode
+  - sample rate
+- export defaults now include:
+  - format
+  - quality preset
+  - bitrate
+  - sample rate
+  - channel mode
+- audio-only recording path now captures a WAV master from the mixed recording bus instead of relying only on lossy browser `MediaRecorder` audio chunks
+- `Episodes` export now uses a backend transcode path for:
+  - `MP3`
+  - `M4A`
+  - `MP4`
+- backend export now depends on Railway running with `ffmpeg`
+- `realtime/Dockerfile` was added so Railway can install `ffmpeg` consistently
+- default MP3 export quality was raised materially:
+  - default preset now aims at premium quality
+  - bitrate mapping is stronger
+  - backend MP3 path now uses a stronger LAME quality mode for premium export
+
+### Recording flow stabilization
+- recording stop/save/review sequencing was tightened
+- the stop path now waits for Post-Production save completion before the workflow advances
+- this reduced the previous “loose” feeling where Review Cut and library state could move ahead before save had settled
+
+### Mic Check redesign
+- Mic Check is no longer just one vague listen pass
+- staged flow now exists in both Settings and preflight:
+  - room-noise check
+  - normal speaking check
+  - louder speaking / clip check
+  - short playback sample
+- Mic Check now reports what it changed instead of silently landing on the same coarse result
+
+### Review Cut modularization and diagnostics
+- noise-detection / overlay logic was split out of `hello.js` into:
+  - `landing/review-cut-noise-tools.js`
+- this supports the rule that new specialty logic should not be merged into `hello.js` if a safe extracted seam exists
 
 ### Review Cut stabilization pass
 - selection-mode freeze was traced to a real stack overflow and fixed
@@ -114,6 +206,11 @@ Important lesson:
   - episode: `showname-YYYY-MM-DD-episode`
   - audio export: `showname-YYYY-MM-DD-audio.wav`
 
+### Live settings path correction
+- one false assumption was corrected during this session:
+  - `landing/settings.html` still exists, but the live Settings experience is opened from `landing/hello.html` inside an iframe modal
+- the modal source in `landing/hello.js` now cache-busts the iframe URL so fresh Settings changes actually appear live after upload
+
 ## Current Verified Behavior
 - Review Cut feels materially smoother than the earlier rewrite handoff
 - zoom/play follow is much tighter and more usable in real editing
@@ -124,6 +221,26 @@ Important lesson:
 - only one of the `Library` / `Audio Controls` drawers can be open at a time
 - `Post-Production` / `Episodes` action rows are no longer generic placeholders
 - after the `RECORDING_DEMO_MODE` init-order fix, page startup is functional again and core click paths respond normally
+- Review Cut split/delete clip targeting is improved enough that the correct right-side clip can now be selected and moved independently
+
+## Current Validation Gap
+Still needs live validation after deploy:
+- fresh audio-only recording quality after the new WAV-master capture path
+- `Episodes` export for:
+  - `MP3`
+  - `M4A`
+  - `MP4`
+- premium MP3 quality after Railway restart with `ffmpeg`
+- save a new recording with `Recording save to` set to a specific show
+- confirm it appears under that show in `Post-Production`
+- save a Review Cut draft with `Save to show` set to a specific show
+- confirm it appears under that show in `Post-Production`
+- save to `Episodes` with `Save to show` set
+- confirm it appears under that show in `Episodes`
+
+Until that is confirmed:
+- the show-library path should be treated as implemented but not yet production-verified
+- the new export/master-audio path should be treated as implemented but not yet production-verified
 
 ## Current Wiring State
 What is wired now:
@@ -136,6 +253,13 @@ What is wired now:
 5. `Episodes` drawer row can:
    - export audio
    - delete the saved episode
+
+Additional current state:
+- audio-only recording now prefers a WAV master source
+- `Episodes` export no longer needs to stop at raw WAV-only browser download
+- export intent is now:
+  - internal higher-quality master
+  - delivery transcode at export time
 
 What this depends on:
 - Railway realtime service must have working R2 write credentials
@@ -169,6 +293,25 @@ Current practical behavior:
 - `Episodes` is now partially real
 - export should move toward `Episodes` as the primary shelf
 - the old control-room export surface still exists and is now partially redundant
+
+## Current Next Work
+Immediate next validation work:
+1. record a fresh audio-only take with:
+   - `Stereo`
+   - `48 kHz`
+2. save it into `Post-Production`
+3. open in Review Cut
+4. save to `Episodes`
+5. export:
+   - `MP3`
+   - `M4A`
+   - `MP4`
+6. confirm quality and show-library filtering on new assets
+
+Likely next implementation items after validation:
+- `Move to Show` for reassignment of existing assets
+- clearer export UX/status when backend transcode is in flight
+- continued audio fidelity validation for guest/live mix paths
 
 ## Live Music Control Decision
 The Control Room music section needs explicit playback roles instead of label-driven cue categories.
@@ -250,6 +393,21 @@ Build path:
 7. later, add management polish:
    - rename/archive show libraries
    - better create/edit UI than prompt-based creation
+
+## Low-Risk Split Map Logged
+For the next `hello.js` breakup pass, do not improvise the next files.
+
+Use:
+- [DFS_LOW_RISK_JS_SPLIT_MAP.md](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/DFS_LOW_RISK_JS_SPLIT_MAP.md)
+
+Current safest remaining order:
+1. `landing/onair-audio-state.js`
+2. `landing/onair-audio-mix-controller.js`
+3. `landing/onair-active-cues-controller.js`
+4. browser verification
+5. `landing/onair-cue-playback-controller.js`
+6. browser verification
+7. `landing/onair-music-panel-controller.js`
 
 ## Storage Direction
 Use Railway Postgres plus the existing shared media storage path.

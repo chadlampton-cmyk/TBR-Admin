@@ -34,6 +34,7 @@ Default local URL:
 
 Requires:
 - Node 18+
+- FFmpeg for MP3/M4A/MP4 episode export transcoding
 
 ## Railway Deploy
 Deploy this service from inside `realtime/`, or explicitly set that folder as the root:
@@ -42,6 +43,8 @@ Deploy this service from inside `realtime/`, or explicitly set that folder as th
 cd realtime
 railway up . --path-as-root
 ```
+
+`realtime/Dockerfile` installs `ffmpeg` for Railway builds. Redeploy after backend media-export changes so the export route can transcode MP3, M4A, and MP4.
 
 Do not deploy the repo root to Railway. The root does not contain the backend `package.json` Railpack expects.
 

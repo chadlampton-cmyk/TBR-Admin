@@ -1,6 +1,6 @@
 # DFS Docs Index
 
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 
 ## Purpose
 This folder is the current handoff layer for the live DFS build.
@@ -32,6 +32,10 @@ For a clean restart, read these in order:
 - [hello.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/hello.html)
 - [hello.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/hello.js)
 - [styles.css](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/styles.css)
+- [auth.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/auth.js)
+- [recording-controller.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/recording-controller.js)
+- [recording-capture.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/recording-capture.js)
+- [onair-library-bridge.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/onair-library-bridge.js)
 - [review-cut-state.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-state.js)
 - [review-cut-render.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-render.js)
 - [review-cut-playback.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-playback.js)
@@ -41,6 +45,7 @@ For a clean restart, read these in order:
 - [review-cut-interaction-controller.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-interaction-controller.js)
 - [review-cut-media-controller.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-media-controller.js)
 - [review-cut-session-controller.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-session-controller.js)
+- [review-cut-noise-tools.js](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/review-cut-noise-tools.js)
 
 ## Current Resume Snapshot
 What is done:
@@ -53,12 +58,20 @@ What is done:
 - empty `Review Cut` can now open without a recording and be seeded with inserted audio starting on `T1`
 
 What is next:
-- validate the storage-backed workflow live after the R2 RW credential fix
+- validate fresh audio-only takes after the new WAV-master recording path
+- validate Railway-backed `MP3` / `M4A` / `MP4` export after `ffmpeg` deploy
+- validate the show-library save/filter path live on newly created assets
 - decide draft overwrite/version semantics for `Post-Production`
-- clean up control-room/export redundancy now that `Episodes` owns export better
-- continue Review Cut polish where it materially improves trust
 - continue `Active Cues` fit and polish
 - validate guest audio behavior against live and recorded output
+
+## Legacy Warning
+Do not restart from the old standalone pages.
+
+- [settings.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/settings.html) is no longer a standalone product page; it only survives as the embedded iframe-backed Settings surface launched from `hello.html`
+- [profile.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/profile.html) is archive / legacy only
+- [help.html](/Users/chadlampton/Documents/Websites/TBR-Admin/landing/help.html) is archive / legacy only
+- active work belongs in `hello.*` and the extracted modules, not by reviving those old page flows
 
 ## Locked Reference
 - [AUDIO_CONTROLS_WIREFRAME.html](/Users/chadlampton/Documents/Websites/TBR-Admin/docs/AUDIO_CONTROLS_WIREFRAME.html)

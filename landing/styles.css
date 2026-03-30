@@ -7012,6 +7012,13 @@ body.ui-light .camera-placeholder {
   color: #9fb2c4;
 }
 
+.onair-review-panel-head-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
 .onair-review-inspector-card {
   padding: 0.8rem;
   display: grid;
@@ -7135,6 +7142,66 @@ body.ui-light .camera-placeholder {
   line-height: 1.1;
   text-align: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.onair-review-noise-readout {
+  min-width: 90px;
+}
+
+.onair-review-noise-readout.low {
+  border-color: rgba(165, 198, 224, 0.24);
+  color: #c7d6e4;
+}
+
+.onair-review-noise-readout.medium {
+  border-color: rgba(214, 174, 103, 0.32);
+  color: #f0d19a;
+}
+
+.onair-review-noise-readout.high {
+  border-color: rgba(255, 137, 104, 0.42);
+  color: #ffbeab;
+}
+
+.onair-review-noise-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.onair-review-noise-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(162, 188, 211, 0.16);
+  background: rgba(10, 16, 23, 0.6);
+  color: #c8d8e6;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.onair-review-noise-chip::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.onair-review-noise-chip.low::before {
+  background: rgba(172, 182, 196, 0.82);
+}
+
+.onair-review-noise-chip.medium::before {
+  background: rgba(236, 178, 98, 0.9);
+}
+
+.onair-review-noise-chip.high::before {
+  background: rgba(255, 126, 92, 0.94);
 }
 
 .onair-review-wave-shell {
@@ -7391,6 +7458,26 @@ body.ui-light .camera-placeholder {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.onair-review-save-select-wrap {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 170px;
+}
+
+.onair-review-save-select-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(186, 204, 220, 0.76);
+}
+
+.onair-review-save-select {
+  min-width: 170px;
+  height: 38px;
+  padding-top: 0.42rem;
+  padding-bottom: 0.42rem;
 }
 
 .onair-review-close-icon {

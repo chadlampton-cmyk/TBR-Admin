@@ -27,24 +27,24 @@
         cfg.setRecordingState?.(false, ready, cfg.sessionUsername);
         if (ready) {
           cfg.beginRecordingProcessingPhase?.();
-          cfg.saveCurrentRecordingToPostProduction?.()
-            .then((asset) => {
-              if (!asset) {
-                return;
-              }
-              cfg.setOnAirMediaStatus?.("Recording saved to Post-Production as " + String(asset.title || "draft") + ".");
-              if (cfg.getRecordingWorkflowState?.() !== "processing") {
-                cfg.setOnAirReviewStatus?.(
-                  "Recording saved to Post-Production. Open Review Cut to polish the draft or return to the library later."
-                );
-              }
-            })
-            .catch((error) => {
-              cfg.setOnAirMediaStatus?.(
-                (error && error.message ? error.message : "Recording saved locally but could not be pushed to Post-Production.") +
-                " The local review asset is still available in this browser."
-              );
-            });
+          let savedAsset = null;
+          let saveError = null;
+          try {
+            savedAsset = await cfg.saveCurrentRecordingToPostProduction?.();
+            if (savedAsset) {
+              cfg.setOnAirMediaStatus?.("Recording saved to Post-Production as " + String(savedAsset.title || "draft") + ".");
+            } else {
+              cfg.setOnAirMediaStatus?.("Recording finalized. Review Cut is ready.");
+            }
+          } catch (error) {
+            saveError = error;
+            cfg.setOnAirMediaStatus?.(
+              (error && error.message ? error.message : "Recording saved locally but could not be pushed to Post-Production.") +
+              " The local review asset is still available in this browser."
+            );
+          } finally {
+            cfg.finishRecordingProcessingPhase?.({ savedAsset, saveError });
+          }
         } else {
           cfg.setRecordingWorkflowState?.("ready");
         }

@@ -1,6 +1,6 @@
 # DFS Phase Status
 
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 
 ## Purpose
 Track the current build state of the active DFS prototype.
@@ -43,15 +43,17 @@ Implemented:
 - audio controls drawer
 - library/audio drawers now behave as mutually exclusive panels
 - active show-library selector shell
+- recording save-target selector
 - library show filter shell
 
 Current caveats:
-- show-library flow needs browser validation end to end
-- show creation currently uses prompt-based UI and still needs polish
+- show-library flow now has a real backend field path in progress, but still needs end-to-end live validation
+- show creation now uses an in-app modal rather than browser prompt
+- recording -> save -> Review Cut flow was tightened this session, but still needs repeated live validation to confirm it feels deterministic
 
 ### Recording / Review / Export
 Status:
-- stable browser-side audio editing baseline with storage-backed workflow partially wired
+- usable audio-first workflow with backend export path now in progress
 
 Implemented:
 - countdown
@@ -72,18 +74,44 @@ Implemented:
 - `Post-Production` rows with `Review Cut` and `Delete`
 - Review Cut `Save Draft`
 - Review Cut `Save to Episodes`
+- Review Cut explicit save-target selector for show assignment
 - `Episodes` row `Export Audio`
 - `Episodes` row `Delete`
 - naming aligned closer to the configured recording-name pattern
+- Review Cut split/delete clip targeting and clip drag behavior improved
+- recording stop/save flow now waits for Post-Production save completion before advancing workflow
+- recording defaults now include:
+  - format
+  - quality
+  - channel mode
+  - sample rate
+- export defaults now include:
+  - format
+  - quality preset
+  - bitrate
+  - sample rate
+  - channel mode
+- `Episodes` export now routes through a backend transcode endpoint instead of only downloading the raw shelf asset
+- backend export route now targets:
+  - `MP3`
+  - `M4A`
+  - `MP4`
+- audio-only recording path now captures a WAV master from the mixed recording bus instead of relying only on lossy browser audio chunks
+- staged Mic Check now exists in both Settings and preflight:
+  - room noise
+  - normal voice
+  - louder voice / clip check
+  - short playback sample
 
 Current caveats:
-- browser-side pipeline
-- not backend-mastered
 - recording path is still effectively local + one remote stream path
 - control-room/export wording still trails the intended workflow
 - storage-backed saves depend on working R2 RW credentials and need live validation after credential updates
+- show-library save/filter workflow now depends on the new first-class `show_library_id` backend path and still needs live validation after deploy
 - `Post-Production` / `Episodes` still behave as asset rows, not richer grouped editorial objects
 - edited video export is still not implemented
+- backend export requires Railway to run with `ffmpeg`
+- MP3 quality was improved this session, but fresh validation is still required on newly recorded audio-only takes after the WAV-master capture change
 
 ### Audio Controls / Live Mix
 Status:
@@ -111,7 +139,7 @@ Still in progress:
 
 ### Historical Standalone Pages
 Status:
-- retained only for history / legacy support
+- retained only for legacy support and embedded compatibility
 
 Files:
 - `landing/settings.*`
@@ -119,29 +147,30 @@ Files:
 - `landing/help.*`
 
 Note:
-- these should not be treated as the current implementation center
-- product direction treats them as historical-only pages/code
-- `hello.*` still has some legacy dependencies on them, so cleanup is not fully complete
+- `landing/profile.*` and `landing/help.*` are archive-only legacy pages
+- `landing/settings.*` should not be treated as a standalone app page; it currently survives only as the embedded iframe-backed Settings surface launched from `landing/hello.html`
+- future work should treat these as legacy dependencies to reduce later, not as new feature centers
 
 ## Current Priority Order
-1. validate show-library create/select/filter flow live
-2. validate end-to-end save/export reliability live after R2 RW credential fix
-3. clean up control-room/export redundancy now that `Episodes` owns export better
-4. decide draft versioning / overwrite semantics for `Post-Production`
-5. stabilize Audio Controls behavior
-6. finish active cue UI polish
-7. validate guest audio behavior against the real mix path
-8. validate recording output against live behavior
+1. validate fresh audio-only recording quality after the WAV-master capture change
+2. validate Railway-backed `Episodes` export for `MP3`, `M4A`, and `MP4`
+3. validate the first-class `show_library_id` save/filter flow live
+4. decide whether to add `Move to Show` for reassignment of existing assets
+5. decide draft versioning / overwrite semantics for `Post-Production`
+6. stabilize Audio Controls behavior
+7. finish active cue UI polish
+8. validate guest audio behavior against the real mix path
 9. remove or isolate legacy page dependencies from `hello`
 10. add video Review Cut / audio+video episode workflow later
 
 ## Current Biggest Gaps
-- save/export workflow now exists but still needs live validation with working shared-storage credentials
+- save/export workflow now exists but still needs live validation with working shared-storage credentials and working Railway transcode support
+- show-library organization now has the correct backend direction, but still needs live proof on fresh saves
 - `Episodes` and `Post-Production` are meaningful now, but still shallow editorial shelves
 - Review Cut still needs final finish polish, but it is no longer the main blocker
 - guest slider behavior still needs full live/recording validation
 - recording/compositor still centers on one remote stream
-- live UI capabilities are ahead of recording fidelity in some areas
+- live UI capabilities are still slightly ahead of recording fidelity validation
 
 ## Codebase Protection Direction
 - do not attempt a broad rewrite of `landing/hello.js` or `realtime/server.js`
